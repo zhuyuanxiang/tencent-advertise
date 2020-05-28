@@ -5,7 +5,7 @@
 @site       :   https://zhuyuanxiang.github.io
 ---------------------------
 @Software   :   PyCharm
-@Project    :   deep-learning-with-python-notebooks
+@Project    :   tencent-advertise
 @File       :   tencent_mlp.py
 @Version    :   v0.1
 @Time       :   2020-05-26 17:07
@@ -54,24 +54,20 @@ X_data = df[[
         "advertiser_id",
         "industry",
 ]].values
+data_shape = (7,)
 X = X_data
 y = y_data
 max_len = len(y_data)
 
 from sklearn.model_selection import train_test_split
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed,stratify = y)
 train_len = len(y_train)
 test_len = len(y_test)
 print("\t训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % (train_len, test_len))
 
 # # 编码目标数据，使用 sklearn 的 One-Hot 编码
-# from sklearn.preprocessing import OneHotEncoder
-#
-# enc = OneHotEncoder()
-# y_one_hot = enc.fit_transform(np.concatenate((y_train, y_test)).reshape(-1, 1)).toarray()
-# y_train_one_hot = y_one_hot[:train_len]
-# y_test_one_hot = y_one_hot[train_len:]
+# 取消 One-Hot 编码，因为使用其他损失函数即可
 
 print("* 归一化输入数据...")
 # StandardScaler    ：确保每个特征的平均值为0，方差为1，使所有特征都位于同一量级。
@@ -82,9 +78,9 @@ print("* 归一化输入数据...")
 #                       因此，只关注数据的方向（或角度），不关注数据的长度。
 
 
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler,StandardScaler
 
-scaler = MinMaxScaler()
+scaler = StandardScaler()
 scaler.fit(X_train)
 X_train_scaled = scaler.transform(X_train)
 X_test_scaled = scaler.transform(X_test)
@@ -94,7 +90,7 @@ X_test_scaled = scaler.transform(X_test)
 
 print("* 构建 MLP 网络")
 model = keras.Sequential()
-model.add(keras.layers.Dense(128, activation = keras.activations.relu, input_shape = (7,)))
+model.add(keras.layers.Dense(128, activation = keras.activations.relu, input_shape = data_shape))
 # model.add(keras.layers.Dropout(0.2))
 # model.add(keras.layers.Dense(128, activation = keras.activations.relu))
 # model.add(keras.layers.Dropout(0.2))
@@ -108,9 +104,14 @@ model.add(keras.layers.Dense(1, activation = keras.activations.sigmoid))
 model.summary()
 
 print("* 编译模型")
+# 对「age」字段进行学习
 model.compile(optimizer = keras.optimizers.RMSprop(lr = 0.0001),
-              loss = keras.losses.sparse_categorical_crossentropy,
-              metrics = [keras.metrics.sparse_categorical_accuracy])
+              loss = keras.losses.binary_crossentropy,
+              metrics = [keras.metrics.binary_accuracy])
+# # 对「gender」字段进行学习
+# model.compile(optimizer = keras.optimizers.RMSprop(lr = 0.0001),
+#               loss = keras.losses.sparse_categorical_crossentropy,
+#               metrics = [keras.metrics.sparse_categorical_accuracy])
 
 print("* 验证模型→留出验证集")
 split_number = 20000
@@ -131,7 +132,7 @@ print("* 训练模型")
 # # 模型越复杂，精度有时可以提高，但是过拟合出现的时间就越早
 # # epochs = 9 就出现过拟合了，训练集的精度越来越高，测试集的精度开始下降
 # # verbose: Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
-model.fit(partial_X_train_scaled, partial_y_train, epochs = 50, batch_size = 10240,
+model.fit(partial_X_train_scaled, partial_y_train, epochs = 50, batch_size = 1024,
           validation_data = (X_val_scaled, y_val), use_multiprocessing = True, verbose = 2)
 print("\t模型预测-->", end = '')
 results = model.evaluate(X_test_scaled, y_test, verbose = 0)
