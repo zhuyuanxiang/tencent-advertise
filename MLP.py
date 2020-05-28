@@ -36,6 +36,8 @@ assert np.__version__ in ["1.16.5", "1.16.4"]
 
 print("* 加载数据集...")
 
+# 「CSV」文件字段名称
+# "creative_id","click_times","ad_id","product_id","product_category","advertiser_id","industry",
 filename = './data/all_log_300k.csv'
 df = pd.read_csv(filename)
 
