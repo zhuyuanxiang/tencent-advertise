@@ -1,60 +1,39 @@
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：杨立昆的粉丝
-# 开发时间：2020/5/27 23:12
-# 开发工具：JetBrains
-# 开发理念：Rm-Rn is reality
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：杨立昆的粉丝
-# 开发时间：2020/5/27 22:31
-# 开发工具：JetBrains
-# 开发理念：Rm-Rn is reality
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：杨立昆的粉丝
-# 开发时间：2020/5/10 9:08
-# 开发工具：JetBrains
-# 开发理念：Rm-Rn is reality
-# xgboost对于年龄的预测准确率是85.29，比nn的80要强一些，但这是为什么
-
-# xgboost对于年龄极限的预测是25.6
-import sklearn
-import numpy as np
-from scipy import linalg
-from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
-from sklearn.datasets import fetch_olivetti_faces
-
-print(sklearn.__file__)
+# -*- encoding: utf-8 -*-
+"""
+@Author     :
+@Contact    :
+@site       :
+---------------------------
+@Software   :   PyCharm
+@Project    :   tencent-advertise
+@File       :   年龄预测无正则化.py
+@Version    :   v0.1
+@Time       :   2020-05-26 17:07
+@License    :   (C)Copyright 2018-2020,
+@Reference  :
+@Desc       :
+xgboost对于年龄的预测准确率是85.29，比nn的80要强一些，但这是为什么
+xgboost对于年龄极限的预测是25.6
+"""
 import time
 import xgboost as xgb
-from xgboost import plot_importance, plot_tree
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from sklearn.datasets import load_boston
 import matplotlib
 
 matplotlib.use('TkAgg')  # 'TkAgg' can show GUI in imshow()
-# matplotlib.use('Agg')  # 'Agg' will not show GUI
-from matplotlib import pyplot as plt
-import os
-
 
 # ================基于XGBoost原生接口的分类=============
 def exp1():
     # 加载样本数据集
 
-    import math
     import numpy as np
     import pandas as pd
     from sklearn import preprocessing
     from sklearn.model_selection import train_test_split
     # 「CSV」文件字段名称
     # "creative_id","click_times","ad_id","product_id","product_category","advertiser_id","industry",
-    csv_data = pd.read_csv("./年龄性别数据.csv")
+    filename = './data/all_log_300k.csv'
+    csv_data = pd.read_csv(filename)
     csv_data = np.array(csv_data)
     print(csv_data.shape)
     csv_data = csv_data[:1500000, :]
