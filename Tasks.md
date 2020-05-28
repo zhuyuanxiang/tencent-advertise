@@ -19,3 +19,4 @@
        -  "creative_id","click_times","ad_id","product_id","product_category","advertiser_id","industry",
        -  "age" 和 "gender" 的权重结果是一样的
        -  ![权重列表](.Tasks_images/权重列表.png)
+       -  ![素材与广告的关联](.Tasks_images/素材与广告的关联.png)
