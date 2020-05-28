@@ -1,30 +1,19 @@
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：杨立昆的粉丝
-# 开发时间：2020/5/27 22:18
-# 开发工具：JetBrains
-# 开发理念：Rm-Rn is reality
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：杨立昆的粉丝
-# 开发时间：2020/5/27 21:52
-# 开发工具：JetBrains
-# 开发理念：Rm-Rn is reality
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：杨立昆的粉丝
-# 开发时间：2020/5/25 10:31
-# 开发工具：JetBrains
-# 开发理念：Rm-Rn is reality
-# _*_coding: UTF-8_*_
-# 开发团队：Grophysics
-# 开发人员：风清扬
-# 开发时间：2019/12/25 20:26
-# 文件名称：可视化框架测试.PY
-# 开发工具：独孤九剑
-# 开发理念：Rm-Rn is reality
-
-# 准确率上限是0.219
+# -*- encoding: utf-8 -*-
+"""
+@Author     :
+@Contact    :
+@site       :
+---------------------------
+@Software   :   PyCharm
+@Project    :   tencent-advertise
+@File       :   年龄预测无正则化.py
+@Version    :   v0.1
+@Time       :   2020-05-26 17:07
+@License    :   (C)Copyright 2018-2020,
+@Reference  :
+@Desc       :
+准确率上限是0.219
+"""
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -34,7 +23,8 @@ from sklearn.model_selection import train_test_split
 
 # 「CSV」文件字段名称
 # "creative_id","click_times","ad_id","product_id","product_category","advertiser_id","industry",
-csv_data = pd.read_csv("./年龄性别数据.csv")
+filename = './data/all_log_300k.csv'
+csv_data = pd.read_csv(filename)
 csv_data = np.array(csv_data)
 print(csv_data.shape)
 csv_data = csv_data[:1500000, :]
@@ -54,7 +44,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, strat
 y_train = y_train.astype(np.float)
 y_test = y_test.astype(np.float)
 
-print(y_train.shape)
+print("y_train.shape =",y_train.shape)
 
 max_steps = 50000
 learing_rate = 0.00007
@@ -64,12 +54,14 @@ log_dir = 'log_dir'
 
 def create_layer(input_tensor, input_num, output_num, layer_name, act = tf.nn.relu):
     with tf.name_scope(layer_name):
+        # 随机生成权重与偏置的值
         with tf.name_scope('weights'):
             weights = tf.Variable(tf.truncated_normal([input_num, output_num], stddev = 0.1))
 
         with tf.name_scope('biases'):
             biases = tf.Variable(tf.constant(0.1, shape = [output_num]))
 
+        # 定义计算函数 $w^T x + b$
         with tf.name_scope('Wx_add_b'):
             pre_activate = tf.matmul(input_tensor, weights) + biases
             tf.summary.histogram('pre_activations', pre_activate)
