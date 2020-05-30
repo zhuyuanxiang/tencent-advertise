@@ -1,4 +1,6 @@
-# 2020-05-28
+# 2020-05
+
+## 2020-05-28
 
 1. 这是一个任务文件，每个任务结束后，需要输入 姓名+OK
 
@@ -20,3 +22,13 @@
        -  "age" 和 "gender" 的权重结果是一样的
        -  ![权重列表](.Tasks_images/权重列表.png)
        -  ![素材与广告的关联](.Tasks_images/素材与广告的关联.png)
+       -  ![素材与广告的关联的散点图](.Tasks_images/素材与广告的关联的散点图.png)
+
+## 2020-05-30
+
+1.  PyCharm 安装 Database Browser 插件
+    -   连接失败请参考[PyCharm 学习总结](https://zhuyuanxiang.github.io/coding/PyCharm/)
+2.  整理不同字段之间的关系
+    -   creative_id：主键，惟一字段，即一个素材只能被一支广告使用
+    -   ad_id：对于剩下的其他字段是惟一的，即一个广告只能属于一个产品
+    -   
