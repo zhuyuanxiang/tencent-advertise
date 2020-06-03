@@ -4,6 +4,8 @@
 
 -   导入 `click_log.csv` 到 `click_log` 表中
     -   数据量：30082771
+    -   单词个数(`creative_id`)：2481135
+    -   文章个数(`user_id`)：900000
     -   将 `time` 字段改成 `time_id`
 -   导入 `ad.csv` 到 `ad_list` 表中
     -   数据量：2481135
@@ -24,13 +26,19 @@
     -   从 `ad_list` 中导入数据
 -   创建 1600 万 的有效数据表 `all_log_valid`
     -   数据量：16411005
+    -   单词个数(`creative_id`)：1474930
+    -   文章个数(`user_id`)：886733
     -   从`click_log`、`ad_valid`、`user_list` 中导入数据
 -   创建基于内存表的`product_id`的有效数据表，用于保存临时统计的 `product_id`数据
 -   创建 700 万 的有效数据表 `all_log_valid_7m`
     -   数据量：7152231
+    -   单词个数(`creative_id`)：835716
+    -   文章个数(`user_id`)：807834
     -   从`all_log_valid`中导入数据
 -   创建 300 万 的有效数据表 `all_log_valid_3m`
     -   数据量：3068413
+    -   单词个数(`creative_id`)：449699
+    -   文章个数(`user_id`)：610031
     -   从`all_log_valid_7m`中导入数据
 -   创建 100 万 的有效数据表 `all_log_valid_1m`
     -   数据量：1007772
@@ -47,4 +55,3 @@
 -   创建`all_log_valid_1m`相关的统计数据表
     -   创建 `count_number_1m_creative_id`视图：表示`all_log_valid_1m`中不同`creative_id`的数目
     -   创建`value_1m_creative_id`表：表示`all_log_valid_1m`中每个`creative_id`出现的次数，以及每个`creative_id`相比总的`creative_id`所占的比例
-
