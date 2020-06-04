@@ -149,3 +149,23 @@ FROM
     all_log_valid_1m AS A
     INNER JOIN train_creative_id as B ON B.creative_id = A.creative_id
     INNER JOIN train_user_id AS C on C.user_id = A.user_id;
+
+/* 创建训练 Word2Vec 的数据 */
+CREATE TABLE train_data_word_vec
+SELECT
+    *
+FROM
+    (
+        SELECT
+            A.creative_id_inc AS creative_id_in,
+            B.creative_id_inc AS creative_id_out
+        FROM
+            train_data_20k AS A
+            INNER JOIN train_data_20k AS B ON B.creative_id <> A.creative_id
+            AND B.user_id = A.user_id
+    ) AS C
+GROUP BY
+    creative_id_in,
+    creative_id_out
+HAVING
+    count(1) = 1
