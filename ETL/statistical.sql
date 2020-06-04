@@ -126,9 +126,11 @@ CREATE TABLE `train_user_id` (
 INSERT INTO
     `train_user_id` (`user_id`)
 SELECT
-    DISTINCT A.`user_id`
+    A.`user_id`
 FROM
-    `all_log_valid_1m` AS A;
+    `number_user_id_1m` AS A
+ORDER BY
+    user_id_number DESC;
 
 /* 创建训练数据，沿用 `all_log_valid_1m` 中的数据，重新编码 `creative_id` 和 `user_id`  */
 DROP TABLE `train_data`;
