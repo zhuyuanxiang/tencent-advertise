@@ -20,8 +20,6 @@ import numpy as np
 import winsound
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from datasets import make_wave, make_line
-from tools import show_title
 
 # ----------------------------------------------------------------------
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
@@ -31,17 +29,19 @@ N = 100  # 数据总量
 
 
 # ----------------------------------------------------------------------
+print("* 加载数据集...")
 
+# 「CSV」文件字段名称
+# "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
+filename = './data/train_data.csv'
+df = pd.read_csv(filename)
 
-def 质量测试(输入, 输出, 参数):
-    sum = 0
-    for n in range(N):
-        sum = sum + abs(输入[n].T.dot(参数) - 输出[n])
-        pass
-    return sum / N
+# y_data = (df['age'].values + df['gender'] * 10).values  # 年龄和性别一起作为目标数据
+y_data = df['age'].values - 1  # 年龄作为目标数据
+# y_data = df['gender'].values - 1  # 性别作为目标数据
+# 选择需要的列作为输入数据
+X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
 
-
-# ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
     # 运行结束的提醒
