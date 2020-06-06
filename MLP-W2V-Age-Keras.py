@@ -65,94 +65,57 @@ df = pd.read_csv(filename)
 y_data = df['gender'].values - 1  # 性别作为目标数据
 # 选择需要的列作为输入数据
 X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
-# 索引减去2，是因为保留了 0 和 1 两个数， 0 表示 “padding”（填充），1 表示 “unknown”（未知词）
-X_data[:, 1] = X_data[:, 1] + 1
-# 1m 的数据量, user_id_num=373489, creative_id_num=203603
-# [gender]
-# ---------
-# [user_id_num = 14000,creative_id_num = 7000, epochs = 10,embedding_size=200]
-# 模型预测-->损失值 = 0.4021855681964329，精确度 = 0.8614285588264465
-# ---------
-# [user_id_num = 20000,creative_id_num = 11500, epochs = 7,embedding_size=200]
-# creative_id_num = 11500 接近最优值
-# 随着 creative_id_num 的增长，精确度越来越高，可能是提供的信息越来越多的缘故
-# 模型预测-->损失值 = 0.3998131538391113，精确度 = 0.8664000034332275
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test)= 83.1%
-# ---------
-# [user_id_num = 20000,creative_id_num = 11500, epochs = 7, embedding_size=creative_id_num/75]
-# 模型预测 -->损失值 = 0.40075085363388063，精确度 = 0.8619999885559082
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test)= 85.8%
-# ---------
-# [user_id_num = 20000,creative_id_num = 11500, epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.38599011869430544，精确度 = 0.8659999966621399
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test)= 83.3%
-# ---------
-# [user_id_num = 20000,creative_id_num = 12500, epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.3867114294528961，精确度 = 0.8646000027656555
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test)= 84.2%
-# ---------
-# [user_id_num = 20000,creative_id_num = 12500, epochs = 10, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.48680103874206543，精确度 = 0.8622000217437744
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test) =  85.7 %
-# ---------
-# NOTE:这个最优，可能是因为 91 天内读取素材数目超过6个：28012，91 天内读取素材数目超过 6 个可以提供充分的分类信息
-# [user_id_num =28000,creative_id_num = int(user_id_num * 2 / 3), epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.40562467643192834，精确度 = 0.8788571357727051
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  75.71428571428571 %
-# ---------
-# [user_id_num =30000,creative_id_num = 11500, epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.3903043457349141，精确度 = 0.8678666949272156
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test)= 82.2%
-# ---------
-# [user_id_num =30000,creative_id_num = 15000, epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.38081181917190554，精确度 = 0.8708000183105469
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  80.34825870646766 %
-# ---------
-# [user_id_num =30000,creative_id_num = 17000, epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.38891106843948364，精确度 = 0.8706666827201843
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  80.43117744610282 %
-# ---------
-# [user_id_num =30000,creative_id_num = 20000, epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.3896093798955282，精确度 = 0.8717333078384399
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  79.76782752902156 %
-# ---------
-# [user_id_num =35000,creative_id_num = int(user_id_num * 2 / 3), epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.4136177837235587，精确度 = 0.8762285709381104
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  76.69971671388102 %
-# ---------
-# [user_id_num =37350,creative_id_num = int(user_id_num * 2 / 3), epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.3889377001432822，精确度 = 0.8657100200653076
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  82.71767810026385 %
-# ---------
-# [user_id_num =40000,creative_id_num = int(user_id_num * 2 / 3), epochs = 7, embedding_size=creative_id_num/100]
-# 模型预测-->损失值 = 0.37648941814899445，精确度 = 0.871999979019165
-# sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) =  78.43137254901961 %
-# 用户和素材数目增长到一定程度，就不会再增长，是因为新的数据，噪声增加的部分已经超过信息增加的部分
+# 索引在数据库中是从 1 开始的，加上 2 ，是因为 Python 的索引是从 0 开始的
+# 并且需要保留 {0, 1, 2} 三个数：0 表示 “padding”（填充），1 表示 “start”（用户开始），2 表示 “unknown”（未知词）
+X_data[:, 1] = X_data[:, 1] + 2
+
 user_id_num = 28000
 creative_id_num = int(user_id_num * 2 / 3)
 batch_size = int(user_id_num / 30)
 embedding_size = int(creative_id_num / 100)
-epochs = 7
-# click_log 中除了一个用户访问了 16868 个素材，其他都在 1706 以内
-# number_user_id_1m 中除了一个用户访问了924个素材，其他都在303以内
-max_len = 304
+epochs = 14
 
-X_doc = np.array(np.zeros([user_id_num], dtype = bool), dtype = object)
+# click_log 中除了一个用户访问了 16868 个素材，其他都在 1706 以内
+# all_log_valid_1m 中除了一个用户访问了1032次素材，其他都在343次以内
+max_len = 352  # 352 可以被 16 整除
+
+X_doc = np.zeros([user_id_num], dtype = object)
 y_doc = np.zeros([user_id_num])
+# X_novalid_doc = np.array(np.zeros([373489 - user_id_num], dtype = bool), dtype = object)
+# y_novalid_doc = np.zeros([373489 - user_id_num])
+tmp_user_id = -1  # -1 表示 id 不在数据序列中
+tmp_time_id = 0
+# 生成的用户序列数据：1 表示用户访问序列的开始；0 表示这天没有访问素材；2 表示这个素材不在词典中
+# 序列中重复的数据是因为某个素材访问好几次；最后的0是填充数据
 for i, row_data in enumerate(X_data):
-    user_id = row_data[2] - 1
+    time_id = row_data[0]
+    creative_id = row_data[1]
+    user_id = row_data[2] - 1  # 索引从 0 开始
+    click_times = row_data[3]
+
+    # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
     if user_id < user_id_num:
-        if X_doc[user_id] is False:
-            X_doc[user_id] = []
+        # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
+        if user_id != tmp_user_id:
+            tmp_user_id = user_id
+            tmp_time_id = 0
+            X_doc[user_id] = [1]  # 1 表示序列的开始
+            # 新建用户序列时，更新用户的标签
+            y_doc[user_id] = y_data[i]
             pass
-        creative_id = row_data[1]
+        if tmp_time_id < time_id:
+            # 按照时间差更新用户序列中的空缺天数，两个天数之间的空缺天数=后-次的天数-前一次的天数-1
+            X_doc[user_id].extend([0 for _ in range(time_id - tmp_time_id - 1)])
+            tmp_time_id = time_id
+            pass
+        # 超过词典大小的素材标注为 2，即「未知」
         if creative_id >= creative_id_num:
-            creative_id = 1
+            creative_id = 2
             pass
-        X_doc[user_id].append(creative_id)
-        y_doc[user_id] = y_data[i]
+        X_doc[user_id].extend([creative_id for _ in range(click_times)])  # 按照点击次数更新用户序列
         pass
     pass
+pass
 # padding: 字符串，'pre' 或 'post' ，在序列的前端补齐还是在后端补齐。
 X_padded = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
 y_padded = y_doc
