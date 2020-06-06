@@ -1,45 +1,48 @@
-/* 表示`all_log_valid_1m`中不同`creative_id`的数目 */
-/* 表示`all_log_valid_1m`中不同`user_id`的数目 */
-CREATE VIEW `count_number_1m` AS
-SELECT
-    COUNT(DISTINCT A.`creative_id`) AS `creative_id_count_number`,
-    Count(DISTINCT A.`user_id`) AS `user_id_count_number`
-FROM
-    all_log_valid_1m AS A;
-
-/* 表示`all_log_valid_1m`中每个`creative_id`素材出现的次数 */
+/* 
+ 统计 `all_log_valid_1m` 中的 `creative_id` 素材
+ sum_creative_click_times：每个素材出现的次数 
+ sum_user_id_times：每个素材的访问用户数
+ */
 DROP TABLE `number_creative_id_1m`;
 
 CREATE TABLE `number_creative_id_1m` (
     `creative_id` INT NOT NULL,
-    `creative_id_number` INT NOT NULL,
+    `sum_creative_click_times` INT NOT NULL,
+    `sum_user_id_times` INT NOT NULL,
     PRIMARY KEY (`creative_id`)
 );
 
 INSERT INTO
-    `number_creative_id_1m` (`creative_id`, `creative_id_number`)
+    `number_creative_id_1m`
 SELECT
     `creative_id`,
-    count(1) AS `creative_id_number`
+    SUM(A.click_times) AS `sum_creative_click_times`,
+    COUNT(DISTINCT A.user_id) AS `sum_user_id_times`
 FROM
     `all_log_valid_1m` AS A
 GROUP BY
     `creative_id`;
 
-/* 表示`all_log_valid_1m`中每个`user_id`访问素材的次数 */
+/* 
+ 统计 `all_log_valid_1m` 中的 `user_id` 的统计数据
+ sum_user_click_times : 每个用户访问素材的次数 
+ sum_creative_id_times : 每个用户访问素材的种类
+ */
 DROP TABLE `number_user_id_1m`;
 
 CREATE TABLE `number_user_id_1m` (
     `user_id` INT NOT NULL,
-    `user_id_number` INT NOT NULL,
+    `sum_user_click_times` INT NOT NULL,
+    `sum_creative_id_times` INT NOT NULL,
     PRIMARY KEY (`user_id`)
 );
 
 INSERT INTO
-    `number_user_id_1m` (`user_id`, `user_id_number`)
+    `number_user_id_1m`
 SELECT
     `user_id`,
-    count(1) AS `user_id_number`
+    SUM(A.click_times) AS `sum_user_click_times`,
+    COUNT(DISTINCT A.creative_id) AS `sum_creative_id_times`
 FROM
     `all_log_valid_1m` AS A
 GROUP BY
@@ -47,6 +50,8 @@ GROUP BY
 
 /* 
  分别计算 `all_log_valid_1m`中每个`creative_id`的 `tf`,`idf`,`tf-idf`的值
+ tf : 素材出现的次数越多越重要，单个素材出现次数/所有素材出现次数
+ idf: 访问素材的用户越少越重要，所有用户的数目/访问单个素材的用户数目
  */
 DROP TABLE `tf_idf_1m`;
 
@@ -55,19 +60,17 @@ CREATE TABLE `tf_idf_1m` (
     `tf_value` FLOAT NULL,
     `idf_value` FLOAT NULL,
     `tf_idf_value` FLOAT NULL,
-    PRIMARY KEY (`creative_id_inc`)
+    PRIMARY KEY (`creative_id`)
 );
 
 /* 插入 tf 值 */
 INSERT INTO
     `tf_idf_1m` (`creative_id`, `tf_value`)
 SELECT
-    A.`creative_id` AS `creative_id`,
-    (COUNT(A.`creative_id`) / 1007772) AS `tf_value`
+    A.creative_id,
+    (A.sum_creative_click_times / 1075963) AS tf_value
 FROM
-    `all_log_valid_1m` AS A
-GROUP BY
-    A.`creative_id`;
+    number_creative_id_1m AS A;
 
 /* 插入 idf 值 */
 UPDATE
@@ -75,13 +78,11 @@ UPDATE
 SET
     idf_value = (
         SELECT
-            LOG(373489 / COUNT(DISTINCT user_id))
+            LOG(373489 / A.sum_user_id_times)
         FROM
-            `all_log_valid_1m` AS A
+            `number_creative_id_1m` AS A
         WHERE
             A.creative_id = B.creative_id
-        GROUP BY
-            A.creative_id
     );
 
 /* 计算 tf-idf 的值 */
@@ -130,7 +131,7 @@ SELECT
 FROM
     `number_user_id_1m` AS A
 ORDER BY
-    user_id_number DESC;
+    sum_user_click_times DESC;
 
 /* 创建训练数据，沿用 `all_log_valid_1m` 中的数据，重新编码 `creative_id` 和 `user_id`  */
 DROP TABLE `train_data`;
@@ -148,7 +149,9 @@ SELECT
 FROM
     all_log_valid_1m AS A
     INNER JOIN train_creative_id as B ON B.creative_id = A.creative_id
-    INNER JOIN train_user_id AS C on C.user_id = A.user_id;
+    INNER JOIN train_user_id AS C on C.user_id = A.user_id
+ORDER BY
+    C.user_id_inc,A.time_id;
 
 /* 创建训练 Word2Vec 的数据 */
 CREATE TABLE train_data_word_vec
