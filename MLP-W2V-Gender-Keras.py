@@ -23,16 +23,6 @@ import numpy as np
 import pandas as pd
 import winsound
 from tensorflow import keras
-from tensorflow.python.keras.activations import relu, sigmoid
-from tensorflow.python.keras.datasets import imdb
-from tensorflow.python.keras.layers import Dense
-from tensorflow.python.keras.layers import Embedding, LSTM, SimpleRNN
-from tensorflow.python.keras.layers import Flatten
-from tensorflow.python.keras.losses import binary_crossentropy
-from tensorflow.python.keras.metrics import binary_accuracy
-from tensorflow.python.keras.models import Sequential
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-from tensorflow.python.keras.preprocessing.text import one_hot
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import metrics
@@ -60,75 +50,28 @@ print("* 加载数据集...")
 # "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
 filename = './data/train_data.csv'
 df = pd.read_csv(filename)
-print("数据加载完成。")
 
-print("* 清洗数据集...")
 y_data = df['gender'].values - 1  # 性别作为目标数据
 # 选择需要的列作为输入数据
 X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
 # 索引在数据库中是从 1 开始的，加上 2 ，是因为 Python 的索引是从 0 开始的
 # 并且需要保留 {0, 1, 2} 三个数：0 表示 “padding”（填充），1 表示 “start”（用户开始），2 表示 “unknown”（未知词）
 X_data[:, 1] = X_data[:, 1] + 2
+print("数据加载完成。")
 
-user_id_num = 28000
-creative_id_num = int(user_id_num * 2 / 3)
-batch_size = int(user_id_num / 30)
-embedding_size = int(creative_id_num / 100)
-epochs = 14
+# ----------------------------------------------------------------------
+print("* 清洗数据集")
+user_id_num = 50000  # 用户数
+creative_id_num = 50000  # 素材数
+max_len = 16
 
-# click_log 中除了一个用户访问了 16868 个素材，其他都在 1706 以内
-# all_log_valid_1m 中除了一个用户访问了1032次素材，其他都在343次以内
-max_len = 352  # 352 可以被 16 整除
+from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+from preprocessing import data_sequence_times
 
-print("数据清洗中：", end = '')
-X_doc = np.zeros([user_id_num], dtype = object)
-y_doc = np.zeros([user_id_num])
-# X_novalid_doc = np.array(np.zeros([373489 - user_id_num], dtype = bool), dtype = object)
-# y_novalid_doc = np.zeros([373489 - user_id_num])
-tmp_user_id = -1  # -1 表示 id 不在数据序列中
-tmp_time_id = 0
-data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
-# 生成的用户序列数据：1 表示用户访问序列的开始；0 表示这天没有访问素材；2 表示这个素材不在词典中
-# 序列中重复的数据是因为某个素材访问好几次；最后的0是填充数据
-for i, row_data in enumerate(X_data):
-    # 数据清洗的进度
-    if (i % data_step) == 0:
-        print(".", end = '')
-        pass
-    time_id = row_data[0]
-    creative_id = row_data[1]
-    user_id = row_data[2] - 1  # 索引从 0 开始
-    click_times = row_data[3]
-
-    # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-    if user_id < user_id_num:
-        # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
-        if user_id != tmp_user_id:
-            tmp_user_id = user_id
-            tmp_time_id = 0
-            X_doc[user_id] = [1]  # 1 表示序列的开始
-            # 新建用户序列时，更新用户的标签
-            y_doc[user_id] = y_data[i]
-            pass
-        if tmp_time_id < time_id:
-            # 按照时间差更新用户序列中的空缺天数，两个天数之间的空缺天数=后-次的天数-前一次的天数-1
-            X_doc[user_id].extend([0 for _ in range(time_id - tmp_time_id - 1)])
-            tmp_time_id = time_id
-            pass
-        # 超过词典大小的素材标注为 2，即「未知」
-        if creative_id >= creative_id_num:
-            creative_id = 2
-            pass
-        X_doc[user_id].extend([creative_id for _ in range(click_times)])  # 按照点击次数更新用户序列
-        pass
-    pass
-pass
+X_doc, y_doc = data_sequence_times(X_data, y_data, user_id_num, creative_id_num)
 # padding: 字符串，'pre' 或 'post' ，在序列的前端补齐还是在后端补齐。
-X_padded = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
-y_padded = y_doc
-X = X_padded
-y = y_padded
-print("\n数据清洗完成！")
+X = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
+y = y_doc
 
 from sklearn.model_selection import train_test_split
 
@@ -140,21 +83,14 @@ y_train_scaled = y_train
 X_test_scaled = X_test
 y_test_scaled = y_test
 
-print("* 构建网络")
-model = Sequential()
-model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
-model.add(Flatten())
-model.add(keras.layers.Dropout(0.2))
-model.add(keras.layers.Dense(
-        64, activation = keras.activations.relu,
-        kernel_regularizer = keras.regularizers.l1(0.00001)
-))
-model.add(keras.layers.Dropout(0.2))
-model.add(keras.layers.Dense(
-        32, activation = keras.activations.relu,
-        kernel_regularizer = keras.regularizers.l1(0.00001)
-))
-model.add(Dense(1, activation = 'sigmoid'))
+# ----------------------------------------------------------------------
+from network import (construct_Bidirectional_LSTM, construct_Conv1d, construct_Conv1d_LSTM,
+                     construct_LSTM, construct_mlp, )
+
+# embedding_size = int(creative_id_num / 100)
+embedding_size = 64
+model = construct_Conv1d_LSTM(creative_id_num, embedding_size, max_len)
+# model = construct_conv1d(creative_id_num, embedding_size, max_len)
 # compile the model
 print("* 编译模型")
 model.compile(optimizer = optimizers.RMSprop(lr = 0.001),
@@ -162,29 +98,23 @@ model.compile(optimizer = optimizers.RMSprop(lr = 0.001),
               metrics = [metrics.binary_accuracy])
 print(model.summary())
 
-print("* 验证模型→留出验证集")
-split_number = int(user_id_num * 0.1)
-X_val_scaled = X_train_scaled[:split_number]
-y_val_scaled = y_train_scaled[:split_number]
-partial_X_train_scaled = X_train_scaled[split_number:]
-partial_y_train_scaled = y_train_scaled[split_number:]
-
-print("\tX_val.shape =", X_val_scaled.shape)
-print("\tpartial_X_train.shape =", partial_X_train_scaled.shape)
-print("\ty_val.shape =", y_val_scaled.shape)
-print("\tpartial_y_train.shape =", partial_y_train_scaled.shape)
-
-print("训练数据 =", X_val_scaled[0], y_val_scaled[0])
+# ----------------------------------------------------------------------
 print("* 训练模型")
+print("训练数据 =", X_train_scaled[0], y_train_scaled[0])
+
 # 模型越复杂，精度有时可以提高，但是过拟合出现的时间就越早 (epochs 发生过拟合的值越小)
 # 过拟合了，训练集的精度越来越高，测试集的精度开始下降
 # verbose: Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
-model.fit(partial_X_train_scaled, partial_y_train_scaled, epochs = epochs, batch_size = batch_size,
-          validation_data = (X_val_scaled, y_val_scaled), use_multiprocessing = True, verbose = 2)
+epochs = 22
+batch_size = int(user_id_num / 30)
+model.fit(X_train_scaled, y_train_scaled, epochs = epochs, batch_size = batch_size,
+          validation_split = 0.2, use_multiprocessing = True, verbose = 2)
 
 # # 训练全部数据，不分离出验证数据，TODO:效果不好？
 # model.fit(X_train_scaled, y_train_scaled, epochs = 6, batch_size = batch_size,
 #           use_multiprocessing = True, verbose = 2)
+
+# ----------------------------------------------------------------------
 results = model.evaluate(X_test_scaled, y_test, verbose = 0)
 predictions = model.predict(X_test_scaled).squeeze()
 print("模型预测-->", end = '')
@@ -198,7 +128,6 @@ print("sum(predictions>0.5) =", sum(predictions > 0.5))
 print("sum(y_test_scaled) =", sum(y_test_scaled))
 print("sum(abs(predictions-y_test_scaled))=",
       sum(abs(np.array(predictions > 0.5, dtype = int) - y_test_scaled)))
-# ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
     # 运行结束的提醒
