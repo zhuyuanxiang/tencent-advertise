@@ -6,7 +6,7 @@
 ---------------------------
 @Software   :   PyCharm
 @Project    :   tencent-advertise
-@File       :   MLP-W2V-Age-Keras.py
+@File       :   MLP-W2V-Gender-Keras.py
 @Version    :   v0.1
 @Time       :   2020-06-05 11:31
 @License    :   (C)Copyright 2018-2020, zYx.Tom
@@ -56,12 +56,13 @@ assert sklearn.__version__ >= "0.20"
 assert np.__version__ >= "1.18.1"
 # ----------------------------------------------------------------------
 print("* 加载数据集...")
-
 # 「CSV」文件字段名称
 # "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
 filename = './data/train_data.csv'
 df = pd.read_csv(filename)
+print("数据加载完成。")
 
+print("* 清洗数据集...")
 y_data = df['gender'].values - 1  # 性别作为目标数据
 # 选择需要的列作为输入数据
 X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
@@ -79,15 +80,21 @@ epochs = 14
 # all_log_valid_1m 中除了一个用户访问了1032次素材，其他都在343次以内
 max_len = 352  # 352 可以被 16 整除
 
+print("数据清洗中：", end = '')
 X_doc = np.zeros([user_id_num], dtype = object)
 y_doc = np.zeros([user_id_num])
 # X_novalid_doc = np.array(np.zeros([373489 - user_id_num], dtype = bool), dtype = object)
 # y_novalid_doc = np.zeros([373489 - user_id_num])
 tmp_user_id = -1  # -1 表示 id 不在数据序列中
 tmp_time_id = 0
+data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
 # 生成的用户序列数据：1 表示用户访问序列的开始；0 表示这天没有访问素材；2 表示这个素材不在词典中
 # 序列中重复的数据是因为某个素材访问好几次；最后的0是填充数据
 for i, row_data in enumerate(X_data):
+    # 数据清洗的进度
+    if (i % data_step) == 0:
+        print(".", end = '')
+        pass
     time_id = row_data[0]
     creative_id = row_data[1]
     user_id = row_data[2] - 1  # 索引从 0 开始
@@ -121,6 +128,7 @@ X_padded = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
 y_padded = y_doc
 X = X_padded
 y = y_padded
+print("\n数据清洗完成！")
 
 from sklearn.model_selection import train_test_split
 
