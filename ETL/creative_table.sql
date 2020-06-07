@@ -59,11 +59,11 @@ ADD
     INDEX `id_number_idx`(`id_number`) USING BTREE;
 
 /* 
- 创建 50 万的数据表，标准是每个用户访问素材数目小于11
- 用户数：50058
- 素材数：176538
- 数据条数： 483211
- 注：还可以小于 21 创建 500万数据表；小于 51 创建 1500 万数据表
+    创建 50 万的数据表，标准是每个用户访问素材数目小于11
+    用户数： 50058
+    素材数： 176538
+    数据条数：  483211
+    注：还可以小于 21 创建 500万数据表；小于 51 创建 1500 万数据表
  */
 CREATE TABLE click_log_500k
 SELECT
@@ -81,10 +81,10 @@ ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
- 创建 100 万的数据表，标准是每个用户访问素材数目以 450 为均值
- 用户数：
- 素材数：
- 数据条数： 
+    创建 100 万的数据表，标准是每个用户访问素材数目以 450 为均值
+    用户数：
+    素材数：
+    数据条数： 
  */
 CREATE TABLE click_log_1m
 SELECT
@@ -103,10 +103,32 @@ ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
- 创建 500 万的数据表
- 用户数：
- 素材数：
- 数据条数： 
+    创建 500 万的数据表，标准是每个用户访问素材数目小于 51
+    用户数： 382579
+    素材数： 891856
+    数据条数： 5458665
+ */
+CREATE TABLE click_log_5m_51
+SELECT
+    A.*
+FROM
+    click_log AS A,
+    number_id_all AS B
+WHERE
+    A.user_id = B.id
+    AND 
+    B.id_number < 51
+
+ALTER TABLE
+    click_log_5m_51
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+/* 
+    创建 500 万的数据表，标准是每个用户访问素材数目在 100 和 800 之间
+    用户数： 
+    素材数： 
+    数据条数： 
  */
 CREATE TABLE click_log_5m
 SELECT
@@ -118,7 +140,7 @@ WHERE
     A.user_id = B.id
     AND 
     B.id_number BETWEEN 100
-    AND 800   ;
+    AND 800;
 
 ALTER TABLE
     click_log_5m
@@ -126,8 +148,8 @@ ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
- 创建 1500 万的数据表
- 用户数：
- 素材数：
- 数据条数： 
+    创建 1500 万的数据表
+    用户数：
+    素材数：
+    数据条数： 
  */
