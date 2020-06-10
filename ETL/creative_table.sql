@@ -58,12 +58,201 @@ ADD
 ADD
     INDEX `id_number_idx`(`id_number`) USING BTREE;
 
+/*
+ 创建全部字段的全部数据的表
+ */
+CREATE TABLE all_log
+SELECT
+    A.time_id,
+    A.user_id,
+    A.creative_id,
+    A.click_times,
+    B.ad_id,
+    B.product_id,
+    B.product_category,
+    B.advertiser_id,
+    B.industry,
+    C.age,
+    C.gender
+FROM
+    click_log AS A
+    INNER JOIN user_list AS C ON A.user_id = C.user_id
+    INNER JOIN ad_list AS B ON A.creative_id = B.creative_id;
+
+ALTER TABLE
+    `tencent`.`all_log`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+ALTER TABLE
+    `tencent`.`all_log`
+ADD
+    INDEX `age_idx`(`age`) USING BTREE,
+ADD
+    INDEX `gender_idx`(`gender`) USING BTREE;
+
+CREATE TABLE all_log_age_1
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 1;
+
+ALTER TABLE
+    `tencent`.`all_log_age_1`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_2
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 2;
+
+ALTER TABLE
+    `tencent`.`all_log_age_2`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_3
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 3;
+
+ALTER TABLE
+    `tencent`.`all_log_age_3`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_4
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 4;
+
+ALTER TABLE
+    `tencent`.`all_log_age_4`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_5
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 5;
+
+ALTER TABLE
+    `tencent`.`all_log_age_5`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_6
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 6;
+
+ALTER TABLE
+    `tencent`.`all_log_age_6`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_7
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 7;
+
+ALTER TABLE
+    `tencent`.`all_log_age_7`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_8
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 8;
+
+ALTER TABLE
+    `tencent`.`all_log_age_8`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_9
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 9;
+
+ALTER TABLE
+    `tencent`.`all_log_age_9`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_age_10
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.age = 10;
+
+ALTER TABLE
+    `tencent`.`all_log_age_10`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_gender_1
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.gender = 1;
+
+ALTER TABLE
+    `tencent`.`all_log_gender_1`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
+CREATE TABLE all_log_gender_2
+SELECT
+    all_log.*
+FROM
+    all_log
+WHERE
+    all_log.gender = 2;
+
+ALTER TABLE
+    `tencent`.`all_log_gender_2`
+ADD
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
+
 /* 
-    创建 50 万的数据表，标准是每个用户访问素材数目小于11
-    用户数： 50058
-    素材数： 176538
-    数据条数：  483211
-    注：还可以小于 21 创建 500万数据表；小于 51 创建 1500 万数据表
+ 创建 50 万的数据表，标准是每个用户访问素材数目小于11
+ 用户数： 50058
+ 素材数： 176538
+ 数据条数：  483211
+ 注：还可以小于 21 创建 500万数据表；小于 51 创建 1500 万数据表
  */
 CREATE TABLE click_log_500k
 SELECT
@@ -81,10 +270,10 @@ ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
-    创建 100 万的数据表，标准是每个用户访问素材数目以 450 为均值
-    用户数：
-    素材数：
-    数据条数： 
+ 创建 100 万的数据表，标准是每个用户访问素材数目以 450 为均值
+ 用户数：
+ 素材数：
+ 数据条数： 
  */
 CREATE TABLE click_log_1m
 SELECT
@@ -103,10 +292,10 @@ ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
-    创建 500 万的数据表，标准是每个用户访问素材数目小于 51
-    用户数： 382579
-    素材数： 891856
-    数据条数： 5458665
+ 创建 500 万的数据表，标准是每个用户访问素材数目小于 51
+ 用户数： 382579
+ 素材数： 891856
+ 数据条数： 5458665
  */
 CREATE TABLE click_log_5m_51
 SELECT
@@ -116,19 +305,17 @@ FROM
     number_id_all AS B
 WHERE
     A.user_id = B.id
-    AND 
-    B.id_number < 51
-
+    AND B.id_number < 51
 ALTER TABLE
     click_log_5m_51
 ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
-    创建 500 万的数据表，标准是每个用户访问素材数目在 100 和 800 之间
-    用户数： 
-    素材数： 
-    数据条数： 
+ 创建 500 万的数据表，标准是每个用户访问素材数目在 100 和 800 之间
+ 用户数： 
+ 素材数： 
+ 数据条数： 
  */
 CREATE TABLE click_log_5m
 SELECT
@@ -138,8 +325,7 @@ FROM
     number_id_all AS B
 WHERE
     A.user_id = B.id
-    AND 
-    B.id_number BETWEEN 100
+    AND B.id_number BETWEEN 100
     AND 800;
 
 ALTER TABLE
@@ -148,8 +334,8 @@ ADD
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`);
 
 /* 
-    创建 1500 万的数据表
-    用户数：
-    素材数：
-    数据条数： 
+ 创建 1500 万的数据表
+ 用户数：
+ 素材数：
+ 数据条数： 
  */
