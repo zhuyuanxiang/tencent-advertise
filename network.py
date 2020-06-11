@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 import winsound
 from tensorflow import keras
-from tensorflow.python.keras.activations import relu, sigmoid
+from tensorflow.python.keras.activations import relu, sigmoid, softmax
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.layers import Embedding
 from tensorflow.python.keras.layers import Dense
@@ -93,6 +93,7 @@ def construct_GlobalMaxPooling1D(creative_id_num, embedding_size, max_len):
     model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
     model.add(GlobalMaxPooling1D())
     model.add(Dense(1, activation = sigmoid))
+    model.add(Dense(10, activation = softmax))
     print("Conv1D——模型构建完成！")
     return model
 
