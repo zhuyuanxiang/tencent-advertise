@@ -20,7 +20,6 @@ import sys
 import sklearn
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import winsound
 from tensorflow.python.keras.layers import GlobalMaxPooling1D
 from tensorflow.python.keras.models import Sequential
@@ -79,7 +78,7 @@ def construct_model(creative_id_num, embedding_size, max_len, RMSProp_lr,
         model.add(Dropout(0.5))
         model.add(Dense(4, activation = 'relu', kernel_regularizer = l2(0.001)))
         model.add(Dropout(0.5))
-    elif model_type == 'Conv1d':
+    elif model_type == 'Conv1D':
         model.add(Conv1D(32, 7, activation = 'relu', kernel_regularizer = l2(0.001)))
         model.add(Conv1D(32, 7, activation = 'relu', kernel_regularizer = l2(0.001)))
         model.add(GlobalMaxPooling1D())
@@ -88,15 +87,18 @@ def construct_model(creative_id_num, embedding_size, max_len, RMSProp_lr,
     elif model_type == 'GlobalMaxPooling1D+MLP':
         model.add(GlobalMaxPooling1D())
         model.add(Dense(64, activation = 'relu', kernel_regularizer = l2(0.001)))
-        # model.add(Dropout(0.5))
         model.add(Dense(32, activation = 'relu', kernel_regularizer = l2(0.001)))
-        # model.add(Dropout(0.5))
-    elif model_type == 'Conv1d+LSTM':
+    elif model_type == 'LSTM':
+        # model.add(LSTM(128, dropout = 0.5, recurrent_dropout = 0.5))
+        model.add(LSTM(128))
+    elif model_type == 'Conv1D+LSTM':
         model.add(Conv1D(32, 5, activation = 'relu', kernel_regularizer = l2(0.001)))
         model.add(Conv1D(32, 5, activation = 'relu', kernel_regularizer = l2(0.001)))
         model.add(LSTM(16, dropout = 0.5, recurrent_dropout = 0.5))
     elif model_type == 'Bidirectional-LSTM':
         model.add(Bidirectional(LSTM(embedding_size, dropout = 0.2, recurrent_dropout = 0.2)))
+    else:
+        raise Exception("错误的网络模型类型")
 
     if label_name == "age":
         model.add(Dense(10, activation = 'softmax'))
