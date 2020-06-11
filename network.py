@@ -55,15 +55,15 @@ def construct_mlp(creative_id_num, embedding_size, max_len):
     model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
     model.add(Flatten())
     model.add(keras.layers.Dense(
-            64, activation = keras.activations.relu,
-            kernel_regularizer = keras.regularizers.l1(0.00001)
+            8, activation = keras.activations.relu,
+            kernel_regularizer = keras.regularizers.l2(0.001)
     ))
-    model.add(keras.layers.Dropout(0.2))
+    model.add(keras.layers.Dropout(0.5))
     model.add(keras.layers.Dense(
-            32, activation = keras.activations.relu,
-            kernel_regularizer = keras.regularizers.l1(0.00001)
+            4, activation = keras.activations.relu,
+            kernel_regularizer = keras.regularizers.l2(0.001)
     ))
-    model.add(keras.layers.Dropout(0.2))
+    model.add(keras.layers.Dropout(0.5))
     model.add(Dense(1, activation = 'sigmoid'))
     print("MLP——模型构建完成！")
     return model
@@ -76,9 +76,21 @@ def construct_Conv1d(creative_id_num, embedding_size, max_len):
     print("* 构建网络")
     model = Sequential()
     model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
-    model.add(Conv1D(32, 3, activation = relu))
-    model.add(MaxPooling1D(2))
-    model.add(Conv1D(32, 3, activation = relu))
+    model.add(Conv1D(32, 7, activation = relu, kernel_regularizer = keras.regularizers.l2(0.001)))
+    model.add(Conv1D(32, 7, activation = relu, kernel_regularizer = keras.regularizers.l2(0.001)))
+    model.add(GlobalMaxPooling1D())
+    model.add(Dense(1, activation = sigmoid))
+    print("Conv1D——模型构建完成！")
+    return model
+
+
+# ----------------------------------------------------------------------
+def construct_GlobalMaxPooling1D(creative_id_num, embedding_size, max_len):
+    from tensorflow.python.keras.layers import Conv1D
+    from tensorflow.python.keras.layers import GlobalMaxPooling1D, MaxPooling1D
+    print("* 构建网络")
+    model = Sequential()
+    model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
     model.add(GlobalMaxPooling1D())
     model.add(Dense(1, activation = sigmoid))
     print("Conv1D——模型构建完成！")
@@ -93,11 +105,11 @@ def construct_Conv1d_LSTM(creative_id_num, embedding_size, max_len):
     print("* 构建网络")
     model = Sequential()
     model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
-    model.add(Conv1D(8, 3, activation = relu))
-    model.add(MaxPooling1D(2))
-    model.add(LSTM(4, dropout = 0.5, recurrent_dropout = 0.5))
+    model.add(Conv1D(32, 5, activation = relu, kernel_regularizer = keras.regularizers.l2(0.001)))
+    model.add(Conv1D(32, 5, activation = relu, kernel_regularizer = keras.regularizers.l2(0.001)))
+    model.add(LSTM(16, dropout = 0.5, recurrent_dropout = 0.5))
     model.add(Dense(1, activation = sigmoid))
-    print("Conv1D+LSTM——模型构建完成！")
+    print("Conv1D + LSTM——模型构建完成！")
     return model
 
 
