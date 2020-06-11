@@ -49,7 +49,7 @@ assert np.__version__ >= "1.18.1"
 from preprocessing import data_sequence, load_data, data_sequence_no_start
 
 file_name = './data/train_data.csv'
-X_data, y_data = load_data(file_name)
+X_data, y_data = load_data(file_name,label_name='age')
 
 # ----------------------------------------------------------------------
 # 定义全局变量
@@ -59,8 +59,8 @@ max_len = 16
 
 # ----------------------------------------------------------------------
 # 清洗数据集
-X_doc, y_doc = data_sequence(X_data, y_data, user_id_num, creative_id_num)
-# X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num)
+# X_doc, y_doc = data_sequence(X_data, y_data, user_id_num, creative_id_num)
+X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num)
 # ----------------------------------------------------------------------
 # 填充数据集
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
@@ -83,9 +83,14 @@ model = construct_GlobalMaxPooling1D(creative_id_num, embedding_size, max_len)
 # ----------------------------------------------------------------------
 print("* 编译模型")
 RMSProp_lr = 6e-04
+# 对「age」字段进行学习
 model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
-              loss = losses.binary_crossentropy,
-              metrics = [metrics.binary_accuracy])
+              loss = losses.sparse_categorical_crossentropy,
+              metrics = [metrics.sparse_categorical_accuracy])
+# 对「gender」字段进行学习
+# model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
+#               loss = losses.binary_crossentropy,
+#               metrics = [metrics.binary_accuracy])
 print(model.summary())
 
 # ----------------------------------------------------------------------
