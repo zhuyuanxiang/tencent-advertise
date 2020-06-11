@@ -1,4 +1,8 @@
 /* 
+    creative_id_number : 891859
+    user_id_number : 382579
+*/
+ /* 
     统计 `click_log_5m_51` 中的 `creative_id` 素材
     sum_creative_click_times：每个素材出现的次数 
     sum_user_id_times：每个素材的访问用户数
