@@ -76,13 +76,13 @@ from network import construct_model
 
 embedding_size = 128
 RMSProp_lr = 6e-04
-# MLP：多层感知机
-# Conv1D：1 维卷积神经网络
-# GlobalMaxPooling1D：1 维全局池化层
-# GlobalMaxPooling1D+MLP：1 维全局池化层 + 多层感知机
-# Conv1D+LSTM：1 维卷积神经网络 + LSTM
-# Bidirectional+LSTM：双向 LSTM
-model_type = "GlobalMaxPooling1D+MLP"
+# model_type = "Bidirectional+LSTM"  # Bidirectional+LSTM：双向 LSTM
+# model_type = "Conv1D"  # Conv1D：1 维卷积神经网络
+# model_type = "Conv1D+LSTM"  # Conv1D+LSTM：1 维卷积神经网络 + LSTM
+model_type = "GlobalMaxPooling1D"  # GlobalMaxPooling1D：1 维全局池化层
+# model_type = "GlobalMaxPooling1D+MLP"  # GlobalMaxPooling1D+MLP：1 维全局池化层 + 多层感知机
+# model_type = "LSTM"  # LSTM：循环神经网络
+# model_type = "MLP"  # MLP：多层感知机
 label_name = "age"
 model = construct_model(creative_id_num, embedding_size, max_len,RMSProp_lr, model_type, label_name)
 # ----------------------------------------------------------------------
@@ -120,5 +120,5 @@ print("RMSProp =", RMSProp_lr)
 if __name__ == '__main__':
     # 运行结束的提醒
     winsound.Beep(900, 500)
-    winsound.Beep(600, 1500)
+    winsound.Beep(600, 1000)
     plt.show()
