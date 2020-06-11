@@ -26,6 +26,7 @@ from tensorflow import keras
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import metrics
+
 # ----------------------------------------------------------------------
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
@@ -63,6 +64,7 @@ X_doc, y_doc = data_sequence(X_data, y_data, user_id_num, creative_id_num)
 # ----------------------------------------------------------------------
 # 填充数据集
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+
 X = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
 y = y_doc
 # ----------------------------------------------------------------------
@@ -75,11 +77,13 @@ print("\t训练数据集（train_data）：%d 条数据；测试数据集（test
 # ----------------------------------------------------------------------
 # 构建模型
 from network import construct_GlobalMaxPooling1D
+
 embedding_size = 128
 model = construct_GlobalMaxPooling1D(creative_id_num, embedding_size, max_len)
 # ----------------------------------------------------------------------
 print("* 编译模型")
-model.compile(optimizer = optimizers.RMSprop(lr = 6e-04),
+RMSProp_lr = 6e-04
+model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
               loss = losses.binary_crossentropy,
               metrics = [metrics.binary_accuracy])
 print(model.summary())
@@ -102,15 +106,24 @@ results = model.evaluate(X_test, y_test, verbose = 0)
 predictions = model.predict(X_test).squeeze()
 print("模型预测-->", end = '')
 print("损失值 = {}，精确度 = {}".format(results[0], results[1]))
-print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = ",
+print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
       sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)) / sum(y_test) * 100,
       '%')
-print("前100个真实的目标数据 =",np.array(y_test[:100],dtype=int))
+print("前100个真实的目标数据 =", np.array(y_test[:100], dtype = int))
 print("前100个预测的目标数据 =", np.array(predictions[:100] > 0.5, dtype = int))
 print("sum(predictions>0.5) =", sum(predictions > 0.5))
 print("sum(y_test) =", sum(y_test))
-print("sum(abs(predictions-y_test))=",
+print("sum(abs(predictions-y_test))=error_number=",
       sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)))
+print("实验报告参数")
+print("user_id_number =", user_id_num)
+print("creative_id_number =", creative_id_num)
+print("max_len =", max_len)
+print("embedding_size =", embedding_size)
+print("epochs =", epochs)
+print("batch_size =", batch_size)
+print("RMSProp =", RMSProp_lr)
+
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
     # 运行结束的提醒
