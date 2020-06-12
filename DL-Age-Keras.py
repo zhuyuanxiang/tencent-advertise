@@ -21,6 +21,10 @@ import sklearn
 import matplotlib.pyplot as plt
 import numpy as np
 import winsound
+from preprocessing import data_no_sequence, data_sequence, load_data, data_sequence_no_start
+from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+from network import construct_model
 
 # ----------------------------------------------------------------------
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
@@ -39,34 +43,25 @@ assert sys.version_info >= (3, 5)
 assert sklearn.__version__ >= "0.20"
 # numpy 1.16.4 is required
 assert np.__version__ >= "1.18.1"
-# ----------------------------------------------------------------------
-# 加载数据
-from preprocessing import data_no_sequence, data_sequence, load_data, data_sequence_no_start
 
 
 def train_model():
+    # ----------------------------------------------------------------------
+    # 加载数据
     X_data, y_data = load_data(file_name, label_name)
     # ----------------------------------------------------------------------
     # 清洗数据集
     X_doc, y_doc = data_no_sequence(X_data, y_data, user_id_num, creative_id_num)
-    X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num)
     # ----------------------------------------------------------------------
     # 填充数据集
-    from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-
     X = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
     y = y_doc
     # ----------------------------------------------------------------------
     print("* 拆分数据集")
-    from sklearn.model_selection import train_test_split
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed, stratify = y)
     print("\t训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
-
     # ----------------------------------------------------------------------
     # 构建模型
-    from network import construct_model
-
     model = construct_model(creative_id_num, embedding_size, max_len, RMSProp_lr, model_type,
                             label_name)
 
@@ -182,7 +177,7 @@ if __name__ == '__main__':
     creative_id_num = 200000
     train_model()
 
-    max_len=256
+    max_len = 256
     embedding_size = 128
     creative_id_num = 50000  # 素材数
     train_model()
@@ -199,7 +194,7 @@ if __name__ == '__main__':
     creative_id_num = 200000
     train_model()
 
-    max_len=256
+    max_len = 256
     embedding_size = 256
     creative_id_num = 50000  # 素材数
     train_model()
@@ -251,7 +246,7 @@ if __name__ == '__main__':
     creative_id_num = 200000
     train_model()
 
-    max_len=256
+    max_len = 256
     embedding_size = 128
     creative_id_num = 50000  # 素材数
     train_model()
@@ -268,7 +263,7 @@ if __name__ == '__main__':
     creative_id_num = 200000
     train_model()
 
-    max_len=256
+    max_len = 256
     embedding_size = 256
     creative_id_num = 50000  # 素材数
     train_model()
