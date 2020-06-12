@@ -8,6 +8,17 @@ CREATE TABLE 'click_log_all'(
     PRIMARY KEY (`creative_id`, 'user_id', 'time_id')
 ) ENGINE = MYISAM COMMENT = 'click_log.csv' DELAY_KEY_WRITE = 1;
 
+/* 
+ 为 click_log_all 的常用查询字段单独建立索引
+ 因为主键只有排在最前面的字段才会被用作索引
+ */
+ALTER TABLE
+    `tencent`.`click_log_all`
+ADD
+    INDEX `user_id_idx`(`user_id`) USING BTREE,
+ADD
+    INDEX `creative_id_idx`(`creative_id`) USING BTREE;
+
 /* 素材表，ad.csv */
 CREATE TABLE `ad_list` (
     `creative_id` int NOT NULL,
@@ -44,8 +55,9 @@ CREATE TABLE `train_data_all_temp` (
     `advertiser_id` int DEFAULT NULL,
     `industry` int DEFAULT NULL,
     `age` int NOT NULL,
-    `gender` int NOT NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+    `gender` int NOT NULL,
+    PRIMARY KEY (`creative_id`, 'user_id', 'time_id')
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用于导出数据的临时数据表' DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     train_data_all_temp
