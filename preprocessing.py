@@ -44,7 +44,7 @@ np.random.seed(seed)
 
 
 # ----------------------------------------------------------------------
-def load_data(file_name, label_name = 'gender'):
+def load_data(file_name, label_name='gender'):
     '''
     从 csv 文件中载入原始数据
     :param file_name: 载入数据的文件名
@@ -55,15 +55,65 @@ def load_data(file_name, label_name = 'gender'):
     print("* 加载数据集...")
     # 「CSV」文件字段名称
     # "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
-    df = pd.read_csv(file_name)
+    df = pd.read_csv(file_name,dtype=int)
     # 选择需要的列作为输入数据
-    X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
-    # 索引在数据库中是从 1 开始的，加上 2 ，是因为 Python 的索引是从 0 开始的
-    # 并且需要保留 {0, 1, 2} 三个数：0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
+    # X_data = df[[ "user_id_inc", "creative_id_inc","time_id"]].values
+    X_data = df[["user_id_inc", "creative_id_inc"]].values
+    # 数据调整偏移量为-1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
+    X_data[:, 0] = X_data[:, 0] - 1
+    # 数据调整偏移量为2，是因为需要保留 {0, 1, 2} 三个数：0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
     X_data[:, 1] = X_data[:, 1] + 2
+    # 目标数据是类别，分类是从 0 开始计数的
     y_data = df[label_name].values - 1  # 目标数据
     print("数据加载完成。")
+    print("加载数据(X_data[0], y_data[0]) =", X_data[0], y_data[0])
+    print("加载数据(X_data[3], y_data[30]) =", X_data[30], y_data[30])
+    print("加载数据(X_data[6], y_data[600]) =", X_data[600], y_data[600])
+    print("加载数据(X_data[9], y_data[9000]) =", X_data[9000], y_data[9000])
     return X_data, y_data
+
+
+# ----------------------------------------------------------------------
+def data_no_sequence(X_data, y_data, user_id_num, creative_id_num):
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
+    y_doc = np.zeros([user_id_num])
+    # -1 不在数据序列中
+    tmp_user_id = -1
+    tmp_creative_id = -1
+    data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
+    for i, row_data in enumerate(X_data):
+        # 数据清洗的进度
+        if (i % data_step) == 0:
+            print(".", end='')
+            pass
+        user_id = row_data[0]
+        creative_id = row_data[1]
+
+        # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
+        if user_id < user_id_num:
+            # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
+            if user_id != tmp_user_id:
+                tmp_user_id = user_id
+                # 新建用户序列时，数据序列用 2 表示用户序列的开始，标签序列更新为用户的标签
+                X_doc[user_id] = [2]
+                y_doc[user_id] = y_data[i]
+                pass
+            # 超过词典大小的素材标注为 1，即「未知」
+            if creative_id >= creative_id_num:
+                creative_id = 1
+                pass
+            X_doc[user_id].append(creative_id)
+            tmp_creative_id = creative_id
+            pass
+        pass
+    pass
+    print("\n数据清洗完成！")
+    print("清洗数据(X_doc[0], y_doc[0]) =", X_doc[0], y_doc[0])
+    print("清洗数据(X_doc[30], y_doc[30]) =", X_doc[30], y_doc[30])
+    print("清洗数据(X_doc[600], y_doc[600]) =", X_doc[600], y_doc[600])
+    print("清洗数据(X_doc[9000], y_doc[9000]) =", X_doc[9000], y_doc[9000])
+    return X_doc, y_doc
 
 
 # ----------------------------------------------------------------------
