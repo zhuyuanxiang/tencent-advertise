@@ -334,6 +334,10 @@ ORDER BY
     time_id,
     creative_id_inc;
 
+ALTER TABLE `tencent`.`train_data_all_sequence` 
+ADD INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
+ADD INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
+
 /* 创建无时间序列的最终训练数据表，数据量：27608868 */
 DROP TABLE train_data_all_no_sequence;
 
@@ -361,3 +365,7 @@ GROUP BY
 ORDER BY
     user_id,
     creative_id_inc;
+
+ALTER TABLE `tencent`.`train_data_all_no_sequence` 
+ADD INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
+ADD INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
