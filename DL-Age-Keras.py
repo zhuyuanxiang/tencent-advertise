@@ -20,7 +20,6 @@ import sys
 import sklearn
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import winsound
 
 # ----------------------------------------------------------------------
@@ -42,82 +41,250 @@ assert sklearn.__version__ >= "0.20"
 assert np.__version__ >= "1.18.1"
 # ----------------------------------------------------------------------
 # 加载数据
-from preprocessing import data_sequence, load_data, data_sequence_no_start
+from preprocessing import data_no_sequence, data_sequence, load_data, data_sequence_no_start
 
-file_name = './data/train_data.csv'
-X_data, y_data = load_data(file_name, label_name = 'age')
 
-# ----------------------------------------------------------------------
-# 定义全局变量
-user_id_num = 50000  # 用户数
-creative_id_num = 50000  # 素材数
-max_len = 16
+def train_model():
+    X_data, y_data = load_data(file_name, label_name)
+    # ----------------------------------------------------------------------
+    # 清洗数据集
+    X_doc, y_doc = data_no_sequence(X_data, y_data, user_id_num, creative_id_num)
+    X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num)
+    # ----------------------------------------------------------------------
+    # 填充数据集
+    from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 
-# ----------------------------------------------------------------------
-# 清洗数据集
-# X_doc, y_doc = data_sequence(X_data, y_data, user_id_num, creative_id_num)
-X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num)
-# ----------------------------------------------------------------------
-# 填充数据集
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+    X = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
+    y = y_doc
+    # ----------------------------------------------------------------------
+    print("* 拆分数据集")
+    from sklearn.model_selection import train_test_split
 
-X = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
-y = y_doc
-# ----------------------------------------------------------------------
-print("* 拆分数据集")
-from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed, stratify = y)
+    print("\t训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed, stratify = y)
-print("\t训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
+    # ----------------------------------------------------------------------
+    # 构建模型
+    from network import construct_model
 
-# ----------------------------------------------------------------------
-# 构建模型
-from network import construct_model
+    model = construct_model(creative_id_num, embedding_size, max_len, RMSProp_lr, model_type,
+                            label_name)
 
-embedding_size = 128
-RMSProp_lr = 6e-04
-# model_type = "Bidirectional+LSTM"  # Bidirectional+LSTM：双向 LSTM
-# model_type = "Conv1D"  # Conv1D：1 维卷积神经网络
-# model_type = "Conv1D+LSTM"  # Conv1D+LSTM：1 维卷积神经网络 + LSTM
-model_type = "GlobalMaxPooling1D"  # GlobalMaxPooling1D：1 维全局池化层
-# model_type = "GlobalMaxPooling1D+MLP"  # GlobalMaxPooling1D+MLP：1 维全局池化层 + 多层感知机
-# model_type = "LSTM"  # LSTM：循环神经网络
-# model_type = "MLP"  # MLP：多层感知机
-label_name = "age"
-model = construct_model(creative_id_num, embedding_size, max_len,RMSProp_lr, model_type, label_name)
-# ----------------------------------------------------------------------
-print("* 训练模型")
-print("训练数据 =", X_train[0], y_train[0])
-epochs = 20
-batch_size = 256
-model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
-          validation_split = 0.2, use_multiprocessing = True, verbose = 2)
+    # ----------------------------------------------------------------------
+    def output_result():
+        '''
+        输出训练的结果
+        :return:
+        '''
+        print("\t模型预测-->", end = '')
+        print("\t损失值 = {}，精确度 = {}".format(results[0], results[1]))
+        if label_name == 'age':
+            print("\t前10个真实的目标数据 =", np.array(y_test[:10], dtype = int))
+            print("\t前10个预测的目标数据 =", np.array(np.argmax(predictions[:10], 1), dtype = int))
+            print("\t前10个预测的结果数据 =", )
+            print(predictions[:10])
+        elif label_name == 'gender':
+            print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
+                  sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)) / sum(y_test) * 100,
+                  '%')
+            print("前100个真实的目标数据 =", np.array(y_test[:100], dtype = int))
+            print("前100个预测的目标数据 =", np.array(predictions[:100] > 0.5, dtype = int))
+            print("sum(predictions>0.5) =", sum(predictions > 0.5))
+            print("sum(y_test) =", sum(y_test))
+            print("sum(abs(predictions-y_test))=error_number=",
+                  sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)))
+        else:
+            print("错误的标签名称：", label_name)
+            pass
+        print("实验报告参数")
+        print("user_id_number =", user_id_num)
+        print("creative_id_number =", creative_id_num)
+        print("max_len =", max_len)
+        print("embedding_size =", embedding_size)
+        print("epochs =", epochs)
+        print("batch_size =", batch_size)
+        print("RMSProp =", RMSProp_lr)
+        pass
 
-# # 训练全部数据，不分离出验证数据，使用前面训练给出的过拟合次数决定训练周期
-# # TODO:效果不好？
-# model.fit(X_train, y_train, epochs = 6, batch_size = batch_size,
-#           use_multiprocessing = True, verbose = 2)
+    # ----------------------------------------------------------------------
+    print("* 训练模型")
+    print("训练数据(X_train[0], y_train[0]) =", X_train[0], y_train[0])
+    print("训练数据(X_train[30], y_train[30]) =", X_train[30], y_train[30])
+    print("训练数据(X_train[600], y_train[600]) =", X_train[600], y_train[600])
+    print("训练数据(X_train[9000], y_train[9000]) =", X_train[9000], y_train[9000])
+    # ----------------------------------------------------------------------
+    # 使用验证集
+    model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
+              validation_split = 0.2, use_multiprocessing = True, verbose = 2)
+    results = model.evaluate(X_test, y_test, verbose = 0)
+    predictions = model.predict(X_test).squeeze()
+    output_result()
 
-# ----------------------------------------------------------------------
-results = model.evaluate(X_test, y_test, verbose = 0)
-predictions = model.predict(X_test).squeeze()
-print("\t模型预测-->", end = '')
-print("\t损失值 = {}，精确度 = {}".format(results[0], results[1]))
-print("\t前10个真实的目标数据 =", np.array(y_test[:10], dtype = int))
-print("\t前10个预测的目标数据 =", np.array(np.argmax(predictions[:10], 1), dtype = int))
-print("\t前10个预测的结果数据 =", )
-print(predictions[:10])
-print("实验报告参数")
-print("user_id_number =", user_id_num)
-print("creative_id_number =", creative_id_num)
-print("max_len =", max_len)
-print("embedding_size =", embedding_size)
-print("epochs =", epochs)
-print("batch_size =", batch_size)
-print("RMSProp =", RMSProp_lr)
+    # ----------------------------------------------------------------------
+    # 不使用验证集
+    model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
+              use_multiprocessing = True, verbose = 2)
+    results = model.evaluate(X_test, y_test, verbose = 0)
+    predictions = model.predict(X_test).squeeze()
+    output_result()
+
 
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
+    # model_type = "Bidirectional+LSTM"  # Bidirectional+LSTM：双向 LSTM
+    # model_type = "Conv1D"  # Conv1D：1 维卷积神经网络
+    # model_type = "Conv1D+LSTM"  # Conv1D+LSTM：1 维卷积神经网络 + LSTM
+    # model_type = "GlobalMaxPooling1D"  # GlobalMaxPooling1D：1 维全局池化层
+    # model_type = "GlobalMaxPooling1D+MLP"  # GlobalMaxPooling1D+MLP：1 维全局池化层 + 多层感知机
+    # model_type = "LSTM"  # LSTM：循环神经网络
+    # model_type = "MLP"  # MLP：多层感知机
+    # ----------------------------------------------------------------------
+    # 定义全局变量
+    file_name = './data/train_data_no_sequence.csv'
+    user_id_num = 900000  # 用户数
+    model_type = "GlobalMaxPooling1D"
+    RMSProp_lr = 5e-04
+    epochs = 20
+    batch_size = 256
+
+    label_name = 'age'
+    max_len = 128
+    embedding_size = 128
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    max_len = 128
+    embedding_size = 256
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    max_len=256
+    embedding_size = 128
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    max_len=256
+    embedding_size = 256
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    label_name = 'gender'
+    max_len = 128
+    embedding_size = 128
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    max_len = 128
+    embedding_size = 256
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    max_len=256
+    embedding_size = 128
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
+    max_len=256
+    embedding_size = 256
+    creative_id_num = 50000  # 素材数
+    train_model()
+    creative_id_num = 75000
+    train_model()
+    creative_id_num = 100000
+    train_model()
+    creative_id_num = 125000
+    train_model()
+    creative_id_num = 150000
+    train_model()
+    creative_id_num = 175000
+    train_model()
+    creative_id_num = 200000
+    train_model()
+
     # 运行结束的提醒
     winsound.Beep(900, 500)
     winsound.Beep(600, 1000)
