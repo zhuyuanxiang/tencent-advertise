@@ -176,11 +176,11 @@ def construct_model():
         model.add(Dense(10, activation = 'softmax'))
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
-        run_opts = tf.RunOptions(report_tensor_allocations_upon_oom = True)
+        # Keras 好像不能支持 report_tensor_allocations_upon_oom
+        # 运行时会 Python 会报错：Process finished with exit code -1073741819 (0xC0000005)
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
                       loss = losses.sparse_categorical_crossentropy,
-                      metrics = [metrics.sparse_categorical_accuracy],
-                      options = run_opts)
+                      metrics = [metrics.sparse_categorical_accuracy])
     elif label_name == 'gender':
         model.add(Dense(1, activation = 'sigmoid'))
         print("%s——模型构建完成！" % model_type)
