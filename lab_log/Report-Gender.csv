@@ -1,0 +1,15 @@
+dataset,user_id_num,creative_id_num,max_len,embedding_size,epochs,batch_size,RMSProp,preprocess,network,parameters,first_loss,first_acc,max_loss,max_acc,max_epoch,last_loss,last_acc,test_loss,test_acc,error%,error_number,over_fit,over_epoch
+500k,50000,50000,16,128,20,256,0.0006,sequence,GlobalMaxPooling1D,,,0.6531,,0.8451,15,,0.8451,,0.8521,43.09,1850,TRUE,15
+5m,50000,50000,16,128,20,256,0.0006,sequence,GlobalMaxPooling1D,,,0.6652,,0.8808,16,,0.8799,,0.8779,36.76,1850,TRUE,15
+5m,150000,100000,32,128,20,256,0.0006,sequence,GlobalMaxPooling1D,,,0.7556,,0.904,12,,0.9024,,0.9049,28.02,3564,TRUE,10
+5m,150000,100000,48,128,20,256,0.0006,sequence,GlobalMaxPooling1D,,,0.7479,,0.904,13,,0.9032,,0.9039,28.32,3602,TRUE,10
+500k,50000,50000,16,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.6531,,0.8471,16,,0.8468,,0.8528,42.84,1839,TRUE,16
+5m,50000,50000,16,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.6652,,0.8792,16,,0.8776,,0.8782,36.67,1522,TRUE,16
+5m,50000,100000,16,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.6652,,0.8761,19,,0.8756,,0.8774,36.91,1532,TRUE,16
+5m,150000,50000,16,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.7482,,0.8977,19,,0.8973,,0.8956,30.75,3912,TRUE,16
+5m,150000,100000,32,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.7632,,0.9034,11,,0.9023,,0.9043,28.2,3587,TRUE,11
+5m,150000,100000,48,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.7654,,0.9055,13,,0.9038,,0.9038,28.37,3609,TRUE,11
+5m,150000,150000,16,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.7585,,0.8988,13,,0.8974,,0.8963,30.57,3888,TRUE,11
+5m,150000,150000,32,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.7585,,0.9052,13,,0.9036,,0.9041,28.25,3593,TRUE,11
+5m,150000,150000,48,128,20,256,0.0006,no_start,GlobalMaxPooling1D,,,0.7564,,0.9051,13,,0.9036,,0.9028,28.63,3642,TRUE,11
+all,900000,100000,128,128,20,256,0.0005,no_sequence,GlobalMaxPooling1D,,0.2598,0.9015,0.2358,0.9124,7,0.239,0.9107,0.2372,0.9117,26.73,19874,TRUE,7
