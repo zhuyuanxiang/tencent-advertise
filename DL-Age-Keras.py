@@ -69,9 +69,7 @@ def load_data():
     # 0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
     if data_seq:  # 如果数据有序列头
         X[:, 1] = X[:, 1] + 2
-    # 尝试只使用 0 作为填充和未知词，
-    # 使用 Embedding 中的 Mask_Zero 屏蔽掉，就不会对 嵌入数据产生任何影响，
-    # 可能导致损失部分数据
+    # 尝试只使用 0 作为填充和未知词，可能导致损失部分数据
     # -----------------------------------
     # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
     # 既可以加载 'age'，也可以加载 'gender'
@@ -129,20 +127,23 @@ def generate_data(X_data, y_data):
             pass
         pass
     print("\n数据清洗完成！")
-    print("清洗数据(X_doc[0], y_doc[0]) =", X_doc[0], y_doc[0])
-    print("清洗数据(X_doc[30], y_doc[30]) =", X_doc[30], y_doc[30])
-    print("清洗数据(X_doc[600], y_doc[600]) =", X_doc[600], y_doc[600])
-    print("清洗数据(X_doc[9000], y_doc[9000]) =", X_doc[9000], y_doc[9000])
     return X_doc, y_doc
+
+
+# ----------------------------------------------------------------------
+def output_example_data(X, y):
+    print("数据(X[0], y[0]) =", X[0], y[0])
+    print("数据(X[30], y[30]) =", X[30], y[30])
+    print("数据(X[600], y[600]) =", X[600], y[600])
+    print("数据(X[9000], y[9000]) =", X[9000], y[9000])
 
 
 # ----------------------------------------------------------------------
 # 构建网络模型
 def construct_model():
     model = Sequential()
-    model.add(Embedding(
-            input_dim = creative_id_end, output_dim = embedding_size,
-            input_length = max_len, mask_zero = True))
+    # mask_zero 在 MaxPooling 层中不能支持
+    model.add(Embedding(creative_id_end, embedding_size, input_length = max_len))
     if model_type == 'MLP':
         model.add(Flatten())
         model.add(Dense(8, activation = 'relu', kernel_regularizer = l2(0.001)))
@@ -198,16 +199,23 @@ def train_model(X_data, y_data):
     # 清洗数据集，生成所需要的数据
     print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
     X_doc, y_doc = generate_data(X_data, y_data)
+    output_example_data(X_doc, y_doc)
     # ----------------------------------------------------------------------
     # 填充数据集
     print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
     X_seq = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
     y_seq = y_doc
+    output_example_data(X_seq, y_seq)
     # ----------------------------------------------------------------------
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
     X_train, X_test, y_train, y_test = train_test_split(
             X_seq, y_seq, random_state = seed, stratify = y_seq)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
+    print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(X_train, y_train)
+    print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(X_test, y_test)
+
     # ----------------------------------------------------------------------
     # 构建模型
     print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
@@ -249,12 +257,6 @@ def train_model(X_data, y_data):
 
     # ----------------------------------------------------------------------
     # 训练网络模型
-    print('-' * 5 + ' ' * 3 + "训练数据" + ' ' * 3 + '-' * 5)
-    print("训练数据(X_train[0], y_train[0]) =", X_train[0], y_train[0])
-    print("训练数据(X_train[30], y_train[30]) =", X_train[30], y_train[30])
-    print("训练数据(X_train[600], y_train[600]) =", X_train[600], y_train[600])
-    print("训练数据(X_train[9000], y_train[9000]) =", X_train[9000], y_train[9000])
-    # ----------------------------------------------------------------------
     # 使用验证集
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
     model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
@@ -264,21 +266,21 @@ def train_model(X_data, y_data):
     output_result()
 
     # ----------------------------------------------------------------------
-    # 不使用验证集
-    print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
-    model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
+    # 不使用验证集，训练次数减半
+    print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
+    model.fit(X_train, y_train, epochs = 10, batch_size = batch_size,
               use_multiprocessing = True, verbose = 2)
     results = model.evaluate(X_test, y_test, verbose = 0)
     predictions = model.predict(X_test).squeeze()
     output_result()
 
 
-def train_signle_age():
-    global file_name, label_name, max_len, embedding_size, creative_id_end
+def train_single_age():
+    global file_name, label_name, max_len, embedding_size, creative_id_start, creative_id_end
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_no_sequence.csv'
+    file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     X_data, y_data = load_data()
     # ----------------------------------------------------------------------
@@ -286,7 +288,8 @@ def train_signle_age():
     max_len = 128
     embedding_size = 128
     # 定制 素材库大小
-    creative_id_end = 50000
+    creative_id_start = 0
+    creative_id_end = 200000
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
 
@@ -296,7 +299,7 @@ def train_batch_age():
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_no_sequence.csv'
+    file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     X_data, y_data = load_data()
     # ----------------------------------------------------------------------
@@ -408,12 +411,12 @@ def train_batch_age():
     train_model(X_data, y_data)
 
 
-def train_signle_gender():
+def train_single_gender():
     global file_name, label_name, max_len, embedding_size, creative_id_end
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_no_sequence.csv'
+    file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'gender'
     X_data, y_data = load_data()
     # ----------------------------------------------------------------------
@@ -431,7 +434,7 @@ def train_batch_gender():
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_no_sequence.csv'
+    file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'gender'
     X_data, y_data = load_data()
     # ----------------------------------------------------------------------
@@ -556,7 +559,7 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------------------
     # 定义全局通用变量
-    file_name = './data/train_data_no_sequence.csv'
+    file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     user_id_num = 900000  # 用户数
     model_type = "GlobalMaxPooling1D"
@@ -575,9 +578,9 @@ if __name__ == '__main__':
     creative_id_end = 150000
     creative_id_max = 2481135  # 所有素材的数量，也是最后一个素材的编号
     # 运行训练程序
-    train_signle_age()
+    train_single_age()
     train_batch_age()
-    train_signle_gender()
+    train_single_gender()
     train_batch_gender()
     # 运行结束的提醒
     winsound.Beep(900, 500)
