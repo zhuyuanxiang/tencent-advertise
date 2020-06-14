@@ -54,18 +54,6 @@ assert np.__version__ >= "1.18.1"
 
 
 # ----------------------------------------------------------------------
-# GPU 内存使用比例配置
-# from tensorflow.python.keras.backend import set_session
-#
-# config = tf.compat.v1.ConfigProto()
-# config.gpu_options.allow_growth = True
-# config.gpu_options.per_process_gpu_memory_fraction = 0.85
-# set_session(tf.compat.v1.Session(config=config))
-
-
-# ----------------------------------------------------------------------
-
-# ----------------------------------------------------------------------
 # 从文件中载入数据
 def load_data():
     # 「CSV」文件字段名称
@@ -75,13 +63,12 @@ def load_data():
     # 输入数据处理：选择需要的列
     # X = df[[ "user_id_inc", "creative_id_inc","time_id"]].values
     X = df[["user_id_inc", "creative_id_inc"]].values
-    # 'user_id_inc' 字段的偏移量为 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
-    X[:, 0] = X[:, 0] - 1
-    # 'creative_id_inc' 字段的偏移量为 2，是因为需要保留 {0, 1, 2} 三个数：
-    # 0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
+    X[:, 0] = X[:, 0] - 1  # 'user_id_inc' 字段的偏移量为 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
     if data_seq:  # 如果数据有序列头
-        X[:, 1] = X[:, 1] + 2
-    # 尝试只使用 0 作为填充和未知词，可能导致损失部分数据
+        # 0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
+        X[:, 1] = X[:, 1] + 2  # 'creative_id_inc' 字段的偏移量为 2，是因为需要保留 {0, 1, 2} 三个数：
+    else:
+        X[:, 1] = X[:, 1]  # 尝试只使用 0 作为填充和未知词，可能导致信息损失
     # -----------------------------------
     # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
     # 既可以加载 'age'，也可以加载 'gender'
@@ -155,7 +142,7 @@ def construct_model():
     output_parameters()
     model = Sequential()
     # mask_zero 在 MaxPooling 层中不能支持
-    model.add(Embedding(creative_id_end, embedding_size, input_length = max_len))
+    model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
     if model_type == 'MLP':
         model.add(Flatten())
         model.add(Dense(8, activation = 'relu', kernel_regularizer = l2(0.001)))
@@ -210,7 +197,11 @@ def construct_model():
 def output_parameters():
     print("实验报告参数")
     print("\tuser_id_number =", user_id_num)
-    print("\tcreative_id_number =", creative_id_end)
+    print("\tcreative_id_start =", creative_id_start)
+    print("\tcreative_id_end =", creative_id_end)
+    print("\tcreative_id_num =", creative_id_num)
+    print("\tcreative_id_max =", creative_id_max)
+    print("\tcreative_id_step_size =", creative_id_step_size)
     print("\tmax_len =", max_len)
     print("\tembedding_size =", embedding_size)
     print("\tepochs =", epochs)
@@ -308,9 +299,9 @@ def train_multi_fraction():
     # ----------------------------------------------------------------------
     # 定制 素材库大小
     for i in range(16):
-        creative_id_start = 128000 * i
-        creative_id_end = 128000 * (i + 5)
-        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(128000 * 5) + ' ' * 3 + '-' * 5)
+        creative_id_start = creative_id_step_size * i
+        creative_id_end = creative_id_start + creative_id_num
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
         train_model(X_data, y_data)
     # ----------------------------------------------------------------------
     # 加载数据
@@ -321,9 +312,9 @@ def train_multi_fraction():
     # ----------------------------------------------------------------------
     # 定制 素材库大小
     for i in range(16):
-        creative_id_start = 128000 * i
-        creative_id_end = 128000 * (i + 5)
-        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(128000 * 5) + ' ' * 3 + '-' * 5)
+        creative_id_start = creative_id_step_size * i
+        creative_id_end = creative_id_start + creative_id_num
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
         train_model(X_data, y_data)
 
 
@@ -343,9 +334,9 @@ def train_single_age():
     max_len = 256
     embedding_size = 128
     # 定制 素材库大小
-    creative_id_start = 128000 * 1
-    creative_id_end = 640000 + creative_id_start
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
+    creative_id_start = creative_id_step_size * 1
+    creative_id_end = creative_id_start + creative_id_num
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
 
 
@@ -364,113 +355,28 @@ def train_batch_age():
     # 定义全局定制变量
     max_len = 128
     embedding_size = 128
-    # 定制 素材库大小
-    creative_id_end = 50000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-
+    batch_train(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
     embedding_size = 256
-    # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # creative_id_num = 200000  # 超过机器计算能力
-    # print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
-    # train_model(X_data, y_data)
+    batch_train(X_data, y_data)
 
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 256
     embedding_size = 128
-    # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    batch_train(X_data, y_data)
 
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 256
     embedding_size = 256
-    # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    batch_train(X_data, y_data)
 
 
 def train_single_gender():
-    global file_name, label_name, max_len, embedding_size, creative_id_end
+    global file_name, label_name, max_len, embedding_size, creative_id_start, creative_id_end
     print('-' * 5 + ' ' * 3 + "train_single_gender" + ' ' * 3 + '-' * 5)
     print('=' * 50)
     # ----------------------------------------------------------------------
@@ -485,8 +391,9 @@ def train_single_gender():
     max_len = 128
     embedding_size = 128
     # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
+    creative_id_start = creative_id_step_size * 1
+    creative_id_end = creative_id_num + creative_id_start
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
 
 
@@ -506,108 +413,34 @@ def train_batch_gender():
     max_len = 128
     embedding_size = 128
     # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    batch_train(X_data, y_data)
 
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
     embedding_size = 256
-    # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    batch_train(X_data, y_data)
 
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 256
     embedding_size = 128
-    # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    batch_train(X_data, y_data)
 
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 256
     embedding_size = 256
-    # 定制 素材库大小
-    creative_id_end = 50000  # 素材数
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 75000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 100000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 125000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 150000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 175000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    creative_id_end = 200000
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    batch_train(X_data, y_data)
+
+
+def batch_train(X_data, y_data):
+    global creative_id_end
+    for i in range(6):
+        # 定制 素材库大小
+        creative_id_end = creative_id_num + creative_id_start * i
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+        train_model(X_data, y_data)
 
 
 # ----------------------------------------------------------------------
@@ -637,9 +470,11 @@ if __name__ == '__main__':
     # 定义全局定制变量
     max_len = 128
     embedding_size = 128
-    # 定制 素材库大小 = creative_id_end - creative_id_start
-    creative_id_start = 0
-    creative_id_end = 640000
+    # 定制 素材库大小 = creative_id_end - creative_id_start=creative_id_num=creative_id_step_size*(1+3+1)
+    creative_id_step_size = 128000
+    creative_id_num = 640000
+    creative_id_start = creative_id_step_size * 0
+    creative_id_end = creative_id_start + creative_id_num
     creative_id_max = 2481135  # 所有素材的数量，也是最后一个素材的编号
     # 运行训练程序
     train_single_age()
