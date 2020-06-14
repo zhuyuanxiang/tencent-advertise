@@ -96,6 +96,7 @@ def generate_data(X_data, y_data):
             print(".", end = '')
             pass
         user_id = row_data[0]
+        y_doc[user_id] = y_data[i]
         if dictionary_asc:
             # 词典是正序取，就是从小到大
             creative_id = row_data[1]
@@ -115,7 +116,6 @@ def generate_data(X_data, y_data):
         else:
             continue
         X_doc[user_id].append(creative_id)
-        y_doc[user_id] = y_data[i]
         pass
     print("\n数据清洗完成！")
     return X_doc, y_doc
