@@ -259,7 +259,7 @@ def train_model(X_data, y_data):
             print("前 30 个预测的结果数据 =", )
             print(predictions[:30])
             for i in range(10):
-                print("类别 {0} 的数目：{1}".format(i, sum(np_argmax == i)))
+                print("类别 {0} 的真实数目：{1}，预测数目：{2}".format(i, sum(y_test == i), sum(np_argmax == i)))
         elif label_name == 'gender':
             predict_gender = np.array(predictions > 0.5, dtype = int)
             print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
@@ -296,66 +296,22 @@ def train_model(X_data, y_data):
 
 def train_multi_fraction():
     global file_name, label_name, max_len, embedding_size, creative_id_start, creative_id_end
+    print('-' * 5 + ' ' * 3 + "train_multi_fraction" + ' ' * 3 + '-' * 5)
+    print('=' * 50)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
+    file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     X_data, y_data = load_data()
     output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定制 素材库大小
-    creative_id_start = 250000 * 0
-    creative_id_end = 781240 + 250000 * 0
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 1
-    creative_id_end = 781240 + 250000 * 1
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 2
-    creative_id_end = 781240 + 250000 * 2
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 3
-    creative_id_end = 781240 + 250000 * 3
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 4
-    creative_id_end = 781240 + 250000 * 4
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 5
-    creative_id_end = 781240 + 250000 * 5
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 6
-    creative_id_end = 781240 + 250000 * 6
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 7
-    creative_id_end = 781240 + 250000 * 7
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 1
-    creative_id_end = 781240 + 250000 * 1
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    for i in range(16):
+        creative_id_start = 128000 * i
+        creative_id_end = 128000 * (i + 5)
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(128000 * 5) + ' ' * 3 + '-' * 5)
+        train_model(X_data, y_data)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -364,62 +320,17 @@ def train_multi_fraction():
     output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定制 素材库大小
-    creative_id_start = 250000 * 0
-    creative_id_end = 781240 + 250000 * 0
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 1
-    creative_id_end = 781240 + 250000 * 1
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 2
-    creative_id_end = 781240 + 250000 * 2
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 3
-    creative_id_end = 781240 + 250000 * 3
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 4
-    creative_id_end = 781240 + 250000 * 4
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 5
-    creative_id_end = 781240 + 250000 * 5
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 6
-    creative_id_end = 781240 + 250000 * 6
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 7
-    creative_id_end = 781240 + 250000 * 7
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
-            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
-    # 定制 素材库大小
-    creative_id_start = 250000 * 1
-    creative_id_end = 781240 + 250000 * 1
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
-    train_model(X_data, y_data)
+    for i in range(16):
+        creative_id_start = 128000 * i
+        creative_id_end = 128000 * (i + 5)
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(128000 * 5) + ' ' * 3 + '-' * 5)
+        train_model(X_data, y_data)
 
 
 def train_single_age():
     global file_name, label_name, max_len, embedding_size, creative_id_start, creative_id_end
+    print('-' * 5 + ' ' * 3 + "train_single_age" + ' ' * 3 + '-' * 5)
+    print('=' * 50)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -432,14 +343,16 @@ def train_single_age():
     max_len = 256
     embedding_size = 128
     # 定制 素材库大小
-    creative_id_start = 0
-    creative_id_end = 640000
+    creative_id_start = 128000 * 1
+    creative_id_end = 640000 + creative_id_start
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
 
 
 def train_batch_age():
     global file_name, label_name, max_len, embedding_size, creative_id_end
+    print('-' * 5 + ' ' * 3 + "train_batch_age" + ' ' * 3 + '-' * 5)
+    print('=' * 50)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -558,6 +471,8 @@ def train_batch_age():
 
 def train_single_gender():
     global file_name, label_name, max_len, embedding_size, creative_id_end
+    print('-' * 5 + ' ' * 3 + "train_single_gender" + ' ' * 3 + '-' * 5)
+    print('=' * 50)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -577,6 +492,8 @@ def train_single_gender():
 
 def train_batch_gender():
     global file_name, label_name, max_len, embedding_size, creative_id_end
+    print('-' * 5 + ' ' * 3 + "train_batch_gender" + ' ' * 3 + '-' * 5)
+    print('=' * 50)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
