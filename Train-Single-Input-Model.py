@@ -54,6 +54,18 @@ assert np.__version__ >= "1.18.1"
 
 
 # ----------------------------------------------------------------------
+# GPU 内存使用比例配置
+# from tensorflow.python.keras.backend import set_session
+#
+# config = tf.compat.v1.ConfigProto()
+# config.gpu_options.allow_growth = True
+# config.gpu_options.per_process_gpu_memory_fraction = 0.85
+# set_session(tf.compat.v1.Session(config=config))
+
+
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # 从文件中载入数据
 def load_data():
     # 「CSV」文件字段名称
@@ -75,10 +87,6 @@ def load_data():
     # 既可以加载 'age'，也可以加载 'gender'
     y = df[label_name].values - 1
     print("数据加载完成。")
-    print("加载数据(X_data[0], y_data[0]) =", X[0], y[0])
-    print("加载数据(X_data[3], y_data[30]) =", X[30], y[30])
-    print("加载数据(X_data[6], y_data[600]) =", X[600], y[600])
-    print("加载数据(X_data[9], y_data[9000]) =", X[9000], y[9000])
     return X, y
 
 
@@ -88,8 +96,12 @@ def generate_data(X_data, y_data):
     print("数据生成中：", end = '')
     X_doc = np.zeros([user_id_num], dtype = object)
     y_doc = np.zeros([user_id_num], dtype = int)
-    # -1 不在数据序列中
-    tmp_user_id = -1
+    for i in range(user_id_num):
+        if data_seq:
+            # 新建用户序列时，数据序列用 2 表示用户序列的开始，标签序列更新为用户的标签
+            X_doc[i] = [2]
+        else:
+            X_doc[i] = []
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
@@ -104,27 +116,19 @@ def generate_data(X_data, y_data):
             # 词典是倒序取，就是从大到小
             # 加 1 ：因为序列编号 0 表示「填充」
             creative_id = creative_id_max - row_data[1] + 1
-
-        # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
-            # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
-            if user_id != tmp_user_id:
-                tmp_user_id = user_id
-                if data_seq:
-                    # 新建用户序列时，数据序列用 2 表示用户序列的开始，标签序列更新为用户的标签
-                    X_doc[user_id] = [2]
-                else:
-                    X_doc[user_id] = []
-                y_doc[user_id] = y_data[i]
-                pass
-
-            if creative_id_end > creative_id > creative_id_start:
-                X_doc[user_id].append(creative_id)
-            elif unknown_word:
-                # 超过词典大小的素材标注为 1，即「未知」
-                X_doc[user_id].append(1)
-                pass
             pass
+
+        if creative_id_end > creative_id > creative_id_start:
+            creative_id = creative_id - creative_id_start
+        elif creative_id < creative_id_end - creative_id_max:
+            creative_id = creative_id_max - creative_id_start + creative_id
+        elif unknown_word:
+            # 超过词典大小的素材标注为 1，即「未知」
+            creative_id = 1
+        else:
+            continue
+        X_doc[user_id].append(creative_id)
+        y_doc[user_id] = y_data[i]
         pass
     print("\n数据清洗完成！")
     return X_doc, y_doc
@@ -136,11 +140,19 @@ def output_example_data(X, y):
     print("数据(X[30], y[30]) =", X[30], y[30])
     print("数据(X[600], y[600]) =", X[600], y[600])
     print("数据(X[9000], y[9000]) =", X[9000], y[9000])
+    print("数据(X[120000], y[120000]) =", X[120000], y[120000])
+    if len(y) > 224999:
+        print("数据(X[224999], y[224999]) =", X[224999], y[224999])
+    if len(y) > 674999:
+        print("数据(X[674999], y[674999]) =", X[674999], y[674999])
+    if len(y) > 899999:
+        print("数据(X[899999], y[899999]) =", X[899999], y[899999])
 
 
 # ----------------------------------------------------------------------
 # 构建网络模型
 def construct_model():
+    output_parameters()
     model = Sequential()
     # mask_zero 在 MaxPooling 层中不能支持
     model.add(Embedding(creative_id_end, embedding_size, input_length = max_len))
@@ -158,7 +170,9 @@ def construct_model():
         model.add(GlobalMaxPooling1D())
     elif model_type == 'GlobalMaxPooling1D+MLP':
         model.add(GlobalMaxPooling1D())
+        model.add(Dropout(0.2))
         model.add(Dense(64, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Dropout(0.2))
         model.add(Dense(32, activation = 'relu', kernel_regularizer = l2(0.001)))
     elif model_type == 'LSTM':
         model.add(LSTM(128))
@@ -191,6 +205,17 @@ def construct_model():
     else:
         raise Exception("错误的标签类型！")
     return model
+
+
+def output_parameters():
+    print("实验报告参数")
+    print("\tuser_id_number =", user_id_num)
+    print("\tcreative_id_number =", creative_id_end)
+    print("\tmax_len =", max_len)
+    print("\tembedding_size =", embedding_size)
+    print("\tepochs =", epochs)
+    print("\tbatch_size =", batch_size)
+    print("\tRMSProp =", RMSProp_lr)
 
 
 # ----------------------------------------------------------------------
@@ -228,31 +253,25 @@ def train_model(X_data, y_data):
         print("模型预测-->", end = '')
         print("损失值 = {}，精确度 = {}".format(results[0], results[1]))
         if label_name == 'age':
-            print("前10个真实的目标数据 =", np.array(y_test[:10], dtype = int))
-            print("前10个预测的目标数据 =", np.array(np.argmax(predictions[:10], 1), dtype = int))
-            print("前10个预测的结果数据 =", )
-            print(predictions[:10])
+            np_argmax = np.argmax(predictions, 1)
+            print("前 30 个真实的目标数据 =", np.array(y_test[:30], dtype = int))
+            print("前 30 个预测的目标数据 =", np.array(np.argmax(predictions[:30], 1), dtype = int))
+            print("前 30 个预测的结果数据 =", )
+            print(predictions[:30])
+            for i in range(10):
+                print("类别 {0} 的数目：{1}".format(i, sum(np_argmax == i)))
         elif label_name == 'gender':
+            predict_gender = np.array(predictions > 0.5, dtype = int)
             print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
-                  sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)) / sum(y_test) * 100,
-                  '%')
+                  sum(abs(predict_gender - y_test)) / sum(y_test) * 100, '%')
             print("前100个真实的目标数据 =", np.array(y_test[:100], dtype = int))
-            print("前100个预测的目标数据 =", np.array(predictions[:100] > 0.5, dtype = int))
-            print("sum(predictions>0.5) =", sum(predictions > 0.5))
+            print("前100个预测的目标数据 =", np.array(predict_gender[:100], dtype = int))
+            print("sum(predictions>0.5) =", sum(predict_gender))
             print("sum(y_test) =", sum(y_test))
-            print("sum(abs(predictions-y_test))=error_number=",
-                  sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)))
+            print("sum(abs(predictions-y_test))=error_number=", sum(abs(predict_gender - y_test)))
         else:
             print("错误的标签名称：", label_name)
             pass
-        print("实验报告参数")
-        print("user_id_number =", user_id_num)
-        print("creative_id_number =", creative_id_end)
-        print("max_len =", max_len)
-        print("embedding_size =", embedding_size)
-        print("epochs =", epochs)
-        print("batch_size =", batch_size)
-        print("RMSProp =", RMSProp_lr)
         pass
 
     # ----------------------------------------------------------------------
@@ -275,21 +294,146 @@ def train_model(X_data, y_data):
     output_result()
 
 
+def train_multi_fraction():
+    global file_name, label_name, max_len, embedding_size, creative_id_start, creative_id_end
+    # ----------------------------------------------------------------------
+    # 加载数据
+    print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
+    label_name = 'age'
+    X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
+    # ----------------------------------------------------------------------
+    # 定制 素材库大小
+    creative_id_start = 250000 * 0
+    creative_id_end = 781240 + 250000 * 0
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 1
+    creative_id_end = 781240 + 250000 * 1
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 2
+    creative_id_end = 781240 + 250000 * 2
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 3
+    creative_id_end = 781240 + 250000 * 3
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 4
+    creative_id_end = 781240 + 250000 * 4
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 5
+    creative_id_end = 781240 + 250000 * 5
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 6
+    creative_id_end = 781240 + 250000 * 6
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 7
+    creative_id_end = 781240 + 250000 * 7
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 1
+    creative_id_end = 781240 + 250000 * 1
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # ----------------------------------------------------------------------
+    # 加载数据
+    print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
+    label_name = 'gender'
+    X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
+    # ----------------------------------------------------------------------
+    # 定制 素材库大小
+    creative_id_start = 250000 * 0
+    creative_id_end = 781240 + 250000 * 0
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 1
+    creative_id_end = 781240 + 250000 * 1
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 2
+    creative_id_end = 781240 + 250000 * 2
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 3
+    creative_id_end = 781240 + 250000 * 3
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 4
+    creative_id_end = 781240 + 250000 * 4
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 5
+    creative_id_end = 781240 + 250000 * 5
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 6
+    creative_id_end = 781240 + 250000 * 6
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 7
+    creative_id_end = 781240 + 250000 * 7
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(
+            creative_id_end - creative_id_start) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+    # 定制 素材库大小
+    creative_id_start = 250000 * 1
+    creative_id_end = 781240 + 250000 * 1
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
+    train_model(X_data, y_data)
+
+
 def train_single_age():
     global file_name, label_name, max_len, embedding_size, creative_id_start, creative_id_end
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_all_no_sequence.csv'
+    file_name = './data/train_data_5m.csv'
     label_name = 'age'
     X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
-    max_len = 128
+    max_len = 256
     embedding_size = 128
     # 定制 素材库大小
     creative_id_start = 0
-    creative_id_end = 200000
+    creative_id_end = 640000
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_end) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
 
@@ -302,6 +446,7 @@ def train_batch_age():
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
@@ -419,6 +564,7 @@ def train_single_gender():
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'gender'
     X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
@@ -437,6 +583,7 @@ def train_batch_gender():
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'gender'
     X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
@@ -575,13 +722,14 @@ if __name__ == '__main__':
     embedding_size = 128
     # 定制 素材库大小 = creative_id_end - creative_id_start
     creative_id_start = 0
-    creative_id_end = 150000
+    creative_id_end = 640000
     creative_id_max = 2481135  # 所有素材的数量，也是最后一个素材的编号
     # 运行训练程序
     train_single_age()
-    train_batch_age()
-    train_single_gender()
-    train_batch_gender()
+    # train_batch_age()
+    # train_single_gender()
+    # train_batch_gender()
+    # train_multi_fraction()
     # 运行结束的提醒
     winsound.Beep(900, 500)
     winsound.Beep(600, 1000)
