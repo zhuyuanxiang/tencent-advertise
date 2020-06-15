@@ -135,6 +135,8 @@ def output_example_data(X, y):
         print("数据(X[674999], y[674999]) =", X[674999], y[674999])
     if len(y) > 899999:
         print("数据(X[899999], y[899999]) =", X[899999], y[899999])
+        pass
+    pass
 
 
 # ----------------------------------------------------------------------
@@ -143,7 +145,7 @@ def construct_model():
     output_parameters()
     model = Sequential()
     # mask_zero 在 MaxPooling 层中不能支持
-    model.add(Embedding(creative_id_num, embedding_size, input_length = max_len))
+    model.add(Embedding(creative_id_window, embedding_size, input_length = max_len))
     if model_type == 'MLP':
         model.add(Flatten())
         model.add(Dense(8, activation = 'relu', kernel_regularizer = l2(0.001)))
@@ -158,8 +160,8 @@ def construct_model():
         model.add(GlobalMaxPooling1D())
     elif model_type == 'GlobalMaxPooling1D+MLP':
         model.add(GlobalMaxPooling1D())
-        # model.add(Dropout(0.5))
-        # model.add(Dense(64, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Dropout(0.5))
+        model.add(Dense(64, activation = 'relu', kernel_regularizer = l2(0.001)))
         model.add(Dropout(0.5))
         model.add(Dense(32, activation = 'relu', kernel_regularizer = l2(0.001)))
     elif model_type == 'LSTM':
@@ -200,7 +202,7 @@ def output_parameters():
     print("\tuser_id_number =", user_id_num)
     print("\tcreative_id_begin =", creative_id_begin)
     print("\tcreative_id_end =", creative_id_end)
-    print("\tcreative_id_num =", creative_id_num)
+    print("\tcreative_id_num =", creative_id_window)
     print("\tcreative_id_max =", creative_id_max)
     print("\tcreative_id_step_size =", creative_id_step_size)
     print("\tmax_len =", max_len)
@@ -208,6 +210,7 @@ def output_parameters():
     print("\tepochs =", epochs)
     print("\tbatch_size =", batch_size)
     print("\tRMSProp =", RMSProp_lr)
+    pass
 
 
 # ----------------------------------------------------------------------
@@ -237,6 +240,7 @@ def train_model(X_data, y_data):
     print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
     model = construct_model()
     print(model.summary())
+    pass
 
     # ----------------------------------------------------------------------
     # 输出训练的结果
@@ -245,7 +249,7 @@ def train_model(X_data, y_data):
         print("损失值 = {}，精确度 = {}".format(results[0], results[1]))
         if label_name == 'age':
             np_argmax = np.argmax(predictions, 1)
-            print("前 30 个真实的预测数据 =", np.array(X_test[:30], dtype = int))
+            # print("前 30 个真实的预测数据 =", np.array(X_test[:30], dtype = int))
             print("前 30 个真实的目标数据 =", np.array(y_test[:30], dtype = int))
             print("前 30 个预测的目标数据 =", np.array(np.argmax(predictions[:30], 1), dtype = int))
             print("前 30 个预测的结果数据 =", )
@@ -265,6 +269,7 @@ def train_model(X_data, y_data):
             print("错误的标签名称：", label_name)
             pass
         pass
+    pass
 
     # ----------------------------------------------------------------------
     # 训练网络模型
@@ -284,6 +289,7 @@ def train_model(X_data, y_data):
     results = model.evaluate(X_test, y_test, verbose = 0)
     predictions = model.predict(X_test).squeeze()
     output_result()
+    pass
 
 
 def train_multi_fraction():
@@ -300,8 +306,8 @@ def train_multi_fraction():
     # 定制 素材库大小
     for i in range(16):
         creative_id_begin = creative_id_step_size * i
-        creative_id_end = creative_id_begin + creative_id_num
-        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+        creative_id_end = creative_id_begin + creative_id_window
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
         train_model(X_data, y_data)
     # ----------------------------------------------------------------------
     # 加载数据
@@ -313,30 +319,37 @@ def train_multi_fraction():
     # 定制 素材库大小
     for i in range(16):
         creative_id_begin = creative_id_step_size * i
-        creative_id_end = creative_id_begin + creative_id_num
-        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+        creative_id_end = creative_id_begin + creative_id_window
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
         train_model(X_data, y_data)
+        pass
+    pass
 
 
 def train_single_age():
-    global file_name, label_name, max_len, embedding_size, creative_id_begin, creative_id_end
+    global file_name, model_type, label_name, max_len, embedding_size, creative_id_window, creative_id_begin, creative_id_end, epochs, batch_size
     print('>' * 15 + ' ' * 3 + "train_single_age" + ' ' * 3 + '<' * 15)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
     file_name = './data/train_data_all_no_sequence.csv'
+    model_type = 'GlobalMaxPooling1D+MLP'
     label_name = 'age'
     X_data, y_data = load_data()
     output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
-    embedding_size = 64
+    embedding_size = 128
+    epochs = 30
+    batch_size = 1024
     # 定制 素材库大小
+    creative_id_window = creative_id_step_size * 5
     creative_id_begin = creative_id_step_size * 0
-    creative_id_end = creative_id_begin + creative_id_num
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+    creative_id_end = creative_id_begin + creative_id_window
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
+    pass
 
 
 def train_single_gender():
@@ -355,9 +368,10 @@ def train_single_gender():
     embedding_size = 128
     # 定制 素材库大小
     creative_id_begin = creative_id_step_size * 1
-    creative_id_end = creative_id_num + creative_id_begin
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+    creative_id_end = creative_id_window + creative_id_begin
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
+    pass
 
 
 def train_batch_age():
@@ -380,7 +394,7 @@ def train_batch_age():
     max_len = 256
     embedding_size = 64
     batch_train(X_data, y_data)
-
+    pass
 
 def train_batch_gender():
     global file_name, label_name, max_len, embedding_size, creative_id_end
@@ -402,15 +416,18 @@ def train_batch_gender():
     max_len = 256
     embedding_size = 64
     batch_train(X_data, y_data)
+    pass
 
 
 def batch_train(X_data, y_data):
     global creative_id_end
     for i in range(6):  # 5*128000+640000=1280000=5*creative_id_step_size+creative_id_num
         # 不断改变 素材库 大小，来测试最佳素材容量，但是过大的素材库无法有效训练
-        creative_id_end = creative_id_num + creative_id_step_size * i
-        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+        creative_id_end = creative_id_window + creative_id_step_size * i
+        print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
         train_model(X_data, y_data)
+        pass
+    pass
 
 
 # ----------------------------------------------------------------------
@@ -429,26 +446,24 @@ if __name__ == '__main__':
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     user_id_num = 900000  # 用户数
-    model_type = "GlobalMaxPooling1D+MLP"
+    model_type = "GlobalMaxPooling1D"
     RMSProp_lr = 5e-04
-    epochs = 40
-    batch_size = 512
+    epochs = 20
+    batch_size = 256
     sequence_data = False  # 不使用序列数据，如果使用序列数据，则下两项必须为 True
     unknown_word = False  # 是否使用未知词 1
     data_seq_head = False  # 是否生成序列头 2
     dictionary_asc = True  # 字典按正序(asc)取，还是倒序(desc)取
     # ----------------------------------------------------------------------
     # 定义全局定制变量
-    max_len = 128
-    embedding_size = 64
+    max_len = 128  # 64:803109，128:882952 个用户；64：1983350，128：2329077 个素材
+    embedding_size = 128
     # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
-    # creative_id_step_size = 300000
-    # creative_id_num = 800000
     creative_id_step_size = 128000
-    creative_id_begin = creative_id_step_size * 0
-    creative_id_num = creative_id_step_size * 10
-    creative_id_end = creative_id_begin + creative_id_num
     creative_id_max = 2481135 - 1  # 最后一个素材的编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
+    creative_id_window = creative_id_step_size * 10
+    creative_id_begin = creative_id_step_size * 0
+    creative_id_end = creative_id_begin + creative_id_window
     # 运行训练程序
     train_single_age()
     # train_single_gender()
