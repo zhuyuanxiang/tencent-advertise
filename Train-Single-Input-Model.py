@@ -11,7 +11,7 @@
 @Time       :   2020-06-11 9:04
 @License    :   (C)Copyright 2018-2020, zYx.Tom
 @Reference  :   
-@Desc       :   
+@Desc       :   训练单个输入模型
 @理解：
 """
 # common imports
