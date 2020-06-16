@@ -141,3 +141,5 @@ log_dir/train/*.*
 log_dir/checkpoint
 /.history/ETL/*.*
 data/README
+.history/lab_log/*.*
+lab_log/~$Report-Age.xlsx
