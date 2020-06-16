@@ -64,10 +64,10 @@ X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
 # [14000,7000]
 
 user_id_num = 12000
-creative_id_num = 6000
+creative_id_end = 6000
 embedding_size=200
 max_len=91
-data_shape = (creative_id_num,)
+data_shape = (creative_id_end,)
 batch_size = int(user_id_num / 30)
 epochs = int(user_id_num / 150)
 
@@ -79,13 +79,13 @@ epochs = int(user_id_num / 150)
 # user_id_inc：表示用户的编码，这个编码已经处理过，按照 91天 内访问素材的数量逆序排列(大的在前面)
 # 超过维度的用户放弃
 # time_id：表示91天内第几天访问的广告
-X_one_hot = np.zeros([user_id_num, creative_id_num], dtype = np.bool)
+X_one_hot = np.zeros([user_id_num, creative_id_end], dtype = np.bool)
 y_one_hot = np.zeros([user_id_num])
 for i, row_data in enumerate(X_data):
     user_id = row_data[2] - 1
     if user_id < user_id_num:
         creative_id = row_data[1]
-        if creative_id >= creative_id_num:
+        if creative_id >= creative_id_end:
             creative_id = 0
             pass
         X_one_hot[user_id, creative_id] = True
@@ -105,7 +105,7 @@ X_train_scaled = X_train
 X_test_scaled = X_test
 
 model = keras.Sequential(name = "简单的一维卷积神经网络")
-model.add(keras.Embedding(creative_id_num, embedding_size, input_length = max_len))
+model.add(keras.Embedding(creative_id_end, embedding_size, input_length = max_len))
 model.add(keras.Conv1D(32, 7, activation = keras.activations.relu))
 model.add(keras.MaxPooling1D(5))
 model.add(keras.Conv1D(32, 7, activation = keras.activations.relu))
