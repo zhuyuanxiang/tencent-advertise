@@ -29,7 +29,7 @@ from tensorflow.python.keras import losses
 from tensorflow.python.keras import metrics
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.layers import (Bidirectional, Conv1D, Dense, Dropout, Embedding,
-                                            Flatten, GlobalMaxPooling1D, LSTM, )
+                                            Flatten, GlobalMaxPooling1D, LSTM, BatchNormalization, Activation, )
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 from tensorflow.python.keras.regularizers import l2
@@ -161,9 +161,13 @@ def construct_model():
     elif model_type == 'GlobalMaxPooling1D+MLP':
         model.add(GlobalMaxPooling1D())
         model.add(Dropout(0.5))
-        model.add(Dense(64, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
         model.add(Dropout(0.5))
-        model.add(Dense(32, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
     elif model_type == 'LSTM':
         model.add(LSTM(128))
         # model.add(LSTM(128, dropout = 0.5, recurrent_dropout = 0.5))
@@ -177,7 +181,11 @@ def construct_model():
         raise Exception("错误的网络模型类型")
 
     if label_name == "age":
-        model.add(Dense(10, activation = 'softmax'))
+        model.add(Dropout(0.5))
+        model.add(Dense(10, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('softmax'))
+        # model.add(Dense(10, activation = 'softmax', kernel_regularizer = l2(0.001)))
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
         # Keras 好像不能支持 report_tensor_allocations_upon_oom
@@ -200,11 +208,11 @@ def construct_model():
 def output_parameters():
     print("实验报告参数")
     print("\tuser_id_number =", user_id_num)
-    print("\tcreative_id_begin =", creative_id_begin)
-    print("\tcreative_id_end =", creative_id_end)
-    print("\tcreative_id_num =", creative_id_window)
     print("\tcreative_id_max =", creative_id_max)
     print("\tcreative_id_step_size =", creative_id_step_size)
+    print("\tcreative_id_window =", creative_id_window)
+    print("\tcreative_id_begin =", creative_id_begin)
+    print("\tcreative_id_end =", creative_id_end)
     print("\tmax_len =", max_len)
     print("\tembedding_size =", embedding_size)
     print("\tepochs =", epochs)
@@ -269,6 +277,7 @@ def train_model(X_data, y_data):
             print("错误的标签名称：", label_name)
             pass
         pass
+
     pass
 
     # ----------------------------------------------------------------------
@@ -340,8 +349,8 @@ def train_single_age():
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
-    embedding_size = 128
-    epochs = 30
+    embedding_size = 64
+    epochs = 60
     batch_size = 1024
     # 定制 素材库大小
     creative_id_window = creative_id_step_size * 5
@@ -395,6 +404,7 @@ def train_batch_age():
     embedding_size = 64
     batch_train(X_data, y_data)
     pass
+
 
 def train_batch_gender():
     global file_name, label_name, max_len, embedding_size, creative_id_end
@@ -459,8 +469,8 @@ if __name__ == '__main__':
     max_len = 128  # 64:803109，128:882952 个用户；64：1983350，128：2329077 个素材
     embedding_size = 128
     # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
-    creative_id_step_size = 128000
     creative_id_max = 2481135 - 1  # 最后一个素材的编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
+    creative_id_step_size = 128000
     creative_id_window = creative_id_step_size * 10
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
