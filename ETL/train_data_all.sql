@@ -15,9 +15,7 @@ CREATE TABLE `click_log_all` (
     `click_times` int DEFAULT NULL,
     `sparsity` int DEFAULT NULL COMMENT '用于每个 user_id 对应的 creative_id 的稀疏性，方便后面提取 creative_id 的最小值，是个临时字段',
     PRIMARY KEY (`time_id`, `user_id`, `creative_id`) USING BTREE
-)
-/*!50100 STORAGE MEMORY */
-ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1 COMMENT = 'click_log.csv';
 
 /* 
  为 click_log_all 的常用查询字段单独建立索引
@@ -41,20 +39,21 @@ ADD
  tf_idf_valu = tf * idf
  */
 CREATE TABLE `ad_list` (
+    `creative_id_inc` int DEFAULT NULL,
     `creative_id` int NOT NULL,
     `ad_id` int DEFAULT NULL,
     `product_id` int DEFAULT NULL,
     `product_category` int DEFAULT NULL,
     `advertiser_id` int DEFAULT NULL,
     `industry` int DEFAULT NULL,
-    sum_creative_id_times INT DEFAULT NULL,
-    sum_user_id_times INT DEFAULT NULL,
-    sparsity INT DEFAULT NULL,
-    tf_value INT DEFAULT NULL,
-    idf_value INT DEFAULT NULL,
-    tf_idf_value INT DEFAULT NULL,
+    `sum_creative_id_times` int DEFAULT NULL,
+    `sum_user_id_times` int DEFAULT NULL,
+    `sparsity` int DEFAULT NULL,
+    `tf_value` int DEFAULT NULL,
+    `idf_value` int DEFAULT NULL,
+    `tf_idf_value` int DEFAULT NULL,
     PRIMARY KEY (`creative_id`)
-) ENGINE = MYISAM COMMENT = 'ad.csv' DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1 COMMENT = 'ad.csv';
 
 /* 
  用户表 user.csv
@@ -64,77 +63,16 @@ CREATE TABLE `ad_list` (
  种类越少，素材在这个用户这里的稀疏度就越高，越需要保留这个素材，才能有效分离这个用户
  */
 CREATE TABLE `user_list` (
+    `user_id_inc` int DEFAULT NULL,
     `user_id` int NOT NULL,
-    sum_creative_id_times INT DEFAULT NULL,
-    sum_creative_id_category INT DEFAULT NULL,
+    `sum_creative_id_times` int DEFAULT NULL,
+    `sum_creative_id_category` int DEFAULT NULL,
     `age` int NOT NULL,
     `gender` int NOT NULL,
     PRIMARY KEY (`user_id`)
-) ENGINE = MYISAM COMMENT = 'user.csv' DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1 COMMENT = 'user.csv';
 
-/* C2. 创建辅助数据表 */
-/*
- 创建全部字段的全部数据的临时表，用于导出所需要的数据
- */
-CREATE TABLE `train_data_all_temp` (
-    `time_id` int NOT NULL,
-    `user_id` int NOT NULL,
-    `creative_id_inc` int DEFAULT NULL,
-    `creative_id` int NOT NULL,
-    `click_times` int DEFAULT NULL,
-    `ad_id` int DEFAULT NULL,
-    `product_id` int DEFAULT NULL,
-    `product_category` int DEFAULT NULL,
-    `advertiser_id` int DEFAULT NULL,
-    `industry` int DEFAULT NULL,
-    `age` int NOT NULL,
-    `gender` int NOT NULL,
-    PRIMARY KEY (`creative_id`, 'user_id', 'time_id')
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用于导出数据的临时数据表' DELAY_KEY_WRITE = 1;
-
-INSERT INTO
-    train_data_all_temp(
-        time_id,
-        user_id,
-        creative_id,
-        click_times,
-        ad_id,
-        product_id,
-        product_category,
-        advertiser_id,
-        industry,
-        age,
-        gender
-    )
-SELECT
-    A.time_id,
-    A.user_id,
-    A.creative_id,
-    A.click_times,
-    B.ad_id,
-    B.product_id,
-    B.product_category,
-    B.advertiser_id,
-    B.industry,
-    C.age,
-    C.gender
-FROM
-    click_log_all AS A
-    INNER JOIN user_list AS C ON A.user_id = C.user_id
-    INNER JOIN ad_list AS B ON A.creative_id = B.creative_id;
-
-ALTER TABLE
-    `tencent`.`train_data_all_temp`
-ADD
-    INDEX `user_id_idx`(`user_id`) USING BTREE,
-ADD
-    INDEX `creative_id_idx`(`creative_id_idx`) USING BTREE,
-ADD
-    INDEX `age_idx`(`age`) USING BTREE,
-ADD
-    INDEX `gender_idx`(`gender`) USING BTREE;
-
-/* C3. 生成数据的统计信息 */
+/* C2. 生成数据的统计信息 */
 /* 
  统计 click_log_all 中的 creative_id 素材
  sum_creative_id_times : 每个素材出现的次数 = tf_value
@@ -242,6 +180,41 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
+/* C3. 创建辅助数据表 */
+/* 创建用户词典，重新编码 user_id */
+DROP TABLE `train_user_id_all`;
+
+CREATE TABLE `train_user_id_all` (
+    `user_id_inc` INT NOT NULL AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    sparsity INT NOT NULL,
+    PRIMARY KEY (`user_id_inc`)
+);
+
+INSERT INTO
+    `train_user_id_all` (`user_id`, sparsity)
+SELECT
+    A.`user_id`,
+    A.sum_creative_id_category
+FROM
+    `user_list` AS A
+ORDER BY
+    sum_creative_id_category;
+
+ALTER TABLE
+    `tencent`.`train_user_id_all`
+ADD
+    INDEX `sparsity_idx`(`sparsity`) USING BTREE;
+
+/* 基于 train_user_id_all 更新 user_id_inc */
+UPDATE
+    user_list AS A,
+    train_user_id_all AS B
+SET
+    A.user_id_inc = B.user_id_inc
+WHERE
+    A.user_id = B.user_id;
+
 /* 
  创建素材词典，重新编码 creative_id 
  AVG(tf_idf_value)=0.000003395131726109348
@@ -279,19 +252,7 @@ ALTER TABLE
 ADD
     INDEX `creative_id_idx`(`creative_id`) USING BTREE;
 
-/* 
- 依据词典要求，更新 creative_id_inc  
- 更新 train_data_all_temp 的时间有点长，但是更新好后，就可以反复使用
- 更新 ad_list 的时间比较短，但是更新后，还需要联合其他表才能使用
- */
-UPDATE
-    train_data_all_temp AS A,
-    train_creative_id_all AS B
-SET
-    A.creative_id_inc = B.creative_id_inc
-WHERE
-    A.creative_id = B.creative_id;
-
+/* 基于 train_creative_id_all 更新 creative_id_inc */
 UPDATE
     ad_list AS A,
     train_creative_id_all AS B
@@ -299,6 +260,148 @@ SET
     A.creative_id_inc = B.creative_id_inc
 WHERE
     A.creative_id = B.creative_id;
+
+/* C4. 创建导出数据表 */
+/*
+ 创建全部字段的全部数据的临时表，用于导出所需要的数据
+ */
+DROP TABLE train_data_all_temp;
+
+CREATE TABLE `train_data_all_temp` (
+    `time_id` int NOT NULL,
+    `user_id_inc` INT DEFAULT NULL,
+    `user_id` int NOT NULL,
+    `creative_id_inc` int DEFAULT NULL,
+    `creative_id` int NOT NULL,
+    `click_times` int NOT NULL,
+    `ad_id` int DEFAULT NULL,
+    `product_id` int DEFAULT NULL,
+    `product_category` int DEFAULT NULL,
+    `advertiser_id` int DEFAULT NULL,
+    `industry` int DEFAULT NULL,
+    `age` int DEFAULT NULL,
+    `gender` int DEFAULT NULL,
+    PRIMARY KEY (`time_id`, `user_id`, `creative_id`) USING BTREE
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用于导出数据的临时数据表' DELAY_KEY_WRITE = 1;
+
+/* 插入 click_log_all 的原始数据 */
+INSERT INTO
+    train_data_all_temp(time_id, user_id, creative_id, click_times)
+SELECT
+    time_id,
+    user_id,
+    creative_id,
+    click_times
+FROM
+    click_log_all;
+
+ALTER TABLE
+    `tencent`.`train_data_all_temp`
+ADD
+    INDEX `time_id_idx`(`time_id`) USING BTREE,
+ADD
+    INDEX `user_id_idx`(`user_id`) USING BTREE,
+ADD
+    INDEX `creative_id_idx`(`creative_id`) USING BTREE,
+ADD
+    INDEX `age_idx`(`age`) USING BTREE,
+ADD
+    INDEX `gender_idx`(`gender`) USING BTREE;
+
+/* 基于 user_list 更新 user_id_inc, age, gender */
+UPDATE
+    train_data_all_temp AS A,
+    user_list AS B
+SET
+    A.user_id_inc = B.user_id_inc,
+    A.age = B.age,
+    A.gender = B.gender
+WHERE
+    A.user_id = B.user_id;
+
+/* 
+ 基于 ad_list 更新 
+ creative_id_inc,
+ ad_id,
+ product_id,
+ product_category,
+ advertiser_id,
+ industry
+ */
+UPDATE
+    train_data_all_temp AS A,
+    ad_list AS B
+SET
+    A.creative_id_inc = B.creative_id_inc,
+    A.ad_id = B.ad_id,
+    A.product_id = B.product_id,
+    A.product_category = B.product_category,
+    A.advertiser_id = B.advertiser_id,
+    A.industry = B.industry
+WHERE
+    A.creative_id = B.creative_id;
+
+/* 
+ 创建有时间序列的最终训练数据视图，数据量：30082771
+ 注意：不要随便双击视图，因为数据量过大会导致等待时间过长
+ */
+CREATE VIEW train_data_all_sequence_v AS
+SELECT
+    user_id_inc,
+    creative_id_inc,
+    time_id,
+    click_times,
+    ad_id,
+    product_id,
+    product_category,
+    advertiser_id,
+    industry,
+    age,
+    gender
+FROM
+    train_data_all_temp
+ORDER BY
+    user_id_inc,
+    time_id,
+    creative_id_inc;
+
+
+/* 创建无时间序列的最终训练数据视图，数据量：27608868 */
+CREATE VIEW train_data_all_no_sequence_v AS
+SELECT
+    user_id_inc,
+    creative_id_inc,
+    time_id,
+    click_times,
+    ad_id,
+    product_id,
+    product_category,
+    advertiser_id,
+    industry,
+    age,
+    gender
+FROM
+    train_data_all_temp
+GROUP BY
+    user_id_inc,
+    creative_id_inc
+ORDER BY
+    user_id_inc,
+    creative_id_inc;
+
+/* 创建有时间序列的 click_times 视图，好像可以废弃 */    
+CREATE VIEW train_data_all_click_times_v AS
+SELECT
+    train_data_all_temp.user_id_inc AS user_id_inc,
+    train_data_all_temp.click_times AS click_times,
+    train_data_all_temp.time_id AS time_id,
+    train_data_all_temp.age AS age,
+    train_data_all_temp.gender AS gender
+FROM
+    train_data_all_temp
+ORDER BY
+    train_data_all_temp.user_id_inc ASC,
+    train_data_all_temp.time_id ASC
 
 /* 创建有时间序列的最终训练数据表，数据量：30082771 */
 DROP TABLE train_data_all_sequence;
@@ -309,9 +412,7 @@ CREATE TABLE train_data_all_sequence (
     `time_id` int DEFAULT NULL,
     `age` int DEFAULT NULL,
     `gender` int DEFAULT NULL
-)
-/*!50100 STORAGE MEMORY */
-ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     train_data_all_sequence(
@@ -322,7 +423,7 @@ INSERT INTO
         gender
     )
 SELECT
-    user_id AS user_id_inc,
+    user_id_inc,
     creative_id_inc,
     time_id,
     age,
@@ -330,13 +431,16 @@ SELECT
 FROM
     train_data_all_temp
 ORDER BY
-    user_id,
+    user_id_inc,
     time_id,
     creative_id_inc;
 
-ALTER TABLE `tencent`.`train_data_all_sequence` 
-ADD INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
-ADD INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
+ALTER TABLE
+    `tencent`.`train_data_all_sequence`
+ADD
+    INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
+ADD
+    INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
 
 /* 创建无时间序列的最终训练数据表，数据量：27608868 */
 DROP TABLE train_data_all_no_sequence;
@@ -346,26 +450,27 @@ CREATE TABLE `train_data_all_no_sequence` (
     `creative_id_inc` int DEFAULT NULL,
     `age` int DEFAULT NULL,
     `gender` int DEFAULT NULL
-)
-/*!50100 STORAGE MEMORY */
-ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     train_data_all_no_sequence(user_id_inc, creative_id_inc, age, gender)
 SELECT
-    user_id AS user_id_inc,
+    user_id_inc,
     creative_id_inc,
     age,
     gender
 FROM
     train_data_all_temp
 GROUP BY
-    user_id,
+    user_id_inc,
     creative_id_inc
 ORDER BY
-    user_id,
+    user_id_inc,
     creative_id_inc;
 
-ALTER TABLE `tencent`.`train_data_all_no_sequence` 
-ADD INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
-ADD INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
+ALTER TABLE
+    `tencent`.`train_data_all_no_sequence`
+ADD
+    INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
+ADD
+    INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
