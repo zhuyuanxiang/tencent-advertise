@@ -57,7 +57,7 @@ CREATE TABLE `ad_list` (
 
 /* 
  用户表 user.csv
- sum_user_click_times : 每个用户点击素材的次数 
+ sum_user_click_times : 每个用户点击素材的次数
  sum_creative_id_times : 每个用户访问素材的次数
  sum_creative_id_category : 每个用户访问素材的种类，
  种类越少，素材在这个用户这里的稀疏度就越高，越需要保留这个素材，才能有效分离这个用户
@@ -99,6 +99,7 @@ WHERE
 /* 
  统计 click_log_all 中的 user_id 的统计数据
  sum_creative_id_times : 每个用户访问素材的次数
+ 访问次数：用户数{512 : 899882; 256 : 898480; 128 : 883325}
  sum_creative_id_category : 每个用户访问素材的种类 = sparsity
  */
 UPDATE
