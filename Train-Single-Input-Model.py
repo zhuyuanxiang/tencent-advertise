@@ -29,7 +29,7 @@ from tensorflow.python.keras import losses
 from tensorflow.python.keras import metrics
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.layers import (Bidirectional, Conv1D, Dense, Dropout, Embedding,
-                                            Flatten, GlobalMaxPooling1D, LSTM, BatchNormalization, Activation, )
+                                            Flatten, GlobalMaxPooling1D, LSTM, BatchNormalization, Activation, GRU, )
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 from tensorflow.python.keras.regularizers import l2
@@ -63,7 +63,6 @@ def load_data():
     # 输入数据处理：选择需要的列
     if sequence_data:
         X_csv = df[["user_id_inc", "creative_id_inc", "time_id"]].values
-        X_csv[:, 2] = X_csv[:, 2] - 1
     else:
         X_csv = df[["user_id_inc", "creative_id_inc"]].values
         pass
@@ -82,26 +81,72 @@ def load_data():
 # ----------------------------------------------------------------------
 # 生成所需要的数据
 def generate_data(X_data, y_data):
+    global unknown_word, data_seq_head
     print("数据生成中：", end = '')
+    if sequence_data:
+        unknown_word = True  # 是否使用未知词 1
+        data_seq_head = True  # 是否生成序列头 2
     y_doc = np.zeros([user_id_num], dtype = int)
     # 初始化 X_doc 为空的列表
     X_doc = np.zeros([user_id_num], dtype = object)
-    for i in range(user_id_num):
-        if data_seq_head:
-            X_doc[i] = [2]  # 如果是序列数据，则数据序列用 2 表示用户序列的开始
-        else:
-            X_doc[i] = []  # 如果不是序列数据，则数据使用 空列表 填充未来的数据
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
+    tmp_user_id = -1
+    tmp_time_id = 0
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
             print(".", end = '')
             pass
         user_id = row_data[0]
+        time_id = row_data[2]
         y_doc[user_id] = y_data[i]
+        # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
+        if user_id != tmp_user_id:
+            # NOTE:这个功能似乎对于数据特征没有帮助?
+            # 将前一个用户未到91天的数据使用一个 0 填充
+            # 虽然后面使用 pad_sequence() 也可以实现 0 填充，但是如果使用用户序列重复填充，就需要这个 0 进行标识
+            # if tmp_time_id != time_id_max:
+            #     for j in range(time_id_max - tmp_time_id):
+            #         X_doc[user_id].append(0)
+            #         pass
+            #     pass
 
+            # 将前一个用户序列重复填充
+            if sequence_loop and tmp_user_id != -1:
+                # NOTE: List 必须用拷贝，否则就是引用赋值，这个值就没有起到临时变量的作用，会不断改变
+                tmp_X_doc = X_doc[tmp_user_id].copy()
+                if max_len>len(tmp_X_doc):
+                    for j in range(max_len // len(tmp_X_doc)):
+                        X_doc[tmp_user_id].extend(tmp_X_doc)
+                        pass
+                    pass
+                pass
+
+            # 初始化新的用户序列
+            if data_seq_head:
+                X_doc[user_id] = [2]  # 如果是序列数据，则数据序列用 2 表示用户序列的开始
+            else:
+                X_doc[user_id] = []  # 如果不是序列数据，则数据使用 空列表 填充未来的数据
+            tmp_user_id = user_id
+
+            # 如果生成的是序列数据，就需要更新 time_id, tmp_time_id
+            if sequence_data:
+                tmp_time_id = time_id
+                pass
+            pass
+
+        # 如果生成的是序列数据，就需要更新 time_id, tmp_time_id
+        if sequence_data:
+            if (time_id - tmp_time_id) > 1:  # 如果两个数据的时间间隔超过1天就需要插入一个 0
+                X_doc[user_id].append(0)
+                pass
+            tmp_time_id = time_id
+            pass
+
+        # 生成 creative_id
         # 0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
         # 'creative_id_inc' 字段的偏移量为 3，是因为需要保留 {0, 1, 2} 三个数：
+        # 素材字典的编号是正序还是倒序
         if dictionary_asc:
             creative_id = row_data[1] + 3  # 词典是正序取，就是从小到大
         else:
@@ -127,8 +172,10 @@ def output_example_data(X, y):
     print("数据(X[0], y[0]) =", X[0], y[0])
     print("数据(X[30], y[30]) =", X[30], y[30])
     print("数据(X[600], y[600]) =", X[600], y[600])
-    print("数据(X[9000], y[9000]) =", X[9000], y[9000])
-    print("数据(X[120000], y[120000]) =", X[120000], y[120000])
+    if len(y) > 8999:
+        print("数据(X[9000], y[9000]) =", X[9000], y[9000])
+    if len(y) > 11999:
+        print("数据(X[120000], y[120000]) =", X[120000], y[120000])
     if len(y) > 224999:
         print("数据(X[224999], y[224999]) =", X[224999], y[224999])
     if len(y) > 674999:
@@ -168,8 +215,26 @@ def construct_model():
         model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
-    elif model_type == 'LSTM':
-        model.add(LSTM(128))
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+    elif model_type == 'GRU+MLP':
+        model.add(GRU(embedding_size, dropout = 0.5, recurrent_dropout = 0.5))
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+    elif model_type == 'GRU':
+        model.add(GRU(embedding_size, dropout = 0.2, recurrent_dropout = 0.2))
         # model.add(LSTM(128, dropout = 0.5, recurrent_dropout = 0.5))
     elif model_type == 'Conv1D+LSTM':
         model.add(Conv1D(32, 5, activation = 'relu', kernel_regularizer = l2(0.001)))
@@ -194,6 +259,10 @@ def construct_model():
                       loss = losses.sparse_categorical_crossentropy,
                       metrics = [metrics.sparse_categorical_accuracy])
     elif label_name == 'gender':
+        # model.add(Dropout(0.5))
+        # model.add(Dense(1, kernel_regularizer = l2(0.001)))
+        # model.add(BatchNormalization())
+        # model.add(Activation('sigmoid'))
         model.add(Dense(1, activation = 'sigmoid'))
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
@@ -336,26 +405,31 @@ def train_multi_fraction():
 
 
 def train_single_age():
-    global file_name, model_type, label_name, max_len, embedding_size, creative_id_window, creative_id_begin, creative_id_end, epochs, batch_size
+    global file_name, model_type, label_name
+    global max_len, embedding_size, sequence_data, sequence_loop, epochs, batch_size
+    global creative_id_window, creative_id_begin, creative_id_end
     print('>' * 15 + ' ' * 3 + "train_single_age" + ' ' * 3 + '<' * 15)
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_all_no_sequence.csv'
+    file_name = './data/train_data_all_sequence_v_little.csv'
+    file_name = './data/train_data_all_sequence_v.csv'
     model_type = 'GlobalMaxPooling1D+MLP'
-    label_name = 'age'
-    X_data, y_data = load_data()
-    output_example_data(X_data, y_data)
+    label_name = 'gender'
     # ----------------------------------------------------------------------
     # 定义全局定制变量
-    max_len = 128
-    embedding_size = 64
-    epochs = 60
+    max_len = 256
+    embedding_size = 128
+    epochs = 120
     batch_size = 1024
+    sequence_data = True
+    sequence_loop = True
     # 定制 素材库大小
-    creative_id_window = creative_id_step_size * 5
+    creative_id_window = creative_id_step_size * 1
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
+    X_data, y_data = load_data()
+    output_example_data(X_data, y_data)
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     train_model(X_data, y_data)
     pass
@@ -455,21 +529,30 @@ if __name__ == '__main__':
     # 定义全局通用变量
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
+    time_id_max = 91
     user_id_num = 900000  # 用户数
+    creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
+    ad_id_max = 2264190  # 最大的广告编号=广告的种类
+    product_id_max = 44313  # 最大的产品编号
+    product_category_max = 18  # 最大的产品类别编号
+    advertiser_id_max = 62965  # 最大的广告主编号
+    industry_max = 335  # 最大的产业类别编号
+    click_times_max = 152  # 所有素材中最大的点击次数
     model_type = "GlobalMaxPooling1D"
     RMSProp_lr = 5e-04
     epochs = 20
     batch_size = 256
-    sequence_data = False  # 不使用序列数据，如果使用序列数据，则下两项必须为 True
+    dictionary_asc = True  # 字典按正序(asc)取，还是倒序(desc)取
+    # 序列数据、循环数据、未知词、序列头 对于 GlobalMaxPooling1D() 函数都是没有用处的，因此默认关闭
     unknown_word = False  # 是否使用未知词 1
     data_seq_head = False  # 是否生成序列头 2
-    dictionary_asc = True  # 字典按正序(asc)取，还是倒序(desc)取
+    sequence_data = False  # 不使用序列数据，如果使用序列数据，则上两项默认为 True，即原始设置无用
+    sequence_loop = False  # 序列数据是否循环生成，即把91天的访问数据再重复几遍填满 max_len，而不是使用 0 填充
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128  # 64:803109，128:882952 个用户；64：1983350，128：2329077 个素材
     embedding_size = 128
     # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
-    creative_id_max = 2481135 - 1  # 最后一个素材的编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
     creative_id_step_size = 128000
     creative_id_window = creative_id_step_size * 10
     creative_id_begin = creative_id_step_size * 0
