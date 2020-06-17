@@ -190,7 +190,7 @@ CREATE TABLE `train_user_id_all` (
     `user_id` INT NOT NULL,
     sparsity INT NOT NULL,
     PRIMARY KEY (`user_id_inc`)
-);
+)ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     `train_user_id_all` (`user_id`, sparsity)
@@ -232,7 +232,7 @@ CREATE TABLE train_creative_id_all (
     tf_value INT NOT NULL,
     idf_value INT NOT NULL,
     PRIMARY KEY (creative_id_inc)
-);
+)ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     train_creative_id_all (creative_id, sparsity, tf_value, idf_value)
@@ -261,6 +261,40 @@ SET
     A.creative_id_inc = B.creative_id_inc
 WHERE
     A.creative_id = B.creative_id;
+
+/* 创建广告词典，重新编码 ad_id */
+DROP TABLE `train_ad_id_all`;
+
+CREATE TABLE `train_ad_id_all` (
+    `ad_id_inc` INT NOT NULL AUTO_INCREMENT,
+    `ad_id` INT NOT NULL,
+    sparsity INT NOT NULL,
+    PRIMARY KEY (`ad_id_inc`)
+)ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+
+INSERT INTO
+    `train_ad_id_all` (`ad_id`, sparsity)
+SELECT
+    A.`ad_id`,
+    A.sparsity
+FROM
+    `ad_list` AS A
+ORDER BY
+    sparsity;
+
+ALTER TABLE
+    `tencent`.`train_ad_id_all`
+ADD
+    INDEX `ad_id_idx`(`ad_id`) USING BTREE;
+
+/* 基于 train_user_id_all 更新 user_id_inc */
+UPDATE
+    user_list AS A,
+    train_user_id_all AS B
+SET
+    A.user_id_inc = B.user_id_inc
+WHERE
+    A.user_id = B.user_id;
 
 /* C4. 创建导出数据表 */
 /*
@@ -343,13 +377,25 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
+
+/* 基于 train_ad_id_all 更新 ad_id_inc */
+UPDATE
+    train_data_all_temp AS A,
+    train_ad_id_all AS B
+SET
+    A.ad_id_inc = B.ad_id_inc
+WHERE
+    A.ad_id = B.ad_id;
+
 /* 增加 train_data_all_temp 的索引字段，方便后面编程时查询相关数据 */
 ALTER TABLE
     `tencent`.`train_data_all_temp`
 ADD
     INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
 ADD
-    INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
+    INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE,
+ADD
+    INDEX `ad_id_inc_idx`(`ad_id_inc`) USING BTREE;
 /* 
  创建有时间序列的最终训练数据视图，数据量：30082771
  注意：不要随便双击视图，因为数据量过大会导致等待时间过长
@@ -374,7 +420,6 @@ ORDER BY
     time_id,
     creative_id_inc;
 
-
 /* 创建无时间序列的最终训练数据视图，数据量：27608868 */
 CREATE VIEW train_data_all_no_sequence_v AS
 SELECT
@@ -398,7 +443,7 @@ ORDER BY
     user_id_inc,
     creative_id_inc;
 
-/* 创建有时间序列的 click_times 视图，好像可以废弃 */    
+/* 创建有时间序列的 click_times 视图，好像可以废弃 */
 CREATE VIEW train_data_all_click_times_v AS
 SELECT
     train_data_all_temp.user_id_inc AS user_id_inc,
@@ -411,9 +456,8 @@ FROM
 ORDER BY
     train_data_all_temp.user_id_inc ASC,
     train_data_all_temp.time_id ASC
-
-/* 创建有时间序列的最终训练数据表，数据量：30082771 */
-DROP TABLE train_data_all_sequence;
+    /* 创建有时间序列的最终训练数据表，数据量：30082771 */
+    DROP TABLE train_data_all_sequence;
 
 CREATE TABLE train_data_all_sequence (
     `user_id_inc` int DEFAULT NULL,
