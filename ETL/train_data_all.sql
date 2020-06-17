@@ -295,6 +295,7 @@ SELECT
 FROM
     click_log_all;
 
+/* 创建 train_data_all_temp 的索引字段，方便后面更新其他字段的数据 */
 ALTER TABLE
     `tencent`.`train_data_all_temp`
 ADD
@@ -341,6 +342,13 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
+/* 增加 train_data_all_temp 的索引字段，方便后面编程时查询相关数据 */
+ALTER TABLE
+    `tencent`.`train_data_all_temp`
+ADD
+    INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
+ADD
+    INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE;
 /* 
  创建有时间序列的最终训练数据视图，数据量：30082771
  注意：不要随便双击视图，因为数据量过大会导致等待时间过长
