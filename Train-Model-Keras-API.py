@@ -59,7 +59,8 @@ def load_data():
     # --------------------------------------------------
     # 输入数据处理：选择需要的列
     if sequence_data:
-        X_csv = df[["user_id_inc", "creative_id_inc", "time_id", "click_times"]].values
+        X_csv = df[
+            ["user_id_inc", "creative_id_inc", "time_id", "click_times", "product_iid"]].values
         X_csv[:, 2] = X_csv[:, 2] - 1
     else:
         X_csv = df[["user_id_inc", "creative_id_inc"]].values
@@ -82,10 +83,11 @@ def generate_data(X_data, y_data):
     print("数据生成中：", end = '')
     y_doc = np.zeros([user_id_num], dtype = int)
     # 初始化 X_doc 为空的列表
-    X_doc = np.zeros([user_id_num, 2], dtype = object)
+    # X_doc[:,0]: creative_id, X_doc[:,1]: click_times, X_doc[:,2]: product_id
+    X_doc = np.zeros([user_id_num, 3], dtype = object)
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
-    tmp_user_id = -1
-    tmp_time_id = 0
+    prev_user_id = -1
+    prev_time_id = 0
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
@@ -95,37 +97,40 @@ def generate_data(X_data, y_data):
         time_id = row_data[2]
         y_doc[user_id] = y_data[i]
         # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
-        if user_id != tmp_user_id:
+        if user_id != prev_user_id:
             # 将前一个用户序列重复填充
-            if tmp_user_id != -1:
+            if prev_user_id != -1:
                 # NOTE: List 必须用拷贝，否则就是引用赋值，这个值就没有起到临时变量的作用，会不断改变
-                tmp_creative_id_sequence = X_doc[tmp_user_id, 0].copy()
-                if max_len > len(tmp_creative_id_sequence):
-                    for j in range(max_len // len(tmp_creative_id_sequence)):
-                        X_doc[tmp_user_id, 0].extend(tmp_creative_id_sequence)
-                        pass
-                    pass
+                loop_prev_data(X_doc, prev_user_id, data_idx = 0)
+                loop_prev_data(X_doc, prev_user_id, data_idx = 1)
+                loop_prev_data(X_doc, prev_user_id, data_idx = 2)
                 pass
 
-            # 初始化新的用户序列
-            X_doc[user_id, 0] = [2]  # 数据序列用 2 表示用户序列的开始
-            X_doc[user_id, 1] = [2]  # 数据序列用 2 表示用户序列的开始
-            tmp_user_id = user_id
-            tmp_time_id = time_id
+            # 初始化新的用户序列, 数据序列用 2 表示用户序列的开始
+            X_doc[user_id, 0] = [2]
+            X_doc[user_id, 1] = [2]
+            X_doc[user_id, 2] = [2]
+            # 重置临时变量
+            prev_user_id = user_id
+            prev_time_id = time_id
             pass
 
-        # 如果生成的是序列数据，就需要更新 time_id, tmp_time_id
-        if (time_id - tmp_time_id) > 1:  # 如果两个数据的时间间隔超过1天就需要插入一个 0
+        # 如果生成的是序列数据，就需要更新 time_id, prev_time_id
+        if (time_id - prev_time_id) > 1:  # 如果两个数据的时间间隔超过1天就需要插入一个 0
             X_doc[user_id, 0].append(0)
             X_doc[user_id, 1].append(0)
+            X_doc[user_id, 2].append(0)
             pass
-        tmp_time_id = time_id
+        prev_time_id = time_id
 
         # 生成 creative_id
         # 0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
         # 'creative_id_inc' 字段的偏移量为 3，是因为需要保留 {0, 1, 2} 三个数：
         creative_id = row_data[1] + 3  # 词典是正序取，就是从小到大
+        click_times = row_data[3]  # 这个不是词典，本身就是值，不需要再调整
+        product_id = row_data[4] + 3  # product_id 词库很小，因此不会产生未知词，保留 1 是保持概念统一
 
+        # 素材是关键，没有素材编号的数据全部放弃
         if creative_id_end > creative_id > creative_id_begin:
             creative_id = creative_id - creative_id_begin
         elif creative_id < creative_id_end - creative_id_max:
@@ -134,13 +139,22 @@ def generate_data(X_data, y_data):
             creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
         else:
             continue
-        X_doc[user_id, 0].append(creative_id)
 
-        click_times = row_data[3]
+        X_doc[user_id, 0].append(creative_id)
         X_doc[user_id, 1].append(click_times)
+        X_doc[user_id, 2].append(product_id)
         pass
     print("\n数据清洗完成！")
     return X_doc, y_doc
+
+
+def loop_prev_data(X_doc, tmp_user_id, data_idx):
+    tmp_data = X_doc[tmp_user_id, data_idx].copy()
+    if max_len > len(tmp_data):
+        for j in range(max_len // len(tmp_data)):
+            X_doc[tmp_user_id, 1].extend(tmp_data)
+            pass
+        pass
 
 
 # ==================================================
@@ -169,10 +183,15 @@ def construct_model():
     embedded_creative_id = Embedding(creative_id_window, embedding_size)(input_creative_id)
     encoded_creative_id = GlobalMaxPooling1D()(embedded_creative_id)
 
-    input_time_id = Input(shape = (None, 1), dtype = 'float32', name = 'click_times')
-    encoded_time_id = LSTM(1)(input_time_id)
+    input_click_times = Input(shape = (None, 1), dtype = 'float32', name = 'click_times')
+    encoded_time_id = LSTM(1)(input_click_times)
 
-    concatenated = concatenate([encoded_creative_id, encoded_time_id], axis = -1)
+    input_product_id = Input(shape = (None,), dtype = 'int32', name = 'product_id')
+    embedded_product_id = Embedding(product_id_max, 16)(input_product_id)
+    encoded_product_id = GlobalMaxPooling1D()(embedded_product_id)
+
+    concatenated = concatenate([encoded_creative_id, encoded_time_id, encoded_product_id],
+                               axis = -1)
     x = Dropout(0.5)(concatenated)
     x = Dense(embedding_size, kernel_regularizer = l2(0.001))(x)
     x = BatchNormalization()(x)
@@ -186,7 +205,7 @@ def construct_model():
         x = Dense(10, kernel_regularizer = l2(0.001))(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('softmax')(x)
-        model = Model([input_creative_id, input_time_id], output_tensor)
+        model = Model([input_creative_id, input_click_times], output_tensor)
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
@@ -197,7 +216,7 @@ def construct_model():
         x = Dense(1, kernel_regularizer = l2(0.001))(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('sigmoid')(x)
-        model = Model([input_creative_id, input_time_id], output_tensor)
+        model = Model([input_creative_id, input_click_times], output_tensor)
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
@@ -235,17 +254,21 @@ def train_model(X_data, y_data):
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
     X_doc_user_id = np.arange(0, user_id_num)
     X_train_idx, X_test_idx, y_train, y_test = train_test_split(
-        X_doc_user_id, y_doc, random_state = seed, stratify = y_doc)
+            X_doc_user_id, y_doc, random_state = seed, stratify = y_doc)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
     # --------------------------------------------------
     # 填充数据集
     print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
     X_train_creative_id = pad_sequences(X_doc[X_train_idx, 0], maxlen = max_len, padding = 'post')
     X_test_creative_id = pad_sequences(X_doc[X_test_idx, 0], maxlen = max_len, padding = 'post')
-    X_train_click_times = pad_sequences(X_doc[X_train_idx, 1], maxlen = max_len, padding = 'post').reshape(
-        (user_id_num * 3 // 4, max_len, 1))
-    X_test_click_times = pad_sequences(X_doc[X_test_idx, 1], maxlen = max_len, padding = 'post').reshape(
-        (user_id_num // 4, max_len, 1))
+    X_train_product_id = pad_sequences(X_doc[X_train_idx, 2], maxlen = max_len, padding = 'post')
+    X_test_product_id = pad_sequences(X_doc[X_test_idx, 2], maxlen = max_len, padding = 'post')
+    X_train_click_times = pad_sequences(X_doc[X_train_idx, 1], maxlen = max_len,
+                                        padding = 'post').reshape(
+            (user_id_num * 3 // 4, max_len, 1))
+    X_test_click_times = pad_sequences(X_doc[X_test_idx, 1], maxlen = max_len,
+                                       padding = 'post').reshape(
+            (user_id_num // 4, max_len, 1))
     # --------------------------------------------------
     # 构建模型
     print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
@@ -284,22 +307,43 @@ def train_model(X_data, y_data):
     # 训练网络模型
     # 使用验证集
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
-    model.fit({'creative_id': X_train_creative_id, 'click_times': X_train_click_times}, y_train, epochs = epochs,
-              batch_size = batch_size,
-              validation_split = 0.2, use_multiprocessing = True, verbose = 2)
-    results = model.evaluate({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}, y_test,
-                             verbose = 0)
-    predictions = model.predict({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}).squeeze()
+    model.fit({
+            'creative_id': X_train_creative_id,
+            'click_times': X_train_click_times,
+            'product_id': X_train_product_id
+    }, y_train, epochs = epochs, batch_size = batch_size,
+            validation_split = 0.2, use_multiprocessing = True, verbose = 2)
+    results = model.evaluate({
+            'creative_id': X_test_creative_id,
+            'click_times': X_test_click_times,
+            'product_id': X_test_product_id
+    }, y_test, use_multiprocessing = True, verbose = 0)
+    predictions = model.predict({
+            'creative_id': X_test_creative_id,
+            'click_times': X_test_click_times,
+            'product_id': X_test_product_id
+    }).squeeze()
     output_result()
 
     # --------------------------------------------------
     # 不使用验证集，训练次数减半
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
-    model.fit({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}, y_train, epochs = 10,
-              batch_size = batch_size, verbose = 2)
-    results = model.evaluate({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}, y_test,
-                             verbose = 0)
-    predictions = model.predict({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}).squeeze()
+    print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
+    model.fit({
+            'creative_id': X_train_creative_id,
+            'click_times': X_train_click_times,
+            'product_id': X_train_product_id
+    }, y_train, epochs = epochs//2, batch_size = batch_size, use_multiprocessing = True, verbose = 2)
+    results = model.evaluate({
+            'creative_id': X_test_creative_id,
+            'click_times': X_test_click_times,
+            'product_id': X_test_product_id
+    }, y_test, use_multiprocessing = True, verbose = 0)
+    predictions = model.predict({
+            'creative_id': X_test_creative_id,
+            'click_times': X_test_click_times,
+            'product_id': X_test_product_id
+    }).squeeze()
     output_result()
 
 
