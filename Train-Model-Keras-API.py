@@ -61,7 +61,8 @@ def load_data():
     # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此数据都减去1
     # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
     # user_id_inc:0, creative_id_inc:1, time_id:2, product_id:3, product_category:4, advertiser_id:5,industry:6
-    for j in range(field_num):
+    # click_times:7 数据是值，不需要减 1
+    for j in range(field_num - 1):
         X_csv[:, j] = X_csv[:, j] - 1
     # --------------------------------------------------
     # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
@@ -77,8 +78,13 @@ def generate_data(X_data, y_data):
     print("数据生成中：", end = '')
     y_doc = np.zeros([user_id_num], dtype = int)
     # 初始化 X_doc 为空的列表
-    # X_doc[:,0]: creative_id, X_doc[:,1]: click_times, X_doc[:,2]: product_id
-    X_doc = np.zeros([user_id_num, 8], dtype = object)
+    # X_doc[:,0]: creative_id
+    # X_doc[:,1]: product_id, X_doc[:,2]: product_category
+    # X_doc[:,3]: advertiser_id, X_doc[:,4]: industry
+    #  X_doc[:,5]: click_times
+    # filed_list 去除 user_id, time_id
+    train_field_num = field_num - 2
+    X_doc = np.zeros([user_id_num, train_field_num], dtype = object)
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     prev_user_id = -1
     prev_time_id = 0
@@ -94,13 +100,20 @@ def generate_data(X_data, y_data):
         if user_id != prev_user_id:
             # 将前一个用户序列重复填充
             if prev_user_id != -1:
-                # NOTE: List 必须用拷贝，否则就是引用赋值，这个值就没有起到临时变量的作用，会不断改变
-                for j in range(field_num):
-                    loop_prev_data(X_doc, prev_user_id, data_idx = i)
+                for j in range(train_field_num):
+                    pre_data = X_doc[prev_user_id, j]
+                    pre_data_len = len(pre_data)
+                    if max_len > pre_data_len:
+                        # NOTE: List 必须用拷贝，否则就是引用赋值，这个值就没有起到临时变量的作用，会不断改变
+                        pre_data_copy = pre_data.copy()
+                        for k in range(max_len // pre_data_len):
+                            pre_data.extend(pre_data_copy)
 
             # 初始化新的用户序列, 数据序列用 2 表示用户序列的开始
-            for j in range(field_num):
+            for j in range(train_field_num - 1):
                 X_doc[user_id, j] = [2]
+                pass
+            X_doc[user_id, train_field_num - 1] = []
             # 重置临时变量
             prev_user_id = user_id
             prev_time_id = time_id
@@ -108,8 +121,8 @@ def generate_data(X_data, y_data):
 
         # 如果生成的是序列数据，就需要更新 time_id, prev_time_id
         if (time_id - prev_time_id) > 1:  # 如果两个数据的时间间隔超过1天就需要插入一个 0
-            for j in range(field_num):
-                X_doc[user_id, 0].append(j)
+            for j in range(train_field_num):
+                X_doc[user_id, j].append(0)
 
         prev_time_id = time_id
 
@@ -150,15 +163,6 @@ def generate_data(X_data, y_data):
     return X_doc, y_doc
 
 
-def loop_prev_data(X_doc, tmp_user_id, data_idx):
-    tmp_data = X_doc[tmp_user_id, data_idx].copy()
-    if max_len > len(tmp_data):
-        for j in range(max_len // len(tmp_data)):
-            X_doc[tmp_user_id, data_idx].extend(tmp_data)
-            pass
-        pass
-
-
 # ==================================================
 def output_example_data(X, y):
     print("数据(X[0], y[0]) =", X[0], y[0])
@@ -182,65 +186,78 @@ def output_example_data(X, y):
 # 训练网络模型
 def construct_model():
     input_creative_id = Input(shape = (None,), dtype = 'int32', name = 'creative_id')
-    embedded_creative_id = Embedding(creative_id_window, embedding_size)(input_creative_id)
-    encoded_creative_id = GlobalMaxPooling1D()(embedded_creative_id)
-
-    # TODO: LSTM 的维度可以修改吗？
-    input_click_times = Input(shape = (None, 1), dtype = 'float32', name = 'click_times')
-    encoded_click_times = LSTM(1)(input_click_times)
+    embedded_creative_id = Embedding(creative_id_window, embedding_size,
+                                     name = 'embedded_creative_id')(input_creative_id)
+    encoded_creative_id = GlobalMaxPooling1D(name = 'encoded_creative_id')(embedded_creative_id)
 
     input_product_id = Input(shape = (None,), dtype = 'int32', name = 'product_id')
-    embedded_product_id = Embedding(product_id_max, 16)(input_product_id)
-    encoded_product_id = GlobalMaxPooling1D()(embedded_product_id)
+    embedded_product_id = Embedding(product_id_max, 32,
+                                    name = 'embedded_product_id')(input_product_id)
+    encoded_product_id = GlobalMaxPooling1D(name = 'encoded_product_id')(embedded_product_id)
 
     input_product_category = Input(shape = (None,), dtype = 'int32', name = 'product_category')
-    embedded_product_category = Embedding(product_category_max, 2)(input_product_category)
-    encoded_product_category = GlobalMaxPooling1D()(embedded_product_category)
+    embedded_product_category = Embedding(product_category_max, 2,
+                                          name = 'embedded_product_category')(input_product_category)
+    encoded_product_category = GlobalMaxPooling1D(name = 'encoded_product_category')(embedded_product_category)
 
     input_advertiser_id = Input(shape = (None,), dtype = 'int32', name = 'advertiser_id')
-    embedded_advertiser_id = Embedding(advertiser_id_max, 16)(input_advertiser_id)
-    encoded_advertiser_id = GlobalMaxPooling1D()(embedded_advertiser_id)
+    embedded_advertiser_id = Embedding(advertiser_id_max, 32,
+                                       name = 'embedded_advertiser_id')(input_advertiser_id)
+    encoded_advertiser_id = GlobalMaxPooling1D(name = 'encoded_advertiser_id')(embedded_advertiser_id)
 
     input_industry = Input(shape = (None,), dtype = 'int32', name = 'industry')
-    embedded_industry = Embedding(product_id_max, 16)(input_industry)
-    encoded_industry = GlobalMaxPooling1D()(embedded_industry)
+    embedded_industry = Embedding(product_id_max, 16,
+                                  name = 'embedded_industry')(input_industry)
+    encoded_industry = GlobalMaxPooling1D(name = 'encoded_industry')(embedded_industry)
+
+    # LSTM(14) : 是因为 91 天正好是 14 个星期
+    input_click_times = Input(shape = (None, 1), dtype = 'float32', name = 'click_times')
+    encoded_click_times = LSTM(14, name = 'encoded_click_times')(input_click_times)
 
     concatenated = concatenate([
-            encoded_creative_id,
-            encoded_click_times,
-            encoded_product_id,
-            encoded_product_category,
-            encoded_advertiser_id,
-            encoded_industry
+        encoded_creative_id,
+        encoded_click_times,
+        encoded_product_id,
+        encoded_product_category,
+        encoded_advertiser_id,
+        encoded_industry
     ], axis = -1)
     x = Dropout(0.5)(concatenated)
-    x = Dense(embedding_size, kernel_regularizer = l2(0.001))(x)
+    x = Dense(embedding_size, kernel_regularizer = l2(0.001), name = 'Dense_0101')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = Dropout(0.5)(x)
-    x = Dense(embedding_size, kernel_regularizer = l2(0.001))(x)
+    x = Dense(embedding_size, kernel_regularizer = l2(0.001), name = 'Dense_0102')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(embedding_size // 2, kernel_regularizer = l2(0.001), name = 'Dense_0201')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(embedding_size // 2, kernel_regularizer = l2(0.001), name = 'Dense_0202')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     if label_name == "age":
         x = Dropout(0.5)(x)
-        x = Dense(10, kernel_regularizer = l2(0.001))(x)
+        x = Dense(10, kernel_regularizer = l2(0.001), name = 'output')(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('softmax')(x)
     elif label_name == 'gender':
         x = Dropout(0.5)(x)
-        x = Dense(1, kernel_regularizer = l2(0.001))(x)
+        x = Dense(1, kernel_regularizer = l2(0.001), name = 'output')(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('sigmoid')(x)
     else:
         raise Exception("错误的标签类型！")
 
     model = Model([
-            input_creative_id,
-            input_click_times,
-            input_product_id,
-            input_product_category,
-            input_advertiser_id,
-            input_industry
+        input_creative_id,
+        input_click_times,
+        input_product_id,
+        input_product_category,
+        input_advertiser_id,
+        input_industry
     ], output_tensor)
     print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
     if label_name == 'age':
@@ -321,65 +338,72 @@ def train_model():
     # 清洗数据集，生成所需要的数据
     print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
     X_doc, y_doc = generate_data(X_data, y_data)
+    del X_data, y_data  # 清空读取 csv 文件使用的内存
     output_example_data(X_doc, y_doc)
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
     X_doc_user_id = np.arange(0, user_id_num)
     X_train_idx, X_test_idx, y_train, y_test = train_test_split(
-            X_doc_user_id, y_doc, random_state = seed, stratify = y_doc)
+        X_doc_user_id, y_doc, random_state = seed, stratify = y_doc)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
     # --------------------------------------------------
     # 截断与填充数据集，按照 max_len 设定长度，将不足的数据集填充 0， 将过长的数据集截断
     print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
     X_train_creative_id = pad_sequences(X_doc[X_train_idx, 0], maxlen = max_len, padding = 'post')
     X_test_creative_id = pad_sequences(X_doc[X_test_idx, 0], maxlen = max_len, padding = 'post')
+    output_example_data(X_train_creative_id, X_test_creative_id)
     X_train_product_id = pad_sequences(X_doc[X_train_idx, 2], maxlen = max_len, padding = 'post')
     X_test_product_id = pad_sequences(X_doc[X_test_idx, 2], maxlen = max_len, padding = 'post')
+    output_example_data(X_train_product_id, X_test_product_id)
     X_train_product_category = pad_sequences(X_doc[X_train_idx, 3], maxlen = max_len, padding = 'post')
     X_test_product_category = pad_sequences(X_doc[X_test_idx, 3], maxlen = max_len, padding = 'post')
+    output_example_data(X_train_product_category, X_test_product_category)
     X_train_advertiser_id = pad_sequences(X_doc[X_train_idx, 4], maxlen = max_len, padding = 'post')
     X_test_advertiser_id = pad_sequences(X_doc[X_test_idx, 4], maxlen = max_len, padding = 'post')
+    output_example_data(X_train_advertiser_id, X_test_advertiser_id)
     X_train_industry = pad_sequences(X_doc[X_train_idx, 5], maxlen = max_len, padding = 'post')
     X_test_industry = pad_sequences(X_doc[X_test_idx, 5], maxlen = max_len, padding = 'post')
+    output_example_data(X_train_industry, X_test_industry)
     X_train_click_times = pad_sequences(
-            X_doc[X_train_idx, 1],
-            maxlen = max_len,
-            padding = 'post'
+        X_doc[X_train_idx, 1],
+        maxlen = max_len,
+        padding = 'post'
     ).reshape((user_id_num * 3 // 4, max_len, 1))
     X_test_click_times = pad_sequences(
-            X_doc[X_test_idx, 1],
-            maxlen = max_len,
-            padding = 'post'
+        X_doc[X_test_idx, 1],
+        maxlen = max_len,
+        padding = 'post'
     ).reshape((user_id_num // 4, max_len, 1))
+    output_example_data(X_train_click_times, X_test_click_times)
     # --------------------------------------------------
     # 训练网络模型
     # 使用验证集
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
     model.fit({
-            'creative_id': X_train_creative_id,
-            'click_times': X_train_click_times,
-            'product_id': X_train_product_id,
-            'product_category': X_train_product_category,
-            'advertiser_id': X_train_advertiser_id,
-            'industry': X_train_industry
+        'creative_id': X_train_creative_id,
+        'click_times': X_train_click_times,
+        'product_id': X_train_product_id,
+        'product_category': X_train_product_category,
+        'advertiser_id': X_train_advertiser_id,
+        'industry': X_train_industry
     }, y_train, epochs = epochs, batch_size = batch_size,
-            validation_split = 0.2, use_multiprocessing = True, verbose = 2)
+        validation_split = 0.2, use_multiprocessing = True, verbose = 2)
     results = model.evaluate({
-            'creative_id': X_test_creative_id,
-            'click_times': X_test_click_times,
-            'product_id': X_test_product_id,
-            'product_category': X_test_product_category,
-            'advertiser_id': X_test_advertiser_id,
-            'industry': X_test_industry
+        'creative_id': X_test_creative_id,
+        'click_times': X_test_click_times,
+        'product_id': X_test_product_id,
+        'product_category': X_test_product_category,
+        'advertiser_id': X_test_advertiser_id,
+        'industry': X_test_industry
     }, y_test, use_multiprocessing = True, verbose = 0)
     predictions = model.predict({
-            'creative_id': X_test_creative_id,
-            'click_times': X_test_click_times,
-            'product_id': X_test_product_id,
-            'product_category': X_test_product_category,
-            'advertiser_id': X_test_advertiser_id,
-            'industry': X_test_industry
+        'creative_id': X_test_creative_id,
+        'click_times': X_test_click_times,
+        'product_id': X_test_product_id,
+        'product_category': X_test_product_category,
+        'advertiser_id': X_test_advertiser_id,
+        'industry': X_test_industry
     }).squeeze()
     output_result(results, predictions, y_test)
 
@@ -388,29 +412,29 @@ def train_model():
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
     model.fit({
-            'creative_id': X_train_creative_id,
-            'click_times': X_train_click_times,
-            'product_id': X_train_product_id,
-            'product_category': X_train_product_category,
-            'advertiser_id': X_train_advertiser_id,
-            'industry': X_train_industry
+        'creative_id': X_train_creative_id,
+        'click_times': X_train_click_times,
+        'product_id': X_train_product_id,
+        'product_category': X_train_product_category,
+        'advertiser_id': X_train_advertiser_id,
+        'industry': X_train_industry
     }, y_train, epochs = epochs // 2, batch_size = batch_size, use_multiprocessing = True,
-            verbose = 2)
+        verbose = 2)
     results = model.evaluate({
-            'creative_id': X_test_creative_id,
-            'click_times': X_test_click_times,
-            'product_id': X_test_product_id,
-            'product_category': X_test_product_category,
-            'advertiser_id': X_test_advertiser_id,
-            'industry': X_test_industry
+        'creative_id': X_test_creative_id,
+        'click_times': X_test_click_times,
+        'product_id': X_test_product_id,
+        'product_category': X_test_product_category,
+        'advertiser_id': X_test_advertiser_id,
+        'industry': X_test_industry
     }, y_test, use_multiprocessing = True, verbose = 0)
     predictions = model.predict({
-            'creative_id': X_test_creative_id,
-            'click_times': X_test_click_times,
-            'product_id': X_test_product_id,
-            'product_category': X_test_product_category,
-            'advertiser_id': X_test_advertiser_id,
-            'industry': X_test_industry
+        'creative_id': X_test_creative_id,
+        'click_times': X_test_click_times,
+        'product_id': X_test_product_id,
+        'product_category': X_test_product_category,
+        'advertiser_id': X_test_advertiser_id,
+        'industry': X_test_industry
     }).squeeze()
     output_result(results, predictions, y_test)
     pass
@@ -434,14 +458,14 @@ if __name__ == '__main__':
     advertiser_id_max = 62965  # 最大的广告主编号
     industry_max = 335  # 最大的产业类别编号
     field_list = [
-            "user_id_inc",  # 0
-            "creative_id_inc",  # 1
-            "time_id",  # 2
-            "product_id",  # 3
-            "product_category",  # 4
-            "advertiser_id",  # 5
-            "industry",  # 6
-            "click_times",  # 7, click_times 属于值，不属于编号，不能再减1
+        "user_id_inc",  # 0
+        "creative_id_inc",  # 1
+        "time_id",  # 2
+        "product_id",  # 3
+        "product_category",  # 4
+        "advertiser_id",  # 5
+        "industry",  # 6
+        "click_times",  # 7, click_times 属于值，不属于编号，不能再减1
     ]
     field_num = 8
     # 序列数据、循环数据、未知词、序列头 对于 GlobalMaxPooling1D() 函数都是没有用处的，因此默认关闭
