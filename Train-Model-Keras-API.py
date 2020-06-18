@@ -22,17 +22,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import winsound
-from keras import Input
-from keras.layers import Dense, Embedding, GlobalMaxPooling1D, LSTM
-from keras.regularizers import l2
-from sklearn.model_selection import train_test_split
-from tensorflow import keras
-from keras.models import Sequential, Model
 
-# --------------------------------------------------
+from sklearn.model_selection import train_test_split
+from tensorflow.python.keras import Input
 from tensorflow.python.keras import losses, metrics, optimizers
 from tensorflow.python.keras.layers import Activation, BatchNormalization, concatenate, Dropout
+from tensorflow.python.keras.layers import Dense, Embedding, GlobalMaxPooling1D, LSTM
+from tensorflow.python.keras.models import Sequential, Model
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+from tensorflow.python.keras.regularizers import l2
 
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
@@ -81,7 +79,6 @@ def load_data():
 # ==================================================
 # 生成所需要的数据
 def generate_data(X_data, y_data):
-    global unknown_word, data_seq_head
     print("数据生成中：", end = '')
     y_doc = np.zeros([user_id_num], dtype = int)
     # 初始化 X_doc 为空的列表
@@ -172,8 +169,8 @@ def construct_model():
     embedded_creative_id = Embedding(creative_id_window, embedding_size)(input_creative_id)
     encoded_creative_id = GlobalMaxPooling1D()(embedded_creative_id)
 
-    input_time_id = Input(shape = (None,), dtype = 'int32', name = 'time_id')
-    encoded_time_id = LSTM(max_len)(input_time_id)
+    input_time_id = Input(shape = (None, 1), dtype = 'float32', name = 'click_times')
+    encoded_time_id = LSTM(1)(input_time_id)
 
     concatenated = concatenate([encoded_creative_id, encoded_time_id], axis = -1)
     x = Dropout(0.5)(concatenated)
@@ -212,6 +209,23 @@ def construct_model():
 
 
 # ==================================================
+def output_parameters():
+    print("实验报告参数")
+    print("\tuser_id_number =", user_id_num)
+    print("\tcreative_id_max =", creative_id_max)
+    print("\tcreative_id_step_size =", creative_id_step_size)
+    print("\tcreative_id_window =", creative_id_window)
+    print("\tcreative_id_begin =", creative_id_begin)
+    print("\tcreative_id_end =", creative_id_end)
+    print("\tmax_len =", max_len)
+    print("\tembedding_size =", embedding_size)
+    print("\tepochs =", epochs)
+    print("\tbatch_size =", batch_size)
+    print("\tRMSProp =", RMSProp_lr)
+    pass
+
+
+# ==================================================
 def train_model(X_data, y_data):
     # 清洗数据集，生成所需要的数据
     print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
@@ -219,19 +233,23 @@ def train_model(X_data, y_data):
     output_example_data(X_doc, y_doc)
     # --------------------------------------------------
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    X_train, X_test, y_train, y_test = train_test_split(
-            X_doc, y_doc, random_state = seed, stratify = y_doc)
+    X_doc_user_id = np.arange(0, user_id_num)
+    X_train_idx, X_test_idx, y_train, y_test = train_test_split(
+        X_doc_user_id, y_doc, random_state = seed, stratify = y_doc)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
     # --------------------------------------------------
     # 填充数据集
     print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
-    X_train_creative_id = pad_sequences(X_train[:, 0], maxlen = max_len, padding = 'post')
-    X_test_creative_id = pad_sequences(X_test[:, 0], maxlen = max_len, padding = 'pose')
-    X_train_click_times = pad_sequences(X_train[:, 1], maxlen = max_len, padding = 'post')
-    X_test_click_times = pad_sequences(X_test[:, 1], maxlen = max_len, padding = 'post')
+    X_train_creative_id = pad_sequences(X_doc[X_train_idx, 0], maxlen = max_len, padding = 'post')
+    X_test_creative_id = pad_sequences(X_doc[X_test_idx, 0], maxlen = max_len, padding = 'post')
+    X_train_click_times = pad_sequences(X_doc[X_train_idx, 1], maxlen = max_len, padding = 'post').reshape(
+        (user_id_num * 3 // 4, max_len, 1))
+    X_test_click_times = pad_sequences(X_doc[X_test_idx, 1], maxlen = max_len, padding = 'post').reshape(
+        (user_id_num // 4, max_len, 1))
     # --------------------------------------------------
     # 构建模型
     print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
+    output_parameters()
     model = construct_model()
     print(model.summary())
 
@@ -266,19 +284,22 @@ def train_model(X_data, y_data):
     # 训练网络模型
     # 使用验证集
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
-    model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
+    model.fit({'creative_id': X_train_creative_id, 'click_times': X_train_click_times}, y_train, epochs = epochs,
+              batch_size = batch_size,
               validation_split = 0.2, use_multiprocessing = True, verbose = 2)
-    results = model.evaluate(X_test, y_test, verbose = 0)
-    predictions = model.predict(X_test).squeeze()
+    results = model.evaluate({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}, y_test,
+                             verbose = 0)
+    predictions = model.predict({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}).squeeze()
     output_result()
 
     # --------------------------------------------------
     # 不使用验证集，训练次数减半
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
-    model.fit(X_train, y_train, epochs = 10, batch_size = batch_size,
-              use_multiprocessing = True, verbose = 2)
-    results = model.evaluate(X_test, y_test, verbose = 0)
-    predictions = model.predict(X_test).squeeze()
+    model.fit({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}, y_train, epochs = 10,
+              batch_size = batch_size, verbose = 2)
+    results = model.evaluate({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}, y_test,
+                             verbose = 0)
+    predictions = model.predict({'creative_id': X_test_creative_id, 'click_times': X_test_click_times}).squeeze()
     output_result()
 
 
@@ -291,7 +312,7 @@ def train_single_age():
     # --------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_all_sequence_v_little.csv'
+    # file_name = './data/train_data_all_sequence_v_little.csv'
     file_name = './data/train_data_all_sequence_v.csv'
     model_type = 'GlobalMaxPooling1D+MLP'
     label_name = 'gender'
@@ -340,10 +361,10 @@ if __name__ == '__main__':
     sequence_loop = False  # 序列数据是否循环生成，即把91天的访问数据再重复几遍填满 max_len，而不是使用 0 填充
     # --------------------------------------------------
     # 定义全局定制变量
-    max_len = 128  # 64:803109，128:882952 个用户；64：1983350，128：2329077 个素材
+    max_len = 128  # {64:803109，128:882952 个用户}  {64：1983350，128：2329077 个素材}
     embedding_size = 128
     # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
-    creative_id_step_size = 128000
+    creative_id_step_size = 640000
     creative_id_window = creative_id_step_size * 10
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
