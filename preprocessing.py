@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import winsound
+
+from sklearn.model_selection import train_test_split
 from tensorflow import keras
 
 # Python ≥3.5 is required
@@ -44,7 +46,7 @@ np.random.seed(seed)
 
 
 # ----------------------------------------------------------------------
-def load_data(file_name, label_name='gender'):
+def load_data(file_name, label_name = 'gender'):
     '''
     从 csv 文件中载入原始数据
     :param file_name: 载入数据的文件名
@@ -55,7 +57,7 @@ def load_data(file_name, label_name='gender'):
     print("* 加载数据集...")
     # 「CSV」文件字段名称
     # "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
-    df = pd.read_csv(file_name,dtype=int)
+    df = pd.read_csv(file_name, dtype = int)
     # 选择需要的列作为输入数据
     # X_data = df[[ "user_id_inc", "creative_id_inc","time_id"]].values
     X_data = df[["user_id_inc", "creative_id_inc"]].values
@@ -75,8 +77,8 @@ def load_data(file_name, label_name='gender'):
 
 # ----------------------------------------------------------------------
 def data_no_sequence(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
+    print("数据清洗中：", end = '')
+    X_doc = np.zeros([user_id_num], dtype = object)
     y_doc = np.zeros([user_id_num])
     # -1 不在数据序列中
     tmp_user_id = -1
@@ -85,7 +87,7 @@ def data_no_sequence(X_data, y_data, user_id_num, creative_id_num):
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end='')
+            print(".", end = '')
             pass
         user_id = row_data[0]
         creative_id = row_data[1]
@@ -440,12 +442,159 @@ def data_sequence_times_with_empty():
 
 
 def data_sequence_with_fix():
+    # --------------------------------------------------
+    # 加载数据
+    print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
+    X_data, y_data = load_original_data()
+    output_example_data(X_data, y_data)
+    # --------------------------------------------------
+    # 清洗数据集，生成所需要的数据
+    print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
+    X_doc, y_doc = generate_fix_data(X_data, y_data)
+    output_example_data(X_doc, y_doc)
+    del X_data, y_data  # 清空读取 csv 文件使用的内存
+    # --------------------------------------------------
+    # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
+    print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
+    X_train, X_test, y_train, y_test = train_test_split(X_doc, y_doc, random_state = seed, stratify = y_doc)
+    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
+    print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(X_train, y_train)
+    print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(X_test, y_test)
+    np.savetxt('X_train.csv', X_train, fmt = '%d', delimiter = ',')
+    np.savetxt('y_train.csv', y_train, fmt = '%d', delimiter = ',')
+    np.savetxt('X_test.csv', X_test, fmt = '%d', delimiter = ',')
+    np.savetxt('y_test.csv', y_test, fmt = '%d', delimiter = ',')
+    pass
+
+
+def generate_fix_data(X_csv, y_csv):
+    print("数据生成中（共 {0} 条数据)：".format(30000000), end = '')
+    y_doc = np.zeros([user_id_num, 2], dtype = int)
+    # 初始化 X_doc 为空的列表 : X_doc[:,0]: creative_id, X_doc[:,1]: click_times
+    # 初始化 y_doc 为空的列表 : y_doc[:,0]: age, X_doc[:,1]: gender
+    X_doc = np.zeros([user_id_num, train_field_num, time_id_max * period_length // period_days], dtype = object)
+    y_doc = X_doc.copy()
+    data_step = X_csv.shape[0] // 100  # 标识数据清洗进度的步长
+    prev_user_id = -1
+    prev_time_id = 0
+    period_index = 0
+    for i, row_data in enumerate(X_csv):
+        # 数据清洗的进度
+        if (i % data_step) == 0:
+            print("第 {0} 条数据-->".format(i), end = ';')
+            pass
+        user_id = row_data[0]
+        time_id = row_data[2]
+        if user_id >= user_id_num:
+            break
+        y_doc[user_id, 0] = y_csv[i, 0]
+        y_doc[user_id, 1] = y_csv[i, 1]
+        # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
+        if user_id > prev_user_id:
+            # 重置临时变量
+            prev_user_id = user_id
+            prev_time_id = 0
+            period_index = 0
+            pass
+
+        if time_id - prev_time_id >= period_days:
+            prev_time_id = time_id // period_days * period_days
+            period_index = 0
+
+        if period_index == period_length:  # 每周访问素材填满后不再填充
+            continue
+
+        # row_data[0]: user_id
+        creative_id = row_data[1]  # 这个值已经在读取时修正过，增加了偏移量 2，保留了 {0,1}
+        # row_data[2]: time_id
+        click_times = row_data[3]  # 这个不是词典，本身就是值，不需要再调整
+
+        # 素材是关键
+        if creative_id_end > creative_id > creative_id_begin:
+            creative_id = creative_id - creative_id_begin
+        elif creative_id < creative_id_end - creative_id_max:
+            creative_id = creative_id_max - creative_id_begin + creative_id
+        else:
+            creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
+
+        X_doc[user_id, 0, (time_id // period_days) * period_length + period_index] = creative_id
+        X_doc[user_id, 1, (time_id // period_days) * period_length + period_index] = click_times
+        period_index = period_index + 1
+        pass
+    print("\n数据清洗完成！")
+    return X_doc, y_doc
+
+
+def load_original_data():
+    # 「CSV」文件字段名称
+    df = pd.read_csv(file_name, dtype = int)
+    # --------------------------------------------------
+    X_csv = df[field_list].values
+    # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此字段的偏移量为 -1
+    # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
+    # user_id_inc:      X_csv[:,0]
+    # creative_id_inc:  X_csv[:,1]
+    # time_id:          X_csv[:,2]
+    # click_times:      X_csv[:,3] 数据是值，不需要减 1
+    for j in range(field_num - 1):
+        X_csv[:, j] = X_csv[:, j] - 1
+        pass
+    # 生成 creative_id: 0 表示 “padding”（填充），1 表示 “unknown”（未知词）
+    # 'creative_id_inc' 字段的偏移量为 2，是因为需要保留 {0, 1}
+    X_csv[:, 1] = X_csv[:, 1] + 2
+    # --------------------------------------------------
+    # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
+    # 既可以加载 'age'，也可以加载 'gender'
+    y_csv = df['age', 'gender'].values - 1
+    print("数据加载完成。")
+    return X_csv, y_csv
+
+
+def output_example_data(X, y):
+    print("数据(X[0], y[0]) =", X[0], y[0])
+    print("数据(X[30], y[30]) =", X[30], y[30])
+    print("数据(X[600], y[600]) =", X[600], y[600])
+    if len(y) > 8999:
+        print("数据(X[8999], y[8999]) =", X[8999], y[8999])
+    if len(y) > 119999:
+        print("数据(X[119999], y[119999]) =", X[119999], y[119999])
+    if len(y) > 224999:
+        print("数据(X[224999], y[224999]) =", X[224999], y[224999])
+    if len(y) > 674999:
+        print("数据(X[674999], y[674999]) =", X[674999], y[674999])
+    if len(y) > 899999:
+        print("数据(X[899999], y[899999]) =", X[899999], y[899999])
+        pass
     pass
 
 
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
+    click_times_max = 152  # 所有素材中最大的点击次数
+    file_name = './data/train_data_all_min_complete_v.csv'
+    # 输入数据处理：选择需要的列
+    field_list = [
+        "user_id_inc",  # 0
+        "creative_id_inc",  # 1
+        "time_id",  # 2
+        "click_times",  # 3, click_times 属于值，不属于编号，不能再减1
+    ]
+    field_num = 4
+    label_name = 'age'
+    user_id_num = 900000  # 用户数
+    creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
+    time_id_max = 91
+    period_length = 21
+    period_days = 7
+    train_field_num = field_num - 2  # filed_list 去除 user_id, time_id
+    creative_id_step_size = 128000
+    creative_id_window = creative_id_step_size * 5
+    creative_id_begin = creative_id_step_size * 0
+    creative_id_end = creative_id_begin + creative_id_window
+
     # 运行结束的提醒
     winsound.Beep(600, 500)
     plt.show()
