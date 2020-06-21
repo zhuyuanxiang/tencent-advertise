@@ -456,16 +456,28 @@ def data_sequence_with_fix():
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    X_train, X_test, y_train, y_test = train_test_split(X_doc, y_doc, random_state = seed, stratify = y_doc)
-    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
+    x_train_age, x_test_age, y_train_age, y_test_age = train_test_split(
+        X_doc, y_doc[:, 0], random_state = seed, stratify = y_doc[:, 0])
+    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train_age)), (len(y_test_age))))
     print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
-    output_example_data(X_train, y_train)
+    output_example_data(x_train_age, y_train_age)
     print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
-    output_example_data(X_test, y_test)
-    np.savetxt('X_train.csv', X_train, fmt = '%d', delimiter = ',')
-    np.savetxt('y_train.csv', y_train, fmt = '%d', delimiter = ',')
-    np.savetxt('X_test.csv', X_test, fmt = '%d', delimiter = ',')
-    np.savetxt('y_test.csv', y_test, fmt = '%d', delimiter = ',')
+    output_example_data(x_test_age, y_test_age)
+    np.save('save_data/x_train_age', x_train_age)
+    np.save('save_data/y_train_age', y_train_age)
+    np.save('save_data/x_test_age', x_test_age)
+    np.save('save_data/y_test_age', y_test_age)
+    x_train_gender, x_test_gender, y_train_gender, y_test_gender = train_test_split(
+        X_doc, y_doc[:, 1], random_state = seed, stratify = y_doc[:, 1])
+    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train_age)), (len(y_test_age))))
+    print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(x_train_gender, y_train_gender)
+    print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(x_test_gender, y_test_gender)
+    np.save('save_data/x_train_gender', x_train_gender)
+    np.save('save_data/y_train_gender', y_train_gender)
+    np.save('save_data/x_test_gender', x_test_gender)
+    np.save('save_data/y_test_gender', y_test_gender)
     pass
 
 
@@ -531,23 +543,21 @@ def load_original_data():
     # 「CSV」文件字段名称
     df = pd.read_csv(file_name, dtype = int)
     # --------------------------------------------------
-    X_csv = df[field_list].values
     # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此字段的偏移量为 -1
     # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
     # user_id_inc:      X_csv[:,0]
     # creative_id_inc:  X_csv[:,1]
     # time_id:          X_csv[:,2]
     # click_times:      X_csv[:,3] 数据是值，不需要减 1
-    for j in range(field_num - 1):
-        X_csv[:, j] = X_csv[:, j] - 1
-        pass
+    X_csv = df[field_list].values - 1
     # 生成 creative_id: 0 表示 “padding”（填充），1 表示 “unknown”（未知词）
     # 'creative_id_inc' 字段的偏移量为 2，是因为需要保留 {0, 1}
     X_csv[:, 1] = X_csv[:, 1] + 2
+    X_csv[:, 3] = X_csv[:, 3] + 1
     # --------------------------------------------------
     # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
     # 既可以加载 'age'，也可以加载 'gender'
-    y_csv = df['age', 'gender'].values - 1
+    y_csv = df[['age', 'gender']].values - 1
     print("数据加载完成。")
     return X_csv, y_csv
 
@@ -573,7 +583,6 @@ def output_example_data(X, y):
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
-    click_times_max = 152  # 所有素材中最大的点击次数
     file_name = './data/train_data_all_min_complete_v.csv'
     # 输入数据处理：选择需要的列
     field_list = [
@@ -586,6 +595,7 @@ if __name__ == '__main__':
     label_name = 'age'
     user_id_num = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
+    click_times_max = 152  # 所有素材中最大的点击次数
     time_id_max = 91
     period_length = 21
     period_days = 7
@@ -594,7 +604,7 @@ if __name__ == '__main__':
     creative_id_window = creative_id_step_size * 5
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
-
+    data_sequence_with_fix()
     # 运行结束的提醒
     winsound.Beep(600, 500)
     plt.show()
