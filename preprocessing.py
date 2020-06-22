@@ -1,9 +1,9 @@
-# -*- encoding: utf-8 -*-    
+# -*- encoding: utf-8 -*-
 """
 @Author     :   zYx.Tom
 @Contact    :   526614962@qq.com
 @site       :   https://zhuyuanxiang.github.io
----------------------------
+--------------------------------------------------
 @Software   :   PyCharm
 @Project    :   tencent-advertise
 @File       :   preprocessing.py
@@ -39,46 +39,68 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 设置数据显示的精确度为小数点后3位
-np.set_printoptions(precision = 3, suppress = True, threshold = np.inf, linewidth = 200)
+np.set_printoptions(precision=3,
+                    suppress=True,
+                    threshold=np.inf,
+                    linewidth=200)
 # to make this notebook's output stable across runs
 seed = 42
 np.random.seed(seed)
 
 
 # ----------------------------------------------------------------------
-def load_data(file_name, label_name = 'gender'):
+def load_original_data(file_name, field_list, label_list):
     '''
     从 csv 文件中载入原始数据
     :param file_name: 载入数据的文件名
-    :param label_name: 返回的标签的名称
-    可以定义为 `age`：年龄 或者 `gender`：性别
-    :return:
+    :return: x_csv, y_csv
     '''
-    print("* 加载数据集...")
+    print('-' * 5 + "   加载数据集   " + '-' * 5)
     # 「CSV」文件字段名称
-    # "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
-    df = pd.read_csv(file_name, dtype = int)
-    # 选择需要的列作为输入数据
-    # X_data = df[[ "user_id_inc", "creative_id_inc","time_id"]].values
-    X_data = df[["user_id_inc", "creative_id_inc"]].values
-    # 数据调整偏移量为-1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
-    X_data[:, 0] = X_data[:, 0] - 1
-    # 数据调整偏移量为2，是因为需要保留 {0, 1, 2} 三个数：0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（用户开始）
-    X_data[:, 1] = X_data[:, 1] + 2
-    # 目标数据是类别，分类是从 0 开始计数的
-    y_data = df[label_name].values - 1  # 目标数据
+    df = pd.read_csv(file_name, dtype=int)
+    # --------------------------------------------------
+    # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
+    # user_id_inc:      X_csv[:,0]
+    # creative_id_inc:  X_csv[:,1]
+    # time_id:          X_csv[:,2]
+    # click_times:      X_csv[:,3]
+    # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此字段的偏移量为 -1
+    x_csv = df[field_list].values - 1
+    # 'creative_id_inc' 字段的偏移量为 3，是因为需要保留 {0, 1, 2}：0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（序列开始）
+    x_csv[:, 1] = x_csv[:, 1] + 3
+    x_csv[:, 3] = x_csv[:, 3] + 1  # 数据是值，不需要减 1
+    # --------------------------------------------------
+    # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
+    # 既可以加载 'age'，也可以加载 'gender'
+    y_csv = df[label_list].values - 1
     print("数据加载完成。")
-    print("加载数据(X_data[0], y_data[0]) =", X_data[0], y_data[0])
-    print("加载数据(X_data[3], y_data[30]) =", X_data[30], y_data[30])
-    print("加载数据(X_data[6], y_data[600]) =", X_data[600], y_data[600])
-    print("加载数据(X_data[9], y_data[9000]) =", X_data[9000], y_data[9000])
-    return X_data, y_data
+    output_example_data(x_csv, y_csv, '加载数据')
+    return x_csv, y_csv
+
+
+# ----------------------------------------------------------------------
+def output_example_data(X, y, data_type='原始数据'):
+    print(data_type + ":(X[0], y[0]) =", X[0], y[0])
+    print(data_type + ":(X[30], y[30]) =", X[30], y[30])
+    print(data_type + ":(X[600], y[600]) =", X[600], y[600])
+    if len(y) > 8999:
+        print(data_type + "：(X[8999], y[8999]) =", X[8999], y[8999])
+    if len(y) > 119999:
+        print(data_type + "：(X[119999], y[119999]) =", X[119999], y[119999])
+    if len(y) > 224999:
+        print(data_type + "：(X[224999], y[224999]) =", X[224999], y[224999])
+    if len(y) > 674999:
+        print(data_type + "：(X[674999], y[674999]) =", X[674999], y[674999])
+    if len(y) > 899999:
+        print(data_type + "：(X[899999], y[899999]) =", X[899999], y[899999])
+        pass
+    pass
 
 
 # ----------------------------------------------------------------------
 def data_no_sequence(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     # -1 不在数据序列中
     tmp_user_id = -1
@@ -87,7 +109,7 @@ def data_no_sequence(X_data, y_data, user_id_num, creative_id_num):
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         user_id = row_data[0]
         creative_id = row_data[1]
@@ -121,15 +143,15 @@ def data_no_sequence(X_data, y_data, user_id_num, creative_id_num):
 # ----------------------------------------------------------------------
 # 生成的用户序列数据：0 表示这天没有访问素材；1 表示这个素材不在词典中
 def data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         creative_id = row_data[1]
         user_id = row_data[2] - 1  # 索引从 0 开始
@@ -177,15 +199,15 @@ def data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num):
 #       每天固定几个数据，没有数据的天就置0，超过范围的数据就截断，点击次数超过 1 次的也只有一条数据，
 # ----------------------------------------------------------------------
 def data_sequence(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         creative_id = row_data[1]
         user_id = row_data[2] - 1  # 索引从 0 开始
@@ -213,8 +235,8 @@ def data_sequence(X_data, y_data, user_id_num, creative_id_num):
 
 # ----------------------------------------------------------------------
 def data_sequence_with_interval(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     tmp_time_id = 0
@@ -222,7 +244,7 @@ def data_sequence_with_interval(X_data, y_data, user_id_num, creative_id_num):
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         time_id = row_data[0]
         creative_id = row_data[1]
@@ -256,16 +278,17 @@ def data_sequence_with_interval(X_data, y_data, user_id_num, creative_id_num):
 
 
 # ----------------------------------------------------------------------
-def data_sequence_reverse_with_interval(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+def data_sequence_reverse_with_interval(X_data, y_data, user_id_num,
+                                        creative_id_num):
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         creative_id = row_data[1]
         user_id = row_data[2] - 1  # 索引从 0 开始
@@ -307,15 +330,15 @@ def extend_user_id_sequence(X_doc, extend_user_id, extend_len):
 
 # ----------------------------------------------------------------------
 def data_sequence_times(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         time_id = row_data[0]
         creative_id = row_data[1]
@@ -336,7 +359,8 @@ def data_sequence_times(X_data, y_data, user_id_num, creative_id_num):
             if creative_id >= creative_id_num:
                 creative_id = 1
                 pass
-            X_doc[user_id].extend([creative_id for _ in range(click_times)])  # 按照点击次数更新用户序列
+            X_doc[user_id].extend([creative_id for _ in range(click_times)
+                                   ])  # 按照点击次数更新用户序列
             pass
         pass
     pass
@@ -345,9 +369,10 @@ def data_sequence_times(X_data, y_data, user_id_num, creative_id_num):
 
 
 # ----------------------------------------------------------------------
-def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_num):
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+def data_sequence_times_with_interval(X_data, y_data, user_id_num,
+                                      creative_id_num):
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     tmp_time_id = 0
@@ -355,7 +380,7 @@ def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_n
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         time_id = row_data[0]
         creative_id = row_data[1]
@@ -381,7 +406,8 @@ def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_n
             if creative_id >= creative_id_num:
                 creative_id = 1
                 pass
-            X_doc[user_id].extend([creative_id for _ in range(click_times)])  # 按照点击次数更新用户序列
+            X_doc[user_id].extend([creative_id for _ in range(click_times)
+                                   ])  # 按照点击次数更新用户序列
             pass
         pass
     pass
@@ -390,10 +416,11 @@ def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_n
 
 
 # ----------------------------------------------------------------------
-def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_times_with_empty(X_data, y_data, user_id_num,
+                                   creative_id_num):
     # 生成每个用户的数据序列，按天数排序，没有数据的天就置0
-    print("数据清洗中：", end = '')
-    X_doc = np.zeros([user_id_num], dtype = object)
+    print("数据清洗中：", end='')
+    X_doc = np.zeros([user_id_num], dtype=object)
     y_doc = np.zeros([user_id_num])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     tmp_time_id = 0
@@ -403,7 +430,7 @@ def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num)
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         time_id = row_data[0]
         creative_id = row_data[1]
@@ -422,14 +449,16 @@ def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num)
                 pass
             if tmp_time_id < time_id:
                 # 按照时间差更新用户序列中的空缺天数，两个天数之间的空缺天数=后-次的天数-前一次的天数-1
-                X_doc[user_id].extend([0 for _ in range(time_id - tmp_time_id - 1)])
+                X_doc[user_id].extend(
+                    [0 for _ in range(time_id - tmp_time_id - 1)])
                 tmp_time_id = time_id
                 pass
             # 超过词典大小的素材标注为 1，即「未知」
             if creative_id >= creative_id_num:
                 creative_id = 1
                 pass
-            X_doc[user_id].extend([creative_id for _ in range(click_times)])  # 按照点击次数更新用户序列
+            X_doc[user_id].extend([creative_id for _ in range(click_times)
+                                   ])  # 按照点击次数更新用户序列
             pass
         pass
     pass
@@ -437,57 +466,18 @@ def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num)
     return X_doc, y_doc
 
 
-def data_sequence_times_with_empty():
-    pass
-
-
-def data_sequence_with_fix():
-    # --------------------------------------------------
-    # 加载数据
-    print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    X_data, y_data = load_original_data()
-    output_example_data(X_data, y_data)
-    # --------------------------------------------------
-    # 清洗数据集，生成所需要的数据
-    print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
-    X_doc, y_doc = generate_fix_data(X_data, y_data)
-    output_example_data(X_doc, y_doc)
-    del X_data, y_data  # 清空读取 csv 文件使用的内存
-    # --------------------------------------------------
-    # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
-    print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    x_train_age, x_test_age, y_train_age, y_test_age = train_test_split(
-        X_doc, y_doc[:, 0], random_state = seed, stratify = y_doc[:, 0])
-    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train_age)), (len(y_test_age))))
-    print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
-    output_example_data(x_train_age, y_train_age)
-    print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
-    output_example_data(x_test_age, y_test_age)
-    np.save('save_data/x_train_age', x_train_age)
-    np.save('save_data/y_train_age', y_train_age)
-    np.save('save_data/x_test_age', x_test_age)
-    np.save('save_data/y_test_age', y_test_age)
-    x_train_gender, x_test_gender, y_train_gender, y_test_gender = train_test_split(
-        X_doc, y_doc[:, 1], random_state = seed, stratify = y_doc[:, 1])
-    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train_age)), (len(y_test_age))))
-    print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
-    output_example_data(x_train_gender, y_train_gender)
-    print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
-    output_example_data(x_test_gender, y_test_gender)
-    np.save('save_data/x_train_gender', x_train_gender)
-    np.save('save_data/y_train_gender', y_train_gender)
-    np.save('save_data/x_test_gender', x_test_gender)
-    np.save('save_data/y_test_gender', y_test_gender)
-    pass
-
-
-def generate_fix_data(X_csv, y_csv):
-    print("数据生成中（共 {0} 条数据)：".format(30000000), end = '')
-    y_doc = np.zeros([user_id_num, 2], dtype = int)
+# ----------------------------------------------------------------------
+def generate_fix_data(X_csv, y_csv, train_field_num):
+    print('-' * 5 + "   清洗数据集   " + '-' * 5)
+    print("数据生成中（共 {0} 条数据)：".format(30000000), end='')
     # 初始化 X_doc 为空的列表 : X_doc[:,0]: creative_id, X_doc[:,1]: click_times
     # 初始化 y_doc 为空的列表 : y_doc[:,0]: age, X_doc[:,1]: gender
-    X_doc = np.zeros([user_id_num, train_field_num, time_id_max * period_length // period_days], dtype = object)
-    y_doc = X_doc.copy()
+    X_doc = np.zeros([
+        user_id_num, train_field_num,
+        time_id_max * period_length // period_days
+    ],
+                     dtype=object)
+    y_doc = np.zeros([user_id_num, 2], dtype=int)
     data_step = X_csv.shape[0] // 100  # 标识数据清洗进度的步长
     prev_user_id = -1
     prev_time_id = 0
@@ -495,7 +485,7 @@ def generate_fix_data(X_csv, y_csv):
     for i, row_data in enumerate(X_csv):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print("第 {0} 条数据-->".format(i), end = ';')
+            print("第 {0} 条数据-->".format(i), end=';')
             pass
         user_id = row_data[0]
         time_id = row_data[2]
@@ -531,79 +521,83 @@ def generate_fix_data(X_csv, y_csv):
         else:
             creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
 
-        X_doc[user_id, 0, (time_id // period_days) * period_length + period_index] = creative_id
-        X_doc[user_id, 1, (time_id // period_days) * period_length + period_index] = click_times
+        X_doc[user_id, 0, (time_id // period_days) * period_length +
+              period_index] = creative_id
+        X_doc[user_id, 1, (time_id // period_days) * period_length +
+              period_index] = click_times
         period_index = period_index + 1
         pass
     print("\n数据清洗完成！")
+    output_example_data(X_doc, y_doc, data_type='清洗数据')
     return X_doc, y_doc
 
 
-def load_original_data():
-    # 「CSV」文件字段名称
-    df = pd.read_csv(file_name, dtype = int)
-    # --------------------------------------------------
-    # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此字段的偏移量为 -1
-    # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
-    # user_id_inc:      X_csv[:,0]
-    # creative_id_inc:  X_csv[:,1]
-    # time_id:          X_csv[:,2]
-    # click_times:      X_csv[:,3] 数据是值，不需要减 1
-    X_csv = df[field_list].values - 1
-    # 生成 creative_id: 0 表示 “padding”（填充），1 表示 “unknown”（未知词）
-    # 'creative_id_inc' 字段的偏移量为 2，是因为需要保留 {0, 1}
-    X_csv[:, 1] = X_csv[:, 1] + 2
-    X_csv[:, 3] = X_csv[:, 3] + 1
-    # --------------------------------------------------
-    # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
-    # 既可以加载 'age'，也可以加载 'gender'
-    y_csv = df[['age', 'gender']].values - 1
-    print("数据加载完成。")
-    return X_csv, y_csv
-
-
-def output_example_data(X, y):
-    print("数据(X[0], y[0]) =", X[0], y[0])
-    print("数据(X[30], y[30]) =", X[30], y[30])
-    print("数据(X[600], y[600]) =", X[600], y[600])
-    if len(y) > 8999:
-        print("数据(X[8999], y[8999]) =", X[8999], y[8999])
-    if len(y) > 119999:
-        print("数据(X[119999], y[119999]) =", X[119999], y[119999])
-    if len(y) > 224999:
-        print("数据(X[224999], y[224999]) =", X[224999], y[224999])
-    if len(y) > 674999:
-        print("数据(X[674999], y[674999]) =", X[674999], y[674999])
-    if len(y) > 899999:
-        print("数据(X[899999], y[899999]) =", X[899999], y[899999])
-        pass
-    pass
+# ----------------------------------------------------------------------
+def split_data(x_data, y_data, label_name):
+    print('-' * 5 + "   拆分{0}数据集   " + label_name + '-' * 5)
+    x_train, x_test, y_train, y_test = train_test_split(x_data,
+                                                        y_data,
+                                                        random_state=seed,
+                                                        stratify=y_data)
+    data_type = "训练数据集"
+    print('-' * 5 + "   {0}：{1}   ".format(data_type, len(y_train)) + '-' * 5)
+    output_example_data(x_train, y_train, data_type)
+    np.save('save_data/x_train_fix_' + label_name, x_train)
+    np.save('save_data/y_train_fix_' + label_name, y_train)
+    data_type = "测试数据集"
+    print('-' * 5 + "   {0}：{1}   ".format(data_type, len(y_train)) + '-' * 5)
+    output_example_data(x_test, y_test, data_type)
+    np.save('save_data/x_test_fix_' + label_name, x_test)
+    np.save('save_data/y_test_fix_' + label_name, y_test)
+    return x_train, x_test, y_train, y_test
 
 
 # ----------------------------------------------------------------------
-# ----------------------------------------------------------------------
-if __name__ == '__main__':
+def data_sequence_with_fix():
+    # 载入数据需要的变量
     file_name = './data/train_data_all_min_complete_v.csv'
-    # 输入数据处理：选择需要的列
-    field_list = [
+    field_list = [  # 输入数据处理：选择需要的列
         "user_id_inc",  # 0
         "creative_id_inc",  # 1
         "time_id",  # 2
         "click_times",  # 3, click_times 属于值，不属于编号，不能再减1
     ]
     field_num = 4
-    label_name = 'age'
+    label_list = ['age', 'gender']
+    train_field_num = field_num - 2  # filed_list 去除 user_id, time_id
+
+    # --------------------------------------------------
+    # 加载数据
+    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+
+    # --------------------------------------------------
+    # 清洗数据集，生成所需要的数据
+    x_data, y_data = generate_fix_data(x_csv, y_csv, train_field_num)
+
+    # --------------------------------------------------
+    # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
+    x_train_age, x_test_age, y_train_age, y_test_age = split_data(
+        x_data, y_data[:, 0], label_list[0])  # 拆分「age」多分类数据
+
+    x_train_gender, x_test_gender, y_train_gender, y_test_gender = split_data(
+        x_data, y_data[:, 1], label_list[1])  # 拆分「gender」二分类数据
+    pass
+
+
+# ----------------------------------------------------------------------
+if __name__ == '__main__':
+    # 清洗数据需要的变量
     user_id_num = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
     click_times_max = 152  # 所有素材中最大的点击次数
     time_id_max = 91
     period_length = 21
     period_days = 7
-    train_field_num = field_num - 2  # filed_list 去除 user_id, time_id
     creative_id_step_size = 128000
     creative_id_window = creative_id_step_size * 5
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
+
     data_sequence_with_fix()
     # 运行结束的提醒
     winsound.Beep(600, 500)
