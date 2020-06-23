@@ -143,3 +143,9 @@ log_dir/checkpoint
 data/README
 .history/lab_log/*.*
 lab_log/~$Report-Age.xlsx
+data/old/*.*
+lab_log/~$data_statistical.xlsx
+.history/save_data/fix_7_21_640k/*.*
+.history/save_data/*.*
+save_data/fix_7_21_640k/*.*
+save_data/*.*
