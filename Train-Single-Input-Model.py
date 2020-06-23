@@ -115,7 +115,7 @@ def generate_data(X_data, y_data):
             if sequence_loop and tmp_user_id != -1:
                 # NOTE: List 必须用拷贝，否则就是引用赋值，这个值就没有起到临时变量的作用，会不断改变
                 tmp_X_doc = X_doc[tmp_user_id].copy()
-                if max_len>len(tmp_X_doc):
+                if max_len > len(tmp_X_doc):
                     for j in range(max_len // len(tmp_X_doc)):
                         X_doc[tmp_user_id].extend(tmp_X_doc)
                         pass
@@ -167,6 +167,70 @@ def generate_data(X_data, y_data):
     return X_doc, y_doc
 
 
+def generate_fix_data(X_data, y_data):
+    print("数据生成中（共 {0} 条数据)：".format(30000000), end = '')
+    y_doc = np.zeros([user_id_num], dtype = int)
+    # 初始化 X_doc 为空的列表
+    # X_doc[:,0]: creative_id
+    # X_doc[:,1]: click_times
+    train_field_num = field_num - 2  # filed_list 去除 user_id, time_id
+    X_doc = np.zeros([user_id_num, train_field_num, time_id_max * period_length // period_days], dtype = object)
+    data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
+    prev_user_id = -1
+    prev_time_id = 0
+    period_index = 0
+    for i, row_data in enumerate(X_data):
+        # 数据清洗的进度
+        if (i % data_step) == 0:
+            print("第 {0} 条数据-->".format(i), end = ';')
+            pass
+        user_id = row_data[0]
+        time_id = row_data[2]
+        if user_id >= user_id_num:
+            break
+        y_doc[user_id] = y_data[i] if age_sigmoid == -1 or label_name == 'gender' else int(age_sigmoid == y_data[i])
+        # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
+        if user_id > prev_user_id:
+            # 重置临时变量
+            prev_user_id = user_id
+            prev_time_id = 0
+            period_index = 0
+            pass
+
+        # tmp_time_id = time_id - prev_time_id
+        # if tmp_time_id > 0:  # 如果日期发生变化就需要重置 prev_time_id
+        #     prev_time_id = time_id
+        #     if tmp_time_id >= 7 or week_length == period_index:  # 如果两个日期差距超过7天就需要重置 period_index
+        #         period_index = 0
+
+        if time_id - prev_time_id >= period_days:
+            prev_time_id = time_id // period_days * period_days
+            period_index = 0
+
+        if period_index == period_length:  # 每周访问素材填满后不再填充
+            continue
+
+        # row_data[0]: user_id
+        creative_id = row_data[1]  # 这个值已经在读取时修正过，增加了偏移量 2，保留了 {0,1}
+        # row_data[2]: time_id
+        click_times = row_data[3]  # 这个不是词典，本身就是值，不需要再调整
+
+        # 素材是关键
+        if creative_id_end > creative_id > creative_id_begin:
+            creative_id = creative_id - creative_id_begin
+        elif creative_id < creative_id_end - creative_id_max:
+            creative_id = creative_id_max - creative_id_begin + creative_id
+        else:
+            creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
+
+        X_doc[user_id, 0, (time_id // period_days) * period_length + period_index] = creative_id
+        X_doc[user_id, 1, (time_id // period_days) * period_length + period_index] = click_times
+        period_index = period_index + 1
+        pass
+    print("\n数据清洗完成！")
+    return X_doc, y_doc
+
+
 # ----------------------------------------------------------------------
 def output_example_data(X, y):
     print("数据(X[0], y[0]) =", X[0], y[0])
@@ -207,22 +271,47 @@ def construct_model():
         model.add(GlobalMaxPooling1D())
     elif model_type == 'GlobalMaxPooling1D+MLP':
         model.add(GlobalMaxPooling1D())
+
         model.add(Dropout(0.5))
         model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
+
         model.add(Dropout(0.5))
         model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
+
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 2, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('softmax'))
+
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size // 2, kernel_regularizer = l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
+
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 2, kernel_regularizer = l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
+
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size // 4, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('softmax'))
+
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size // 4, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+
+        model.add(Dropout(0.5))
+        model.add(Dense(embedding_size // 4, kernel_regularizer = l2(0.001)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+
     elif model_type == 'GRU+MLP':
         model.add(GRU(embedding_size, dropout = 0.5, recurrent_dropout = 0.5))
         model.add(Dropout(0.5))
@@ -263,7 +352,7 @@ def construct_model():
         # model.add(Dense(1, kernel_regularizer = l2(0.001)))
         # model.add(BatchNormalization())
         # model.add(Activation('sigmoid'))
-        model.add(Dense(1, activation = 'sigmoid'))
+        model.add(Dense(1, activation = 'sigmoid', kernel_regularizer = l2(0.001)))
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
@@ -293,6 +382,11 @@ def output_parameters():
 # ----------------------------------------------------------------------
 # 训练网络模型
 def train_model(X_data, y_data):
+    # ----------------------------------------------------------------------
+    # 构建模型
+    print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
+    model = construct_model()
+    print(model.summary())
     # 清洗数据集，生成所需要的数据
     print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
     X_doc, y_doc = generate_data(X_data, y_data)
@@ -311,12 +405,6 @@ def train_model(X_data, y_data):
     # output_example_data(X_train, y_train)
     # print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
     # output_example_data(X_test, y_test)
-
-    # ----------------------------------------------------------------------
-    # 构建模型
-    print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
-    model = construct_model()
-    print(model.summary())
     pass
 
     # ----------------------------------------------------------------------
@@ -415,17 +503,17 @@ def train_single_age():
     file_name = './data/train_data_all_sequence_v_little.csv'
     file_name = './data/train_data_all_sequence_v.csv'
     model_type = 'GlobalMaxPooling1D+MLP'
-    label_name = 'gender'
+    label_name = 'age'
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 256
     embedding_size = 128
-    epochs = 120
+    epochs = 30
     batch_size = 1024
     sequence_data = True
     sequence_loop = True
     # 定制 素材库大小
-    creative_id_window = creative_id_step_size * 1
+    creative_id_window = creative_id_step_size * 5
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
     X_data, y_data = load_data()
@@ -447,7 +535,7 @@ def train_single_gender():
     output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
-    max_len = 128
+    max_len = 256
     embedding_size = 128
     # 定制 素材库大小
     creative_id_begin = creative_id_step_size * 1

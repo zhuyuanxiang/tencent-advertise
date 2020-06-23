@@ -24,7 +24,7 @@ import pandas as pd
 import winsound
 from tensorflow import keras
 from tensorflow.contrib.learn.python.learn.estimators._sklearn import train_test_split
-from tensorflow.python.keras import losses
+from tensorflow.python.keras import losses, Input
 from tensorflow.python.keras import metrics
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.layers import (Bidirectional, Conv1D, Dense, Dropout, Embedding,
@@ -79,15 +79,28 @@ def generate_data(X_data, y_data):
     print("数据生成中：", end = '')
     y_doc = np.zeros([user_id_num], dtype = int)
     # 初始化 X_doc 为空的列表
-    X_doc = np.zeros([user_id_num, max_len], dtype = int)
+    X_doc = np.zeros([user_id_num], dtype = object)
+    for user_id in range(user_id_num):
+        X_doc[user_id] = []
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
+    tmp_user_id = -1  # -1 表示 id 不在数据序列中
+    tmp_time_id = 0
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
             print(".", end = '')
             pass
         user_id = row_data[0]
-        y_doc[user_id] = y_data[i]
+        time_id = row_data[2]
+        if user_id != tmp_user_id:  # 新建用户序列时，初始化用户序列，更新用户的标签
+            tmp_user_id = user_id
+            tmp_time_id = 0
+            y_doc[user_id] = y_data[i]
+            pass
+        if tmp_time_id < time_id - 1:  # 如果空缺天数超过1天，就需要插入一个0
+            X_doc[user_id].append(0)
+            tmp_time_id = time_id
+            pass
         X_doc[user_id].append(row_data[1])
         pass
     print("\n数据清洗完成！")
@@ -114,37 +127,33 @@ def output_example_data(X, y):
 def construct_model():
     output_parameters()
     model = Sequential()
+    model.add(Input(shape = (user_id_num, max_len)))
     model.add(LSTM(embedding_size))
 
     if label_name == "age":
         model.add(Dense(10, activation = 'softmax'))
-        print("%s——模型构建完成！" % model_type)
-        print("* 编译模型")
-        # Keras 好像不能支持 report_tensor_allocations_upon_oom
-        # 运行时会 Python 会报错：Process finished with exit code -1073741819 (0xC0000005)
+    elif label_name == 'gender':
+        model.add(Dense(1, activation = 'sigmoid'))
+    pass
+    print("%s——模型构建完成！" % model_type)
+
+    print("* 编译模型")
+    if label_name == "age":
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
                       loss = losses.sparse_categorical_crossentropy,
                       metrics = [metrics.sparse_categorical_accuracy])
     elif label_name == 'gender':
-        model.add(Dense(1, activation = 'sigmoid'))
-        print("%s——模型构建完成！" % model_type)
-        print("* 编译模型")
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
                       loss = losses.binary_crossentropy,
                       metrics = [metrics.binary_accuracy])
-    else:
-        raise Exception("错误的标签类型！")
+    pass
+    print("%s——模型编译完成！" % model_type)
     return model
 
 
 def output_parameters():
     print("实验报告参数")
     print("\tuser_id_number =", user_id_num)
-    print("\tcreative_id_begin =", creative_id_begin)
-    print("\tcreative_id_end =", creative_id_end)
-    print("\tcreative_id_num =", creative_id_num)
-    print("\tcreative_id_max =", creative_id_max)
-    print("\tcreative_id_step_size =", creative_id_step_size)
     print("\tmax_len =", max_len)
     print("\tembedding_size =", embedding_size)
     print("\tepochs =", epochs)
@@ -155,18 +164,18 @@ def output_parameters():
 # ----------------------------------------------------------------------
 # 训练网络模型
 def train_model(X_data, y_data):
+    # https://keras.io/examples/generative/lstm_character_level_text_generation/
     # 清洗数据集，生成所需要的数据
     print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
     X_doc, y_doc = generate_data(X_data, y_data)
     output_example_data(X_doc, y_doc)
     # ----------------------------------------------------------------------
-    # 填充数据集
+    print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
     X_seq = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
     y_seq = y_doc
     # ----------------------------------------------------------------------
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    X_train, X_test, y_train, y_test = train_test_split(X_seq, y_seq, random_state = seed,
-                                                        stratify = y_seq)
+    X_train, X_test, y_train, y_test = train_test_split(X_seq, y_seq, random_state = seed, stratify = y_seq)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
     # ----------------------------------------------------------------------
     # 构建模型
@@ -230,18 +239,15 @@ def train_single_age():
     # ----------------------------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
-    file_name = './data/train_data_all_no_sequence.csv'
+    file_name = './data/train_data_all_click_times.csv'
+    file_name = './data/train_data.csv'
     label_name = 'age'
     X_data, y_data = load_data()
     output_example_data(X_data, y_data)
     # ----------------------------------------------------------------------
     # 定义全局定制变量
     max_len = 128
-    embedding_size = 128
-    # 定制 素材库大小
-    creative_id_begin = creative_id_step_size * 0
-    creative_id_end = creative_id_begin + creative_id_num
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_num) + ' ' * 3 + '-' * 5)
+    embedding_size = 32
     train_model(X_data, y_data)
     pass
 
@@ -260,7 +266,7 @@ if __name__ == '__main__':
     user_id_num = 900000  # 用户数
     model_type = "GlobalMaxPooling1D+MLP"
     RMSProp_lr = 5e-04
-    epochs = 40
+    epochs = 20
     batch_size = 512
     sequence_data = False  # 不使用序列数据，如果使用序列数据，则下两项必须为 True
     unknown_word = False  # 是否使用未知词 1

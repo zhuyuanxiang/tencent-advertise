@@ -16,6 +16,7 @@
 """
 # common imports
 import os
+import pickle
 import sys
 import sklearn
 import matplotlib.pyplot as plt
@@ -23,6 +24,7 @@ import numpy as np
 import pandas as pd
 import winsound
 from tensorflow.python.keras import backend as K
+from tensorflow import keras
 
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras import Input
@@ -189,85 +191,78 @@ def myCrossEntropy(y_true, y_pred, e = 0.3):
 
 # 训练网络模型
 def construct_model():
-    input_creative_id = Input(shape = (time_id_max * period_length // period_days), dtype = 'int32',
-                              name = 'creative_id')
+    input_creative_id = Input(
+        shape = (time_id_max * period_length // period_days), dtype = 'int32', name = 'creative_id'
+    )
     embedded_creative_id = Embedding(
         creative_id_window, embedding_size, name = 'creative_id_embedded')(input_creative_id)
-    # encoded_creative_id = GlobalMaxPooling1D(name = 'encoded_creative_id')(embedded_creative_id)
+    # encoded_creative_id = GlobalMaxPooling1D(name = 'creative_id_encoded')(embedded_creative_id)
     x = Conv1D(embedding_size, 3, 2, activation = 'relu', name = 'creative_id_convolution_0101')(embedded_creative_id)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling1D(5, name = 'creative_id_pool_0101')(x)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = Conv1D(embedding_size, 3, 1, activation = 'relu', name = 'creative_id_convolution_0102')(x)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling1D(3, name = 'creative_id_pool_0102')(x)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
+    x = Dropout(0.5, name = 'creative_id_D_0101')(x)
+    x = BatchNormalization(name = 'creative_id_BN_0101')(x)
+    x = MaxPooling1D(8, name = 'creative_id_pool_0101')(x)
+    x = Dropout(0.5, name = 'creative_id_D_0102')(x)
+    x = BatchNormalization(name = 'creative_id_BN_0102')(x)
+    # x = Conv1D(embedding_size, 3, 2, activation = 'relu', name = 'creative_id_convolution_0102')(x)
+    # x = Dropout(0.5, name = 'creative_id_D_0201')(x)
+    # x = BatchNormalization(name = 'creative_id_BN_0201')(x)
+    # # x = MaxPooling1D(3, name = 'creative_id_pool_0102')(x)
+    # # x = Dropout(0.5, name = 'creative_id_D_0202')(x)
+    # # x = BatchNormalization(name = 'creative_id_BN_0202')(x)
     x = GRU(embedding_size, dropout = 0.5, recurrent_dropout = 0.5,
             return_sequences = True, name = 'creative_id_GRU_0101')(x)
     encoded_creative_id = GlobalMaxPooling1D(name = 'creative_id_encoded')(x)
 
     # # LSTM(14) : 是因为 91 天正好是 14 个星期
     # # LSTM(32) : 方便计算
-    input_click_times = Input(shape = (time_id_max * period_length // period_days, 1), dtype = 'float32',
-                              name = 'click_times')
-    x = Conv1D(embedding_size, 3, 2, activation = 'relu', name = 'click_times_convolution_0101')(input_click_times)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling1D(5, name = 'click_times_pool_0101')(x)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = Conv1D(embedding_size, 3, 1, activation = 'relu', name = 'click_times_convolution_0102')(x)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling1D(3, name = 'click_times_pool_0102')(x)
-    x = Dropout(0.5)(x)
-    x = BatchNormalization()(x)
-    x = GRU(1, dropout = 0.5, recurrent_dropout = 0.5,
-            return_sequences = True, name = 'click_times_GRU_0101')(x)
-    encoded_click_times = Flatten(name = 'click_times_encoded')(x)
+    # input_click_times = Input(
+    #     shape = (time_id_max * period_length // period_days, 1), dtype = 'float32', name = 'click_times'
+    # )
+    # x = Conv1D(1, 3, 2, activation = 'relu', name = 'click_times_convolution_0101')(input_click_times)
+    # x = Dropout(0.5, name = 'click_times_D_0101')(x)
+    # x = BatchNormalization(name = 'click_times_BN_0101')(x)
+    # x = MaxPooling1D(8, name = 'click_times_pool_0101')(x)
+    # x = Dropout(0.5, name = 'click_times_D_0102')(x)
+    # x = BatchNormalization(name = 'click_times_BN_0102')(x)
+    # x = Conv1D(embedding_size, 2, 1, activation = 'relu', name = 'click_times_convolution_0102')(x)
+    # x = Dropout(0.5, name = 'click_times_D_0201')(x)
+    # x = BatchNormalization(name = 'click_times_BN_0201')(x)
+    # # x = MaxPooling1D(3, name = 'click_times_pool_0102')(x)
+    # # x = Dropout(0.5, name = 'click_times_D_0202')(x)
+    # # x = BatchNormalization(name = 'click_times_BN_0202')(x)
+    # x = GRU(1, dropout = 0.5, recurrent_dropout = 0.5,
+    #         return_sequences = True, name = 'click_times_GRU_0101')(x)
+    # encoded_click_times = Flatten(name = 'click_times_encoded')(x)
+    #
+    # concatenated = concatenate([
+    #     encoded_creative_id,
+    #     encoded_click_times,
+    #     # encoded_product_id,
+    #     # encoded_category,
+    #     # encoded_advertiser_id,
+    #     # encoded_industry
+    # ], axis = -1)
+    #
+    # x = Dropout(0.5)(concatenated)
+    x = Dropout(0.5, name = 'Dense_Dropout_0101')(encoded_creative_id)
+    x = Dense((embedding_size + 0), kernel_regularizer = l2(0.001), name = 'Dense_0101')(x)
+    x = BatchNormalization(name = 'Dense_BN_0101')(x)
+    x = Activation('relu', name = 'Dense_Activation_0101')(x)
 
-    concatenated = concatenate([
-        encoded_creative_id,
-        encoded_click_times,
-        # encoded_product_id,
-        # encoded_category,
-        # encoded_advertiser_id,
-        # encoded_industry
-    ], axis = -1)
+    x = Dropout(0.5, name = 'Dense_Dropout_0102')(x)
+    x = Dense((embedding_size + 0), kernel_regularizer = l2(0.001), name = 'Dense_0102')(x)
+    x = BatchNormalization(name = 'Dense_BN_0102')(x)
+    x = Activation('relu', name = 'Dense_Activation_0102')(x)
 
-    x = Dropout(0.5)(concatenated)
-    x = Dense((embedding_size + 13), kernel_regularizer = l2(0.001), name = 'Dense_0101')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
+    x = Dropout(0.5, name = 'Dense_Dropout_0201')(x)
+    x = Dense((embedding_size + 0) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0201')(x)
+    x = BatchNormalization(name = 'Dense_BN_0201')(x)
+    x = Activation('relu', name = 'Dense_Activation_0201')(x)
 
-    x = Dropout(0.5)(x)
-    x = Dense((embedding_size + 13), kernel_regularizer = l2(0.001), name = 'Dense_0102')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # x = Dropout(0.5, name = 'Dropout_0103')(x)
-    # x = Dense((embedding_size + 12) , kernel_regularizer = l2(0.001), name = 'Dense_0103')(x)
-    # x = BatchNormalization(name = 'BN_0103')(x)
-    # x = Activation('relu', name = 'relu_0103')(x)
-
-    x = Dropout(0.5, name = 'Dropout_0201')(x)
-    x = Dense((embedding_size + 13) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0201')(x)
-    x = BatchNormalization(name = 'BN_0201')(x)
-    x = Activation('relu', name = 'relu_0201')(x)
-
-    x = Dropout(0.5, name = 'Dropout_0202')(x)
-    x = Dense((embedding_size + 13) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0202')(x)
-    x = BatchNormalization(name = 'BN_0202')(x)
-    x = Activation('relu', name = 'relu_0202')(x)
-
-    # x = Dropout(0.5, name = 'Dropout_0203')(x)
-    # x = Dense((embedding_size + 12) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0203')(x)
-    # x = BatchNormalization(name = 'BN_0203')(x)
-    # x = Activation('relu', name = 'relu_0203')(x)
+    x = Dropout(0.5, name = 'Dense_Dropout_0202')(x)
+    x = Dense((embedding_size + 0) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0202')(x)
+    x = BatchNormalization(name = 'Dense_BN_0202')(x)
+    x = Activation('relu', name = 'Dense_Activation_0202')(x)
 
     if label_name == "age" and age_sigmoid == -1:
         x = Dropout(0.5)(x)
@@ -277,7 +272,7 @@ def construct_model():
 
         model = Model([
             input_creative_id,
-            input_click_times,
+            # input_click_times,
             # input_product_id,
             # input_category,
             # input_advertiser_id,
@@ -298,7 +293,7 @@ def construct_model():
 
         model = Model([
             input_creative_id,
-            input_click_times,
+            # input_click_times,
             # input_product_id,
             # input_category,
             # input_advertiser_id,
@@ -362,6 +357,22 @@ def output_result(results, predictions, y_test):
 
 
 # ==================================================
+def continue_train_model():
+    # --------------------------------------------------
+    print('>' * 15 + ' ' * 3 + "训练模型" + ' ' * 3 + '<' * 15)
+    # --------------------------------------------------
+    # 构建网络模型，输出模型相关的参数，构建多输入单输出模型，输出构建模型的结果
+    print('-' * 5 + ' ' * 3 + "构建'{0}'模型".format(model_type) + ' ' * 3 + '-' * 5)
+    # model=keras.models.load_model('/save_model/m0.h5')
+    model = keras.models.load_model('/save_model/m1.h5')
+    model.summary()
+    print('-' * 5 + ' ' * 3 + "加载 npy 数据集" + ' ' * 3 + '-' * 5)
+    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle = True)
+    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle = True)
+    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle = True)
+    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle = True)
+
+
 def train_model():
     # --------------------------------------------------
     print('>' * 15 + ' ' * 3 + "训练模型" + ' ' * 3 + '<' * 15)
@@ -371,13 +382,14 @@ def train_model():
     output_parameters()
     model = construct_model()
     print(model.summary())
+    print("保存原始：", model.save('save_model/m0.h5'))
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     # --------------------------------------------------
     print('-' * 5 + ' ' * 3 + "加载 npy 数据集" + ' ' * 3 + '-' * 5)
-    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy')
-    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy')
-    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy')
-    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy')
+    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle = True)
+    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle = True)
+    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle = True)
+    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle = True)
 
     # # 加载数据
     # print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -394,19 +406,23 @@ def train_model():
     # print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
     # X_train, X_test, y_train, y_test = train_test_split(X_doc, y_doc, random_state = seed, stratify = y_doc)
     # print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
-    # print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
-    # output_example_data(X_train, y_train)
-    # print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
-    # output_example_data(X_test, y_test)
+    print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(X_train, y_train)
+    print('-' * 5 + ' ' * 3 + "测试数据集" + ' ' * 3 + '-' * 5)
+    output_example_data(X_test, y_test)
     # --------------------------------------------------
     # 训练网络模型
     # 使用验证集
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
-    model.fit({
+    history = model.fit({
         'creative_id': X_train[:, 0],
         'click_times': X_train[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
     }, y_train, epochs = epochs, batch_size = batch_size,
         validation_split = 0.2, use_multiprocessing = True, verbose = 2)
+    print("保存第一次训练模型", model.save_weights('save_model/m1.bin'))
+    f = open('m2.pkl', 'wb')
+    pickle.dump(history, f)
+    f.close()
     results = model.evaluate({
         'creative_id': X_test[:, 0],
         'click_times': X_test[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
@@ -419,11 +435,16 @@ def train_model():
     # --------------------------------------------------
     # 不使用验证集，训练次数减半
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
-    model.fit({
+    history = model.fit({
         'creative_id': X_train[:, 0],
         'click_times': X_train[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
     }, y_train, epochs = epochs // 2, batch_size = batch_size, use_multiprocessing = True,
         verbose = 2)
+    print("保存第二次训练模型", model.save_weights('save_model/m2.bin'))
+    f = open('m2.pkl', 'wb')
+    pickle.dump(history, f)
+    f.close()
+
     results = model.evaluate({
         'creative_id': X_test[:, 0],
         'click_times': X_test[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),

@@ -26,11 +26,19 @@ import winsound
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras import Input
 from tensorflow.python.keras import losses, metrics, optimizers
-from tensorflow.python.keras.layers import Activation, BatchNormalization, concatenate, Dropout
+from tensorflow.python.keras.layers import Activation, BatchNormalization, concatenate, Dropout, Bidirectional
 from tensorflow.python.keras.layers import Dense, Embedding, GlobalMaxPooling1D, LSTM
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 from tensorflow.python.keras.regularizers import l2
+
+# from tensorflow_core.python.keras import Input
+# from tensorflow_core.python.keras import losses, metrics, optimizers
+# from tensorflow_core.python.keras.layers import Activation, BatchNormalization, concatenate, Dropout, Bidirectional
+# from tensorflow_core.python.keras.layers import Dense, Embedding, GlobalMaxPooling1D, LSTM
+# from tensorflow_core.python.keras.models import Model
+# from tensorflow_core.python.keras.regularizers import l2
+# from keras_preprocessing.sequence import pad_sequences
 
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
@@ -81,7 +89,7 @@ def generate_data(X_data, y_data):
     # X_doc[:,0]: creative_id
     # X_doc[:,1]: product_id, X_doc[:,2]: product_category
     # X_doc[:,3]: advertiser_id, X_doc[:,4]: industry
-    #  X_doc[:,5]: click_times
+    # X_doc[:,5]: click_times
     # filed_list 去除 user_id, time_id
     train_field_num = field_num - 2
     X_doc = np.zeros([user_id_num, train_field_num], dtype = object)
@@ -95,7 +103,9 @@ def generate_data(X_data, y_data):
             pass
         user_id = row_data[0]
         time_id = row_data[2]
-        y_doc[user_id] = y_data[i]
+        if user_id >= user_id_num:
+            break
+        y_doc[user_id] = y_data[i] if age_sigmoid == -1 or label_name == 'gender' else int(age_sigmoid == y_data[i])
         # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
         if user_id != prev_user_id:
             # 将前一个用户序列重复填充
@@ -133,7 +143,7 @@ def generate_data(X_data, y_data):
         creative_id = row_data[1] + 3  # 词典是正序取，就是从小到大
         # row_data[2]: time_id
         product_id = row_data[3] + 3  # product_id 词库很小，因此不会产生未知词，保留 1 是保持概念统一
-        product_category = row_data[4] + 3
+        category = row_data[4] + 3
         advertiser_id = row_data[5] + 3
         industry = row_data[6] + 3
         click_times = row_data[7]  # 这个不是词典，本身就是值，不需要再调整
@@ -153,7 +163,7 @@ def generate_data(X_data, y_data):
         if product_id == 2:  # FIXME：这段代码以后可以在数据库调整数据后取消
             product_id = 1
         X_doc[user_id, 2].append(product_id)
-        X_doc[user_id, 3].append(product_category)
+        X_doc[user_id, 3].append(category)
         X_doc[user_id, 4].append(advertiser_id)
         if industry == 2:  # FIXME：这段代码以后可以在数据库调整数据后取消
             industry = 1
@@ -169,9 +179,9 @@ def output_example_data(X, y):
     print("数据(X[30], y[30]) =", X[30], y[30])
     print("数据(X[600], y[600]) =", X[600], y[600])
     if len(y) > 8999:
-        print("数据(X[9000], y[9000]) =", X[9000], y[9000])
-    if len(y) > 11999:
-        print("数据(X[120000], y[120000]) =", X[120000], y[120000])
+        print("数据(X[8999], y[8999]) =", X[8999], y[8999])
+    if len(y) > 119999:
+        print("数据(X[119999], y[119999]) =", X[119999], y[119999])
     if len(y) > 224999:
         print("数据(X[224999], y[224999]) =", X[224999], y[224999])
     if len(y) > 674999:
@@ -186,85 +196,112 @@ def output_example_data(X, y):
 # 训练网络模型
 def construct_model():
     input_creative_id = Input(shape = (None,), dtype = 'int32', name = 'creative_id')
-    embedded_creative_id = Embedding(creative_id_window, embedding_size,
-                                     name = 'embedded_creative_id')(input_creative_id)
+    embedded_creative_id = Embedding(
+        creative_id_window, embedding_size, name = 'embedded_creative_id')(input_creative_id)
     encoded_creative_id = GlobalMaxPooling1D(name = 'encoded_creative_id')(embedded_creative_id)
 
     input_product_id = Input(shape = (None,), dtype = 'int32', name = 'product_id')
-    embedded_product_id = Embedding(product_id_max, 32,
-                                    name = 'embedded_product_id')(input_product_id)
+    embedded_product_id = Embedding(product_id_max, 32, name = 'embedded_product_id')(input_product_id)
     encoded_product_id = GlobalMaxPooling1D(name = 'encoded_product_id')(embedded_product_id)
 
-    input_product_category = Input(shape = (None,), dtype = 'int32', name = 'product_category')
-    embedded_product_category = Embedding(product_category_max, 2,
-                                          name = 'embedded_product_category')(input_product_category)
-    encoded_product_category = GlobalMaxPooling1D(name = 'encoded_product_category')(embedded_product_category)
+    input_category = Input(shape = (None,), dtype = 'int32', name = 'category')
+    embedded_category = Embedding(category_max, 2, name = 'embedded_category')(input_category)
+    encoded_category = GlobalMaxPooling1D(name = 'encoded_category')(embedded_category)
+    # encoded_category = Bidirectional(
+    #     LSTM(32, dropout = 0.2, recurrent_dropout = 0.2), name = 'encoded_category')(embedded_category)
 
     input_advertiser_id = Input(shape = (None,), dtype = 'int32', name = 'advertiser_id')
-    embedded_advertiser_id = Embedding(advertiser_id_max, 32,
-                                       name = 'embedded_advertiser_id')(input_advertiser_id)
+    embedded_advertiser_id = Embedding(advertiser_id_max, 32, name = 'embedded_advertiser_id')(input_advertiser_id)
     encoded_advertiser_id = GlobalMaxPooling1D(name = 'encoded_advertiser_id')(embedded_advertiser_id)
 
     input_industry = Input(shape = (None,), dtype = 'int32', name = 'industry')
-    embedded_industry = Embedding(product_id_max, 16,
-                                  name = 'embedded_industry')(input_industry)
+    embedded_industry = Embedding(industry_max, 16, name = 'embedded_industry')(input_industry)
     encoded_industry = GlobalMaxPooling1D(name = 'encoded_industry')(embedded_industry)
+    # encoded_industry = Bidirectional(
+    #     LSTM(32, dropout = 0.2, recurrent_dropout = 0.2, name = 'encoded_industry'))(embedded_industry)
 
     # LSTM(14) : 是因为 91 天正好是 14 个星期
+    # LSTM(32) : 方便计算
     input_click_times = Input(shape = (None, 1), dtype = 'float32', name = 'click_times')
-    encoded_click_times = LSTM(14, name = 'encoded_click_times')(input_click_times)
+    encoded_click_times = Bidirectional(
+        LSTM(32, dropout = 0.2, recurrent_dropout = 0.2), name = 'encoded_click_times')(input_click_times)
 
     concatenated = concatenate([
         encoded_creative_id,
         encoded_click_times,
         encoded_product_id,
-        encoded_product_category,
+        encoded_category,
         encoded_advertiser_id,
         encoded_industry
     ], axis = -1)
-    x = Dropout(0.5)(concatenated)
+
+    x = Dropout(0.5, name = 'Dropout_0101')(concatenated)
     x = Dense(embedding_size, kernel_regularizer = l2(0.001), name = 'Dense_0101')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Dropout(0.5)(x)
+    x = BatchNormalization(name = 'BN_0101')(x)
+    x = Activation('relu', name = 'relu_0101')(x)
+
+    x = Dropout(0.5, name = 'Dropout_0102')(x)
     x = Dense(embedding_size, kernel_regularizer = l2(0.001), name = 'Dense_0102')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Dropout(0.5)(x)
+    x = BatchNormalization(name = 'BN_0102')(x)
+    x = Activation('relu', name = 'relu_0102')(x)
+
+    x = Dropout(0.5, name = 'Dropout_0103')(x)
+    x = Dense(embedding_size, kernel_regularizer = l2(0.001), name = 'Dense_0103')(x)
+    x = BatchNormalization(name = 'BN_0103')(x)
+    x = Activation('relu', name = 'relu_0103')(x)
+
+    x = Dropout(0.5, name = 'Dropout_0201')(x)
     x = Dense(embedding_size // 2, kernel_regularizer = l2(0.001), name = 'Dense_0201')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Dropout(0.5)(x)
+    x = BatchNormalization(name = 'BN_0201')(x)
+    x = Activation('relu', name = 'relu_0201')(x)
+
+    x = Dropout(0.5, name = 'Dropout_0202')(x)
     x = Dense(embedding_size // 2, kernel_regularizer = l2(0.001), name = 'Dense_0202')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    if label_name == "age":
+    x = BatchNormalization(name = 'BN_0202')(x)
+    x = Activation('relu', name = 'relu_0202')(x)
+
+    x = Dropout(0.5, name = 'Dropout_0203')(x)
+    x = Dense(embedding_size // 2, kernel_regularizer = l2(0.001), name = 'Dense_0203')(x)
+    x = BatchNormalization(name = 'BN_0203')(x)
+    x = Activation('relu', name = 'relu_0203')(x)
+
+    if label_name == "age" and age_sigmoid == -1:
         x = Dropout(0.5)(x)
         x = Dense(10, kernel_regularizer = l2(0.001), name = 'output')(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('softmax')(x)
-    elif label_name == 'gender':
+
+        model = Model([
+            input_creative_id,
+            input_click_times,
+            input_product_id,
+            input_category,
+            input_advertiser_id,
+            input_industry
+        ], output_tensor)
+
+        print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
+
+        model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
+                      loss = losses.sparse_categorical_crossentropy,
+                      metrics = [metrics.sparse_categorical_accuracy])
+    elif label_name == 'gender' or age_sigmoid != -1:
         x = Dropout(0.5)(x)
         x = Dense(1, kernel_regularizer = l2(0.001), name = 'output')(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('sigmoid')(x)
-    else:
-        raise Exception("错误的标签类型！")
 
-    model = Model([
-        input_creative_id,
-        input_click_times,
-        input_product_id,
-        input_product_category,
-        input_advertiser_id,
-        input_industry
-    ], output_tensor)
-    print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
-    if label_name == 'age':
-        model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
-                      loss = losses.sparse_categorical_crossentropy,
-                      metrics = [metrics.sparse_categorical_accuracy])
-    elif label_name == 'gender':
+        model = Model([
+            input_creative_id,
+            input_click_times,
+            input_product_id,
+            input_category,
+            input_advertiser_id,
+            input_industry
+        ], output_tensor)
+
+        print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
+
         model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
                       loss = losses.binary_crossentropy,
                       metrics = [metrics.binary_accuracy])
@@ -328,18 +365,18 @@ def train_model():
     output_parameters()
     model = construct_model()
     print(model.summary())
+    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     # --------------------------------------------------
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
     X_data, y_data = load_data()
     output_example_data(X_data, y_data)
-    print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     # --------------------------------------------------
     # 清洗数据集，生成所需要的数据
     print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
     X_doc, y_doc = generate_data(X_data, y_data)
-    del X_data, y_data  # 清空读取 csv 文件使用的内存
     output_example_data(X_doc, y_doc)
+    del X_data, y_data  # 清空读取 csv 文件使用的内存
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
@@ -353,29 +390,35 @@ def train_model():
     X_train_creative_id = pad_sequences(X_doc[X_train_idx, 0], maxlen = max_len, padding = 'post')
     X_test_creative_id = pad_sequences(X_doc[X_test_idx, 0], maxlen = max_len, padding = 'post')
     output_example_data(X_train_creative_id, X_test_creative_id)
+
     X_train_product_id = pad_sequences(X_doc[X_train_idx, 2], maxlen = max_len, padding = 'post')
     X_test_product_id = pad_sequences(X_doc[X_test_idx, 2], maxlen = max_len, padding = 'post')
     output_example_data(X_train_product_id, X_test_product_id)
-    X_train_product_category = pad_sequences(X_doc[X_train_idx, 3], maxlen = max_len, padding = 'post')
-    X_test_product_category = pad_sequences(X_doc[X_test_idx, 3], maxlen = max_len, padding = 'post')
-    output_example_data(X_train_product_category, X_test_product_category)
+
+    X_train_category = pad_sequences(X_doc[X_train_idx, 3], maxlen = max_len, padding = 'post')
+    X_test_category = pad_sequences(X_doc[X_test_idx, 3], maxlen = max_len, padding = 'post')
+    output_example_data(X_train_category, X_test_category)
+
     X_train_advertiser_id = pad_sequences(X_doc[X_train_idx, 4], maxlen = max_len, padding = 'post')
     X_test_advertiser_id = pad_sequences(X_doc[X_test_idx, 4], maxlen = max_len, padding = 'post')
     output_example_data(X_train_advertiser_id, X_test_advertiser_id)
+
     X_train_industry = pad_sequences(X_doc[X_train_idx, 5], maxlen = max_len, padding = 'post')
     X_test_industry = pad_sequences(X_doc[X_test_idx, 5], maxlen = max_len, padding = 'post')
     output_example_data(X_train_industry, X_test_industry)
+
     X_train_click_times = pad_sequences(
         X_doc[X_train_idx, 1],
         maxlen = max_len,
         padding = 'post'
-    ).reshape((user_id_num * 3 // 4, max_len, 1))
+    ).reshape((-1, max_len, 1))  # -1 表示原始维度不变
     X_test_click_times = pad_sequences(
         X_doc[X_test_idx, 1],
         maxlen = max_len,
         padding = 'post'
-    ).reshape((user_id_num // 4, max_len, 1))
+    ).reshape((-1, max_len, 1))
     output_example_data(X_train_click_times, X_test_click_times)
+
     # --------------------------------------------------
     # 训练网络模型
     # 使用验证集
@@ -384,7 +427,7 @@ def train_model():
         'creative_id': X_train_creative_id,
         'click_times': X_train_click_times,
         'product_id': X_train_product_id,
-        'product_category': X_train_product_category,
+        'category': X_train_category,
         'advertiser_id': X_train_advertiser_id,
         'industry': X_train_industry
     }, y_train, epochs = epochs, batch_size = batch_size,
@@ -393,7 +436,7 @@ def train_model():
         'creative_id': X_test_creative_id,
         'click_times': X_test_click_times,
         'product_id': X_test_product_id,
-        'product_category': X_test_product_category,
+        'category': X_test_category,
         'advertiser_id': X_test_advertiser_id,
         'industry': X_test_industry
     }, y_test, use_multiprocessing = True, verbose = 0)
@@ -401,7 +444,7 @@ def train_model():
         'creative_id': X_test_creative_id,
         'click_times': X_test_click_times,
         'product_id': X_test_product_id,
-        'product_category': X_test_product_category,
+        'category': X_test_category,
         'advertiser_id': X_test_advertiser_id,
         'industry': X_test_industry
     }).squeeze()
@@ -410,12 +453,11 @@ def train_model():
     # --------------------------------------------------
     # 不使用验证集，训练次数减半
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
-    print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
     model.fit({
         'creative_id': X_train_creative_id,
         'click_times': X_train_click_times,
         'product_id': X_train_product_id,
-        'product_category': X_train_product_category,
+        'category': X_train_category,
         'advertiser_id': X_train_advertiser_id,
         'industry': X_train_industry
     }, y_train, epochs = epochs // 2, batch_size = batch_size, use_multiprocessing = True,
@@ -424,7 +466,7 @@ def train_model():
         'creative_id': X_test_creative_id,
         'click_times': X_test_click_times,
         'product_id': X_test_product_id,
-        'product_category': X_test_product_category,
+        'category': X_test_category,
         'advertiser_id': X_test_advertiser_id,
         'industry': X_test_industry
     }, y_test, use_multiprocessing = True, verbose = 0)
@@ -432,7 +474,7 @@ def train_model():
         'creative_id': X_test_creative_id,
         'click_times': X_test_click_times,
         'product_id': X_test_product_id,
-        'product_category': X_test_product_category,
+        'category': X_test_category,
         'advertiser_id': X_test_advertiser_id,
         'industry': X_test_industry
     }).squeeze()
@@ -446,7 +488,8 @@ if __name__ == '__main__':
     # file_name = './data/train_data_all_sequence_v_little.csv'
     file_name = './data/train_data_all_sequence_v.csv'
     model_type = 'GlobalMaxPooling1D+MLP'
-    label_name = 'age'
+    label_name = 'age'  # age: 多分类问题；gender: 二分类问题
+    age_sigmoid = 2  # age_sigmoid==-1: 多分类问题，否则是对某个类别的二分类问题
     # 定义全局序列变量
     user_id_num = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
@@ -454,7 +497,7 @@ if __name__ == '__main__':
     click_times_max = 152  # 所有素材中最大的点击次数
     ad_id_max = 2264190  # 最大的广告编号=广告的种类
     product_id_max = 44313  # 最大的产品编号
-    product_category_max = 18  # 最大的产品类别编号
+    category_max = 18  # 最大的产品类别编号
     advertiser_id_max = 62965  # 最大的广告主编号
     industry_max = 335  # 最大的产业类别编号
     field_list = [
@@ -484,7 +527,7 @@ if __name__ == '__main__':
     # 定义全局模型变量
     batch_size = 1024
     embedding_size = 128
-    epochs = 60
+    epochs = 30
     max_len = 128  # {64:803109，128:882952 个用户}  {64：1983350，128：2329077 个素材}
     # max_len = 256
     RMSProp_lr = 5e-04
@@ -493,4 +536,3 @@ if __name__ == '__main__':
     # 运行结束的提醒
     winsound.Beep(900, 500)
     winsound.Beep(600, 1000)
-    plt.show()
