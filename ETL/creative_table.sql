@@ -1,13 +1,13 @@
 /* C1. 导入原始数据 */
 /* 点击日志表，click_log.csv */
-CREATE TABLE `click_log_all` (
-  `time_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `creative_id` int NOT NULL,
-  `click_times` int DEFAULT NULL,
-  `sparsity` int DEFAULT NULL COMMENT '用于每个 user_id 对应的 creative_id 的稀疏性，方便后面提取 creative_id 的最小值，是个临时字段',
-  PRIMARY KEY (`time_id`,`user_id`,`creative_id`) USING BTREE
-) /*!50100 STORAGE MEMORY */ ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci DELAY_KEY_WRITE=1;
+CREATE TABLE 'click_log_all'(
+    `time_id` int NOT NULL,
+    `user_id` int NOT NULL,
+    `creative_id` int NOT NULL,
+    `click_times` int NOT NULL,
+    PRIMARY KEY (`creative_id`, 'user_id', 'time_id')
+) ENGINE = MYISAM COMMENT = 'click_log.csv' DELAY_KEY_WRITE = 1;
+
 /* 
  为 click_log_all 的常用查询字段单独建立索引
  因为主键只有排在最前面的字段才会被用作索引
