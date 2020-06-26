@@ -190,7 +190,7 @@ CREATE TABLE `train_user_id_all` (
     `user_id` INT NOT NULL,
     sparsity INT NOT NULL,
     PRIMARY KEY (`user_id_inc`)
-)ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     `train_user_id_all` (`user_id`, sparsity)
@@ -232,7 +232,7 @@ CREATE TABLE train_creative_id_all (
     tf_value INT NOT NULL,
     idf_value INT NOT NULL,
     PRIMARY KEY (creative_id_inc)
-)ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     train_creative_id_all (creative_id, sparsity, tf_value, idf_value)
@@ -270,7 +270,7 @@ CREATE TABLE `train_ad_id_all` (
     `ad_id` INT NOT NULL,
     sparsity INT NOT NULL,
     PRIMARY KEY (`ad_id_inc`)
-)ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
     `train_ad_id_all` (`ad_id`, sparsity)
@@ -295,6 +295,90 @@ SET
     A.user_id_inc = B.user_id_inc
 WHERE
     A.user_id = B.user_id;
+
+/* 创建user_id + time_id 统计信息 */
+DROP TABLE `train_user_time_all`;
+
+CREATE TABLE `train_user_time_all` (
+    `user_id` INT NOT NULL,
+    `time_id` INT NOT NULL,
+    day_creative_id INT NOT NULL,
+    day_creative_category INT NOT NULL
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+
+INSERT INTO
+    `train_user_time_all`(
+        user_id,
+        time_id,
+        day_creative_id,
+        day_creative_category
+    )
+SELECT
+    A.`user_id`,
+    A.`time_id`,
+    count(A.creative_id) as day_creative_id,
+    count(DISTINCT A.creative_id) as day_creative_category
+FROM
+    `click_log_all` AS A
+GROUP BY
+    user_id,
+    time_id;
+
+ALTER TABLE
+    `tencent`.`train_user_time_all`
+ADD
+    INDEX `user_id_idx`(`user_id`) USING BTREE,
+ADD
+    INDEX `time_id_idx`(`time_id`) USING BTREE;
+
+/* 创建user_id + week 统计信息 */
+DROP TABLE `train_user_week_all`;
+
+CREATE TABLE `train_user_week_all` (
+    `user_id` INT NOT NULL,
+    `week_id` INT NOT NULL,
+    week_creative_id INT NOT NULL,
+    week_creative_category INT NOT NULL
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+
+INSERT INTO
+    train_user_week_all(
+        user_id,
+        week_id,
+        week_creative_id,
+        week_creative_category
+    )
+SELECT
+    user_id,
+    (time_id DIV 7) AS week_id,
+    sum(day_creative_id) as week_creative_id,
+    sum(day_creative_category) as week_creative_category
+FROM
+    `train_user_time_all`
+GROUP BY
+    user_id,
+    week_id
+ORDER BY
+    user_id,
+    week_id;
+
+ALTER TABLE
+    `tencent`.`train_user_week_all`
+ADD
+    INDEX `user_id_idx`(`user_id`) USING BTREE,
+ADD
+    INDEX `week_id_idx`(`week_id`) USING BTREE;
+
+/* 统计每周访问不同素材个数的用户个数 */
+SELECT
+	week_creative_id,
+	count( DISTINCT user_id ) 
+FROM
+	`train_user_week_all` 
+GROUP BY
+	week_creative_id 
+ORDER BY
+	week_creative_id;
 
 /* C4. 创建导出数据表 */
 /*
@@ -321,7 +405,12 @@ CREATE TABLE `train_data_all_temp` (
 
 /* 插入 click_log_all 的原始数据 */
 INSERT INTO
-    train_data_all_temp(time_id, user_id, creative_id, click_times)
+    train_data_all_temp(
+        time_id,
+        user_id,
+        creative_id,
+        click_times
+    )
 SELECT
     time_id,
     user_id,
@@ -377,7 +466,6 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
-
 /* 基于 train_ad_id_all 更新 ad_id_inc */
 UPDATE
     train_data_all_temp AS A,
@@ -396,6 +484,7 @@ ADD
     INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE,
 ADD
     INDEX `ad_id_inc_idx`(`ad_id_inc`) USING BTREE;
+
 /* 
  创建有时间序列的最终训练数据视图，数据量：30082771
  注意：不要随便双击视图，因为数据量过大会导致等待时间过长
@@ -443,8 +532,24 @@ ORDER BY
     user_id_inc,
     creative_id_inc;
 
-/* 创建有时间序列的 click_times 视图，好像可以废弃 */
-CREATE VIEW train_data_all_click_times_v AS
+/* 创建最少训练字段视图 */
+CREATE VIEW train_data_all_min_complete_v
+SELECT
+    train_data_all_temp.time_id AS time_id,
+    train_data_all_temp.user_id_inc AS user_id_inc,
+    train_data_all_temp.creative_id_inc AS creative_id_inc,
+    train_data_all_temp.click_times AS click_times,
+    train_data_all_temp.age AS age,
+    train_data_all_temp.gender AS gender,
+    train_data_all_temp.ad_id_inc AS ad_id_inc
+FROM
+    train_data_all_temp
+ORDER BY
+    user_id_inc,
+    time_id,
+    creative_id_inc
+    /* 创建有时间序列的 click_times 视图，好像可以废弃 */
+    CREATE VIEW train_data_all_click_times_v AS
 SELECT
     train_data_all_temp.user_id_inc AS user_id_inc,
     train_data_all_temp.click_times AS click_times,
