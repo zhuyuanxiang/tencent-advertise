@@ -15,8 +15,6 @@
 @理解：
 '''
 import math as m
-import os
-import sys
 import winsound
 
 import numpy as np
