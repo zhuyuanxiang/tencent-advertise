@@ -29,8 +29,9 @@ import winsound
 from gensim.models import Word2Vec
 from gensim.models import KeyedVectors
 from tensorflow import keras
-from tensorflow_core.python.keras import optimizers, losses, metrics
-from tensorflow_core.python.keras.layers import Embedding, GlobalMaxPooling1D, Dense, Dropout, BatchNormalization
+from tensorflow_core.python.keras import optimizers, losses, metrics, Input, Model
+from tensorflow_core.python.keras.layers import Embedding, GlobalMaxPooling1D, Dense, Dropout, BatchNormalization, \
+    GlobalAveragePooling1D, concatenate, Activation
 from keras_preprocessing.sequence import pad_sequences
 from tensorflow_core.python.keras.regularizers import l2
 
@@ -69,7 +70,7 @@ print('>' * 15 + ' ' * 3 + "train_single_gender" + ' ' * 3 + '<' * 15)
 RMSProp_lr = 5e-04
 batch_size = 256
 embedding_size = 32
-epochs = 10
+epochs = 20
 label_name = 'gender'
 max_len = 128  # 64:803109，128:882952 个用户；64：1983350，128：2329077 个素材
 # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
@@ -86,22 +87,60 @@ for word, index in word2vec.vocab.items():
         pass
 pass
 
-model = keras.Sequential()
-model.add(Embedding(creative_id_window, embedding_size,
-                    input_length=max_len, weights=[embedding_weights],
-                    trainable=False))
-model.add(GlobalMaxPooling1D())
-# model.add(Dropout(0.5))
-# model.add(BatchNormalization())
-model.add(Dense(32, activation='relu', kernel_regularizer=l2(0.001)))
-# model.add(Dropout(0.5))
-# model.add(BatchNormalization())
-model.add(Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001)))
-model.summary()
-print("保存模型的原始结构：", model.save('save_model/word2vec/word2vec_m0_' + label_name + '.h5'))
-model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
-              loss=losses.binary_crossentropy,
-              metrics=[metrics.binary_accuracy])
+
+def construct_keras_model():
+    keras_model = keras.Sequential()
+    keras_model.add(Embedding(creative_id_window, embedding_size, input_length=max_len, weights=[embedding_weights],
+                              trainable=False))
+    # keras_model.add(GlobalMaxPooling1D())
+    keras_model.add(GlobalAveragePooling1D())
+    # keras_model.add(Dropout(0.5))
+    # keras_model.add(BatchNormalization())
+    keras_model.add(Dense(32, activation='relu', kernel_regularizer=l2(0.001)))
+    # keras_model.add(Dropout(0.5))
+    # keras_model.add(BatchNormalization())
+    keras_model.add(Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001)))
+    keras_model.summary()
+    # print("保存模型的原始结构：", keras_model.save('save_model/word2vec/word2vec_m0_' + label_name + '.h5'))
+    keras_model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                        loss=losses.binary_crossentropy,
+                        metrics=[metrics.binary_accuracy])
+    return keras_model
+
+
+def construct_keras_api_model():
+    input_creative_id = Input(shape=max_len, dtype='int32', name='creative_id')
+    embedded_creative_id = Embedding(creative_id_window, embedding_size, name='creative_id_embedded',
+                                     weights=[embedding_weights])(input_creative_id)
+    GM_creative_id = GlobalMaxPooling1D(name='GM_creative_id')(embedded_creative_id)
+    GA_creative_id = GlobalAveragePooling1D(name='GA_creative_id')(embedded_creative_id)
+
+    concatenated = concatenate([
+        GM_creative_id,
+        GA_creative_id,
+    ], axis=-1)
+    # x = Dense(32, activation='relu', kernel_regularizer=l2(0.001), name='Dense_Activation_0101')(concatenated)
+    x = Dropout(0.5, name='Dense_Dropout_0101')(concatenated)
+    x = Dense(embedding_size * 2, kernel_regularizer=l2(0.001), name='Dense_0101')(x)
+    x = BatchNormalization(name='Dense_BN_0101')(x)
+    x = Activation('relu', name='Dense_Activation_0101')(x)
+
+    x = Dropout(0.5, name='Dense_Dropout_0201')(x)
+    x = Dense(embedding_size, kernel_regularizer=l2(0.001), name='Dense_0201')(x)
+    x = BatchNormalization(name='Dense_BN_0201')(x)
+    x = Activation('relu', name='Dense_Activation_0201')(x)
+
+    output_tensor = Dense(1, 'sigmoid')(x)
+    keras_api_model = Model([input_creative_id], output_tensor)
+    keras_api_model.summary()
+    print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
+    keras_api_model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                            loss=losses.binary_crossentropy,
+                            metrics=[metrics.binary_accuracy])
+    return keras_api_model
+
+
+model = construct_keras_api_model()
 
 # ----------------------------------------------------------------------
 # 加载数据
@@ -109,12 +148,12 @@ print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
 X_train = pad_sequences(np.load('save_data/no_time_no_repeat/x_train_no_time_no_repeat_' + label_name + '.npy',
                                 allow_pickle=True)[:, 0],
                         maxlen=max_len,
-                        padding='post')
+                        padding='pre')
 y_train = np.load('save_data/no_time_no_repeat/y_train_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)
 X_test = pad_sequences(np.load('save_data/no_time_no_repeat/x_test_no_time_no_repeat_' + label_name + '.npy',
                                allow_pickle=True)[:, 0],
                        maxlen=max_len,
-                       padding='post')
+                       padding='pre')
 y_test = np.load('save_data/no_time_no_repeat/y_test_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)
 # ----------------------------------------------------------------------
 # 训练网络模型
@@ -122,10 +161,10 @@ y_test = np.load('save_data/no_time_no_repeat/y_test_no_time_no_repeat_' + label
 print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
 history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,
                     validation_split=0.2, use_multiprocessing=True, verbose=2)
-print("保存第一次模型训练的权重", model.save_weights('save_model/word2vec/word2vec_m1_' + label_name + '.bin'))
-f = open('save_model/word2vec/word2vec_m1_' + label_name + '.pkl', 'wb')
-pickle.dump(history.history, f)
-f.close()
+# print("保存第一次模型训练的权重", model.save_weights('save_model/word2vec/word2vec_m1_' + label_name + '.bin'))
+# f = open('save_model/word2vec/word2vec_m1_' + label_name + '.pkl', 'wb')
+# pickle.dump(history.history, f)
+# f.close()
 results = model.evaluate(X_test, y_test, verbose=0)
 predictions = model.predict(X_test).squeeze()
 output_result(results, predictions)
@@ -135,10 +174,10 @@ output_result(results, predictions)
 print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
 history = model.fit(X_train, y_train, epochs=epochs // 2, batch_size=batch_size,
                     use_multiprocessing=True, verbose=2)
-print("保存第二次模型训练的权重", model.save_weights('save_model/word2vec/word2vec_m2' + label_name + '.bin'))
-f = open('save_model/word2vec/word2vec_m2' + label_name + '.pkl', 'wb')
-pickle.dump(history.history, f)
-f.close()
+# print("保存第二次模型训练的权重", model.save_weights('save_model/word2vec/word2vec_m2' + label_name + '.bin'))
+# f = open('save_model/word2vec/word2vec_m2' + label_name + '.pkl', 'wb')
+# pickle.dump(history.history, f)
+# f.close()
 results = model.evaluate(X_test, y_test, verbose=0)
 predictions = model.predict(X_test).squeeze()
 output_result(results, predictions)
