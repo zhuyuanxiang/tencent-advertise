@@ -15,33 +15,19 @@
 @理解：
 """
 
-import math
-import os
-import random
-import sys
-import sklearn
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import winsound
 
-from gensim.test.utils import get_tmpfile
 from gensim.models import Word2Vec
+
+seed = 42
 
 
 # =====================================================
 # 专门用于 Word2Vec 训练使用的数据集
-def data_word2vec():
-    # 清洗数据需要的变量
-    user_id_num = 900000  # 用户数
-    creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
-    click_times_max = 152  # 所有素材中最大的点击次数
-    time_id_max = 91
-    creative_id_step_size = 128000
-    creative_id_window = creative_id_step_size * 5
-    creative_id_begin = creative_id_step_size * 0
-    creative_id_end = creative_id_begin + creative_id_window
-
+def data_word2vec() -> list:
     # 载入数据需要的变量
     file_name = './data/train_data_all_min_complete_v.csv'
     field_list = [  # 输入数据处理：选择需要的列
@@ -52,7 +38,7 @@ def data_word2vec():
 
     print('-' * 5 + "   加载数据集   " + '-' * 5)
     # 「CSV」文件字段名称
-    df = pd.read_csv(file_name, dtype = int)
+    df = pd.read_csv(file_name, dtype=int)
     # --------------------------------------------------
     # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
     # user_id_inc:      X_csv[:,0]
@@ -67,14 +53,14 @@ def data_word2vec():
     print('-' * 5 + "   清洗数据集   " + '-' * 5)
     data_length = x_csv.shape[0]
     data_step = data_length // 100  # 标识数据清洗进度的步长
-    print("数据生成中（共 {0} 条数据)：".format(data_length), end = '')
-    x_doc = np.zeros([user_id_num], dtype = object)
+    print("数据生成中（共 {0} 条数据)：".format(data_length), end='')
+    x_doc = np.zeros([user_id_num], dtype=list)
 
     prev_user_id = -1  # -1 不在数据序列中
     prev_time_id = -1  # 0 表示第 1 天
     for i, row_data in enumerate(x_csv):
         if (i % data_step) == 0:  # 数据清洗的进度
-            print("第 {0} 条数据-->".format(i), end = ';')
+            print("第 {0} 条数据-->".format(i), end=';')
             pass
         user_id = row_data[0]
         time_id = row_data[2]
@@ -83,7 +69,7 @@ def data_word2vec():
         if user_id > prev_user_id:
             prev_user_id = user_id
             prev_time_id = 0
-            x_doc[user_id] = [2]
+            x_doc[user_id]: list = [2]
             pass
 
         if (time_id - 1) > prev_time_id:  # 时间间隔超过 1 天的就插入 0
@@ -108,16 +94,29 @@ def data_word2vec():
     return x_doc.tolist()
 
 
-path = get_tmpfile('save_model/word2vec.model')
-words_lists = data_word2vec()
+words_lists: list = data_word2vec()
 print(words_lists[10])
 for i, one_list in enumerate(words_lists):
     for j, number in enumerate(one_list):
         words_lists[i][j] = str(number)
 
-model = Word2Vec(words_lists, size = 32, window = 5, min_count = 1, workers = 8)
-model.save('save_model/word2vec.model')
+# 清洗数据需要的变量
+user_id_num = 900000  # 用户数
+creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
+click_times_max = 152  # 所有素材中最大的点击次数
+time_id_max = 91
+creative_id_step_size = 128000
+creative_id_window = creative_id_step_size * 5
+creative_id_begin = creative_id_step_size * 0
+creative_id_end = creative_id_begin + creative_id_window
+embedding_size = 64
+embedding_window = 7
+model = Word2Vec(words_lists, sg=1, size=embedding_size, window=embedding_window, min_count=1, seed=seed, workers=8, iter=10, sorted_vocab=False,
+                 batch_words=4096)
+model.save('save_model/word2vec/word2vec_{0}_{1}_{2}.model'.format(embedding_size, embedding_window, creative_id_window))
+model.wv.save("save_model/word2vec/vectors_{0}_{1}_{2}.kv".format(embedding_size, embedding_window, creative_id_window))
 
+# =====================================================
 if __name__ == '__main__':
     # 运行结束的提醒
     winsound.Beep(600, 500)
