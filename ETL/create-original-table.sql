@@ -34,6 +34,7 @@ ADD
  sum_creative_id_times : 每个素材出现的次数
  sum_user_id_times：每个素材的访问用户数
  sparsity: 用户访问的素材越单一，这个素材的稀疏度就越高
+ sparsity_value: LOG(所有素材的数目/sparsity)
  tf_value : 素材出现的次数越多越重要，单个素材出现次数/所有素材出现次数
  idf_value: 被访问的素材的用户数越少越重要，所有用户的数目/访问单个素材的用户数目
  tf_idf_valu = tf * idf
@@ -49,9 +50,10 @@ CREATE TABLE `ad_list` (
     `sum_creative_id_times` int DEFAULT NULL COMMENT '每个素材出现的次数',
     `sum_user_id_times` int DEFAULT NULL COMMENT '每个素材的访问用户数',
     `sparsity` int DEFAULT NULL COMMENT '用户访问的素材越单一，这个素材的稀疏度就越高',
-    `tf_value` int DEFAULT NULL COMMENT '素材出现的次数越多越重要，单个素材出现次数/所有素材出现次数',
-    `idf_value` int DEFAULT NULL COMMENT '被访问的素材的用户数越少越重要，LOG(所有用户的数目/访问单个素材的用户数目)',
-    `tf_idf_value` int DEFAULT NULL COMMENT 'tf_idf_valu = tf * idf',
+    `sparsity_value` double DEFAULT NULL COMMENT 'sparsity_value=LOG(所有素材的数目/sparsity)',
+    `tf_value` int DEFAULT NULL COMMENT '素材出现的次数越多越重要',
+    `idf_value` int DEFAULT NULL COMMENT '被访问的素材的用户数越少越重要',
+    `tf_idf_value` double DEFAULT NULL COMMENT 'tf_idf_value = tf(单个素材出现次数/所有素材出现次数) * idf(LOG(所有用户的数目/访问单个素材的用户数目))',
     PRIMARY KEY (`creative_id`)
 ) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1 COMMENT = 'ad.csv';
 
