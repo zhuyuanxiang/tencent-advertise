@@ -40,7 +40,8 @@ ADD
  tf_idf_valu = tf * idf
  */
 CREATE TABLE `ad_list` (
-    `creative_id_inc` int DEFAULT NULL,
+    `creative_id_inc_sparsity` int DEFAULT NULL COMMENT '根据 sparsity_value 生成的 creative_id_inc',
+    `creative_id_inc_tf_idf` int DEFAULT NULL COMMENT '根据 tf_idf_value 生成的 creative_id_inc',
     `creative_id` int NOT NULL,
     `ad_id` int DEFAULT NULL,
     `product_id` int DEFAULT NULL,
@@ -53,7 +54,7 @@ CREATE TABLE `ad_list` (
     `sparsity_value` double DEFAULT NULL COMMENT 'sparsity_value=LOG(所有素材的数目/sparsity)',
     `tf_value` int DEFAULT NULL COMMENT '素材出现的次数越多越重要',
     `idf_value` int DEFAULT NULL COMMENT '被访问的素材的用户数越少越重要',
-    `tf_idf_value` double DEFAULT NULL COMMENT 'tf_idf_value = tf(单个素材出现次数/所有素材出现次数) * idf(LOG(所有用户的数目/访问单个素材的用户数目))',
+    `tf_idf_value` double DEFAULT NULL COMMENT 'tf_idf_value = tf(单个素材出现次数) * idf(LOG(所有用户的数目/访问单个素材的用户数目))',
     PRIMARY KEY (`creative_id`)
 ) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1 COMMENT = 'ad.csv';
 
@@ -64,7 +65,6 @@ CREATE TABLE `ad_list` (
  sum_creative_id_category : 每个用户访问素材的种类，种类越少，素材在这个用户这里的稀疏度就越高，越需要保留这个素材，才能有效分离这个用户
  */
 CREATE TABLE `user_list` (
-    `user_id_inc` int DEFAULT NULL,
     `user_id` int NOT NULL,
     `sum_user_click_times` int DEFAULT NULL COMMENT '每个用户点击素材的次数',
     `sum_creative_id_times` int DEFAULT NULL COMMENT '每个用户访问素材的次数',
