@@ -6,7 +6,6 @@
 /* C1. 导入原始数据 */
 /* 
  点击日志表，click_log.csv
- sparsity: 用户访问的素材越单一，这个素材的稀疏度就越高
  */
 CREATE TABLE `click_log_all` (
     `time_id` int NOT NULL,
@@ -30,14 +29,6 @@ ADD
 
 /* 
  素材表，ad.csv
- sum_creative_click_times：每个素材点击的次数 
- sum_creative_id_times : 每个素材出现的次数
- sum_user_id_times：每个素材的访问用户数
- sparsity: 用户访问的素材越单一，这个素材的稀疏度就越高
- sparsity_value: LOG(所有素材的数目/sparsity)
- tf_value : 素材出现的次数越多越重要，单个素材出现次数/所有素材出现次数
- idf_value: 被访问的素材的用户数越少越重要，所有用户的数目/访问单个素材的用户数目
- tf_idf_valu = tf * idf
  */
 CREATE TABLE `ad_list` (
     `creative_id_inc_sparsity` int DEFAULT NULL COMMENT '根据 sparsity_value 生成的 creative_id_inc',
@@ -60,9 +51,6 @@ CREATE TABLE `ad_list` (
 
 /* 
  用户表 user.csv
- sum_user_click_times : 每个用户点击素材的次数
- sum_creative_id_times : 每个用户访问素材的次数
- sum_creative_id_category : 每个用户访问素材的种类，种类越少，素材在这个用户这里的稀疏度就越高，越需要保留这个素材，才能有效分离这个用户
  */
 CREATE TABLE `user_list` (
     `user_id` int NOT NULL,
