@@ -51,6 +51,55 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
+/*  --- 创建素材词典，重新编码 creative_id 为 creative_id_inc_tf_idf --- */
+DROP TABLE train_creative_id_tf_idf;
+
+CREATE TABLE train_creative_id_tf_idf (
+    creative_id_inc INT NOT NULL AUTO_INCREMENT,
+    creative_id INT NOT NULL,
+    sparsity INT NOT NULL,
+    tf_value INT NOT NULL,
+    idf_value INT NOT NULL,
+    tf_idf_value double NOT NULL,
+    sparsity_value double NOT NULL,
+    PRIMARY KEY (creative_id_inc)
+) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
+
+INSERT INTO
+    train_creative_id_tf_idf (
+        creative_id,
+        sparsity,
+        tf_value,
+        idf_value,
+        tf_idf_value,
+        sparsity_value
+    )
+SELECT
+    creative_id,
+    sparsity,
+    tf_value,
+    idf_value,
+    tf_idf_value,
+    sparsity_value
+FROM
+    ad_list AS A
+ORDER BY
+    tf_idf_value DESC;
+
+ALTER TABLE
+    `tencent`.`train_creative_id_tf_idf`
+ADD
+    INDEX `creative_id_idx`(`creative_id`) USING BTREE;
+
+/* 基于 train_creative_id_tf_idf 更新 creative_id_inc_tf_idf */
+UPDATE
+    ad_list AS A,
+    train_creative_id_tf_idf AS B
+SET
+    A.creative_id_inc_tf_idf = B.creative_id_inc
+WHERE
+    A.creative_id = B.creative_id;
+
 /* TODO: 下面的暂时没有使用，未来使用时再修改 */
 /* --- 创建广告词典，重新编码 ad_id --- */
 DROP TABLE `train_ad_id_sparsity`;
@@ -101,7 +150,7 @@ SELECT
     count(A.creative_id) AS day_creative_id,
     count(DISTINCT A.creative_id) AS day_creative_category
 FROM
-    `click_log_sparsity` AS A
+    `click_log_all` AS A
 GROUP BY
     user_id,
     time_id;
