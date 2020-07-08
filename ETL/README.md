@@ -61,9 +61,9 @@
 ## C.3. 生成辅助数据表 ( `create-sequence-table.sql` )
 
 -   `train_creative_id_sparsity`
-    -   基于 `train_creative_id_sparsity `更新 `ad_list.creative_id_inc_sparsity`
+    -   基于 `train_creative_id_sparsity`更新 `ad_list.creative_id_inc_sparsity`
 -   `train_creative_id_tf_idf`
-    -   基于 `train_creative_id_tf_idf `更新 `ad_list.creative_id_inc_tf_idf`
+    -   基于 `train_creative_id_tf_idf`更新 `ad_list.creative_id_inc_tf_idf`
 
 ## C.4. 创建导出数据表 ( `create-output-table.sql` )
 
@@ -89,4 +89,3 @@
 
 -   `train_data_all_sparsity_v` : 导出基于  `sparsity` 排序和创建的 `creative_id_inc` 的 csv 文件
 -   `train_data_all_tf_idf_v` : 导出基于  `tf_idf` 排序和创建的 `creative_id_inc` 的 csv 文件
-
