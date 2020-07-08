@@ -3,12 +3,13 @@
  avg(), count(), first(), last(), max(), min(), sum(), group by, having 
  因此更为复杂的特征提取在代码中完成 */
 /* --- 创建用户词典，重新编码 user_id 为 user_id_inc --- */
+/* 注：user_id 不需要重新生成，因为不需要排序，不需要提取部分数据处理 */
 DROP TABLE `train_user_id_sparsity`;
 
 CREATE TABLE `train_user_id_sparsity` (
     `user_id_inc` INT NOT NULL AUTO_INCREMENT,
     `user_id` INT NOT NULL,
-    sparsity INT NOT NULL,
+    `sparsity` INT NOT NULL,
     PRIMARY KEY (`user_id_inc`)
 ) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
@@ -45,34 +46,43 @@ CREATE TABLE train_creative_id_sparsity (
     sparsity INT NOT NULL,
     tf_value INT NOT NULL,
     idf_value INT NOT NULL,
+    tf_idf_value double NOT NULL,
+    sparsity_value double NOT NULL,
     PRIMARY KEY (creative_id_inc)
 ) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
-    train_creative_id_sparsity (creative_id, sparsity, tf_value, idf_value)
+    train_creative_id_sparsity (
+        creative_id,
+        sparsity,
+        tf_value,
+        idf_value,
+        tf_idf_value,
+        sparsity_value
+    )
 SELECT
     creative_id,
     sparsity,
     tf_value,
-    idf_value
+    idf_value,
+    tf_idf_value,
+    sparsity_value
 FROM
     ad_list AS A
 ORDER BY
-    sparsity ASC,
-    tf_value DESC,
-    idf_value ASC;
+    sparsity_value DESC;
 
 ALTER TABLE
     `tencent`.`train_creative_id_sparsity`
 ADD
     INDEX `creative_id_idx`(`creative_id`) USING BTREE;
 
-/* 基于 train_creative_id_sparsity 更新 creative_id_inc */
+/* 基于 train_creative_id_sparsity 更新 creative_id_inc_sparsity */
 UPDATE
     ad_list AS A,
     train_creative_id_sparsity AS B
 SET
-    A.creative_id_inc = B.creative_id_inc
+    A.creative_id_inc_sparsity = B.creative_id_inc
 WHERE
     A.creative_id = B.creative_id;
 
@@ -82,19 +92,19 @@ DROP TABLE `train_ad_id_sparsity`;
 CREATE TABLE `train_ad_id_sparsity` (
     `ad_id_inc` INT NOT NULL AUTO_INCREMENT,
     `ad_id` INT NOT NULL,
-    sparsity INT NOT NULL,
+    sparsity_value double NOT NULL,
     PRIMARY KEY (`ad_id_inc`)
 ) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
 
 INSERT INTO
-    `train_ad_id_sparsity` (`ad_id`, sparsity)
+    `train_ad_id_sparsity` (`ad_id`, sparsity_value)
 SELECT
     A.`ad_id`,
-    A.sparsity
+    A.sparsity_value
 FROM
     `ad_list` AS A
 ORDER BY
-    sparsity;
+    sparsity_vaue DESC;
 
 ALTER TABLE
     `tencent`.`train_ad_id_sparsity`
@@ -102,8 +112,6 @@ ADD
     INDEX `ad_id_idx`(`ad_id`) USING BTREE;
 
 /* --- TODO: 基于 train_ad_id_sparsity 更新 ad_id_inc --- */
-
-
 /* --- 创建user_id + time_id 统计信息 --- */
 DROP TABLE `train_user_time_sparsity`;
 
