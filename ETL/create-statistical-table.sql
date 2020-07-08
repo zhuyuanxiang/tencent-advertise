@@ -30,7 +30,7 @@ WHERE
  sparsity: 用户访问的素材越单一，这个素材的稀疏度就越高
  */
 /* 
- 更新 tf 值 : (A.sum_creative_id_times+1 / 30082771) AS tf_value  不使用除法，直接使用 最大值 排名
+ 更新 tf 值 : (A.sum_creative_id_times+1 / 2481135) AS tf_value  不使用除法，直接使用 最大值 排名
  更新 idf 值 idf_value = (LOG(900000 / A.sum_user_id_times+1))  不计算取对数，所有计算留到 tf-idf 中完成，直接使用 最小值 排名
  注： 增加 1 是为了避免出现 0
  */
@@ -49,7 +49,7 @@ SET
 UPDATE
     ad_list
 SET
-    tf_idf_value = LOG(tf_value + 1) * (LOG(900000 / idf_value));
+    tf_idf_value = LOG(900000 / idf_value) * (tf_value + 1) / 2481135;
 
 /* C2.2. 生成 sparsity, sparsity_value */
 /* 
@@ -122,4 +122,4 @@ WHERE
 UPDATE
     ad_list AS A
 SET
-    A.sparsity_value = 1 * tf_idf_value / A.sparsity;
+    A.sparsity_value = LOG(1 + tf_value) * LOG(900000 / idf_value) / A.sparsity;
