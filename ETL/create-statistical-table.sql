@@ -25,7 +25,6 @@ WHERE
 /* 
  统计 click_log_all 中的 user_id 的统计数据
  sum_creative_id_times : 每个用户访问素材的次数
- 访问次数：用户数{512 : 899882; 256 : 898480; 128 : 883325}
  sum_creative_id_category : 每个用户访问素材的种类 = sparsity
  */
 UPDATE
