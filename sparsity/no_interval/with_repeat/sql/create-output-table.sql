@@ -2,11 +2,10 @@
 /*
  创建全部字段的全部数据的临时表，用于导出所需要的数据
  */
-DROP TABLE train_data_all_sparsity;
+DROP TABLE train_data_all_output;
 
-CREATE TABLE `train_data_all_sparsity` (
+CREATE TABLE `train_data_all_output` (
     `time_id` int NOT NULL,
-    `user_id_inc` INT DEFAULT NULL,
     `user_id` int NOT NULL,
     `creative_id_inc_sparsity` int DEFAULT NULL,
     `creative_id_inc_tf_idf` int DEFAULT NULL,
@@ -57,7 +56,6 @@ UPDATE
     train_data_all_output AS A,
     user_list AS B
 SET
-    A.user_id_inc = B.user_id_inc,
     A.age = B.age,
     A.gender = B.gender
 WHERE
@@ -77,6 +75,7 @@ UPDATE
     ad_list AS B
 SET
     A.creative_id_inc_sparsity = B.creative_id_inc_sparsity,
+    A.creative_id_inc_tf_idf = B.creative_id_inc_tf_idf,
     A.ad_id = B.ad_id,
     A.product_id = B.product_id,
     A.product_category = B.product_category,
@@ -85,6 +84,23 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
+UPDATE
+    train_data_all_output AS A,
+    ad_list AS B
+SET
+    A.creative_id_inc_sparsity = B.creative_id_inc_sparsity
+WHERE
+    A.creative_id = B.creative_id;
+
+UPDATE
+    train_data_all_output AS A,
+    ad_list AS B
+SET
+    A.creative_id_inc_tf_idf = B.creative_id_inc_tf_idf
+WHERE
+    A.creative_id = B.creative_id;
+
+/* TODO: 下面的部分暂时没有使用，到需要的时候再更新 */
 /* 基于 train_ad_id_all 更新 ad_id_inc */
 UPDATE
     train_data_all_output AS A,
@@ -100,6 +116,8 @@ ALTER TABLE
 ADD
     INDEX `user_id_inc_idx`(`user_id_inc`) USING BTREE,
 ADD
-    INDEX `creative_id_inc_idx`(`creative_id_inc`) USING BTREE,
+    INDEX `creative_id_inc_sparsity_idx`(`creative_id_inc_sparsity`) USING BTREE,
+ADD
+    INDEX `creative_id_inc_tf_idf_idx`(`creative_id_inc_tf_idf`) USING BTREE,
 ADD
     INDEX `ad_id_inc_idx`(`ad_id_inc`) USING BTREE;
