@@ -2,13 +2,14 @@
 /*
  创建全部字段的全部数据的临时表，用于导出所需要的数据
  */
-DROP TABLE train_data_all_output;
+DROP TABLE train_data_all_sparsity;
 
-CREATE TABLE `train_data_all_output` (
+CREATE TABLE `train_data_all_sparsity` (
     `time_id` int NOT NULL,
     `user_id_inc` INT DEFAULT NULL,
     `user_id` int NOT NULL,
-    `creative_id_inc` int DEFAULT NULL,
+    `creative_id_inc_sparsity` int DEFAULT NULL,
+    `creative_id_inc_tf_idf` int DEFAULT NULL,
     `creative_id` int NOT NULL,
     `click_times` int NOT NULL,
     `ad_id` int DEFAULT NULL,
@@ -75,7 +76,7 @@ UPDATE
     train_data_all_output AS A,
     ad_list AS B
 SET
-    A.creative_id_inc = B.creative_id_inc,
+    A.creative_id_inc_sparsity = B.creative_id_inc_sparsity,
     A.ad_id = B.ad_id,
     A.product_id = B.product_id,
     A.product_category = B.product_category,
