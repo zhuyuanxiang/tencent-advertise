@@ -4,18 +4,36 @@
 
 -   导入 `click_log.csv` 到 `click_log` 表中
     -   数据量：30082771
-    -   单词个数(`creative_id`)：2481135
-    -   文章个数(`user_id`)：900000
+        -   单词个数(`creative_id`)：2481135
+        -   文章个数(`user_id`)：900000
     -   将 `time` 字段改成 `time_id`
+    -   扩展 `sparsity` 字段用于记录数据的稀疏性
 -   导入 `ad.csv` 到 `ad_list` 表中
     -   数据量：2481135
     -   导入数据之前，需要将 `ad.csv` 中的`\N` 转换成 0
+        -   `product_category` 和 `industry` 字段中存在未知数据
+    -   扩展字段
+        -   `creative_id_inc_sparsity`: 基于 `sparsity_value` 重新生成的 `creative_id`
+        -   `creative_id_inc_tf_idf`: 基于 `tf_idf_value` 重新生成的 `creative_id`
+        -   `sum_creative_id_times`: 每个素材出现的次数 = tf_value
+        -   `sum_user_id_times`: 每个素材的访问用户数 = idf_value
+        -   `sparsity`: 用户访问的素材种类越少，这个素材的稀疏度就越高，user_list.sum_creative_id_category
+        -   `tf_value`: 素材出现的次数越多越重要，ad_list.sum_creative_id_times
+        -   `idf_value`: 被访问的素材的用户数越少越重要，ad_list.sum_user_id_times
+        -   `tf_idf_value`: LOG(tf_value + 1) * (LOG( 文章个数 / idf_value))
+        -   `sparsity_value`: 1 * tf_idf_value / sparsity
 -   导入 `user.csv` 到 `user_list` 表中
     -   数据量：900000
+    -   扩展字段
+        -   `sum_user_click_times` : 每个用户点击素材的次数
+        -   `sum_creative_id_times` : 每个用户访问素材的次数
+            -   { 访问次数：用户数} : { 512 : 899882; 256 : 898480; 128 : 883325}
+        -   `sum_creative_id_category` : 每个用户访问素材的种类  = sparsity，种类越少，素材在这个用户这里的稀疏度就越高，越需要保留这个素材，才能有效分离这个用户
 
-注1：表中可能某些字段名称与关键字冲突，或者包含特殊字符，记得修改，方便后序操作
+注：
 
-注2：导入数据的表需要主键，防止导入的数据中存在错误
+1.  表中可能某些字段名称与关键字冲突，或者包含特殊字符，记得修改，方便后序操作
+2.  导入数据的表需要主键，防止导入的数据中存在错误
 
 ## C2. 创建有效数据表
 
