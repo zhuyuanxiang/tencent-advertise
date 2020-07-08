@@ -2,42 +2,7 @@
 /* SQL 支持的聚合(aggregate) 函数有：
  avg(), count(), first(), last(), max(), min(), sum(), group by, having 
  因此更为复杂的特征提取在代码中完成 */
-/* --- 创建用户词典，重新编码 user_id 为 user_id_inc --- */
-/* 注：user_id 不需要重新生成，因为不需要排序，不需要提取部分数据处理 */
-DROP TABLE `train_user_id_sparsity`;
-
-CREATE TABLE `train_user_id_sparsity` (
-    `user_id_inc` INT NOT NULL AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
-    `sparsity` INT NOT NULL,
-    PRIMARY KEY (`user_id_inc`)
-) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1;
-
-INSERT INTO
-    `train_user_id_sparsity` (`user_id`, sparsity)
-SELECT
-    A.`user_id`,
-    A.`sum_creative_id_category`
-FROM
-    `user_list` AS A
-ORDER BY
-    `sum_creative_id_category`;
-
-ALTER TABLE
-    `tencent`.`train_user_id_sparsity`
-ADD
-    INDEX `sparsity_idx`(`sparsity`) USING BTREE;
-
-/* 基于 train_user_id_sparsity 更新 user_list 的 user_id_inc */
-UPDATE
-    user_list AS A,
-    train_user_id_sparsity AS B
-SET
-    A.user_id_inc = B.user_id_inc
-WHERE
-    A.user_id = B.user_id;
-
-/*  --- 创建素材词典，重新编码 creative_id 为 creative_id_inc --- */
+/*  --- 创建素材词典，重新编码 creative_id 为 creative_id_inc_sparsity --- */
 DROP TABLE train_creative_id_sparsity;
 
 CREATE TABLE train_creative_id_sparsity (
@@ -86,6 +51,7 @@ SET
 WHERE
     A.creative_id = B.creative_id;
 
+/* TODO: 下面的暂时没有使用，未来使用时再修改 */
 /* --- 创建广告词典，重新编码 ad_id --- */
 DROP TABLE `train_ad_id_sparsity`;
 
