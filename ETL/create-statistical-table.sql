@@ -81,11 +81,16 @@ SET
     tf_value = sum_creative_id_times,
     idf_value = sum_user_id_times;
 
-/* 计算 tf-idf 的值：未来可能不使用*/
+/* 
+ 计算 tf-idf 的值
+ tf_value + 1 : 防止 LOG() 计算得到 0
+ idf_value + 1 : 防止出现 0 作被除数，这个数据集中不存在这个问题
+ 900000 : 用户数（即文章的数目）
+ */
 UPDATE
     ad_list
 SET
-    tf_idf_value = (tf_value + 1 / 30082771) * (LOG(900000 / idf_value + 1));
+    tf_idf_value = LOG(tf_value + 1) * (LOG(900000 / idf_value));
 
 /* 
  更新 sparsity 值 
@@ -107,3 +112,13 @@ SET
     A.sparsity = B.sparsity
 WHERE
     A.creative_id = B.creative_id;
+
+/*
+ 更新 sparsity_value 值
+ 使用 sparsity, tf_idf_value 更新 sparsity_value, 值越大越重要
+ 1/sparsity : 度量稀疏的重要性，稀疏度为 1 的素材的重要性是 稀疏度为 2 的素材的重要性的 2 倍
+ */
+UPDATE
+    ad_list AS A
+SET
+    A.sparsity_value = 1 * tf_idf_value / A.sparsity;
