@@ -1,6 +1,6 @@
 # 数据整理过程
 
-## C1. 导入原始数据
+## C.1. 导入原始数据 ( `create_original-table.sql` )
 
 -   导入 `click_log.csv` 到 `click_log` 表中
     -   数据量：30082771
@@ -15,13 +15,13 @@
     -   扩展字段
         -   `creative_id_inc_sparsity`: 基于 `sparsity_value` 重新生成的 `creative_id`
         -   `creative_id_inc_tf_idf`: 基于 `tf_idf_value` 重新生成的 `creative_id`
-        -   `sum_creative_id_times`: 每个素材出现的次数 = tf_value
-        -   `sum_user_id_times`: 每个素材的访问用户数 = idf_value
-        -   `sparsity`: 用户访问的素材种类越少，这个素材的稀疏度就越高，user_list.sum_creative_id_category
-        -   `tf_value`: 素材出现的次数越多越重要，ad_list.sum_creative_id_times
-        -   `idf_value`: 被访问的素材的用户数越少越重要，ad_list.sum_user_id_times
-        -   `tf_idf_value`: LOG(tf_value + 1) * (LOG( 文章个数 / idf_value))
-        -   `sparsity_value`: 1 * tf_idf_value / sparsity
+        -   `sum_creative_id_times`: 每个素材出现的次数 = `tf_value`
+        -   `sum_user_id_times`: 每个素材的访问用户数 = `idf_value`
+        -   `sparsity`: 用户访问的素材种类越少，这个素材的稀疏度就越高，`user_list`.`sum_creative_id_category`
+        -   `tf_value`: 素材出现的次数越多越重要，`ad_list`.`sum_creative_id_times`
+        -   `idf_value`: 被访问的素材的用户数越少越重要，`ad_list`.`sum_user_id_times`
+        -   `tf_idf_value`: `LOG( tf_value + 1) * (LOG( 文章个数 / idf_value ))`
+        -   `sparsity_value`: 1 * `tf_idf_value / sparsity`
 -   导入 `user.csv` 到 `user_list` 表中
     -   数据量：900000
     -   扩展字段
@@ -35,43 +35,58 @@
 1.  表中可能某些字段名称与关键字冲突，或者包含特殊字符，记得修改，方便后序操作
 2.  导入数据的表需要主键，防止导入的数据中存在错误
 
-## C2. 创建有效数据表
+## C.2. 创建统计数据表 ( `create-statistical-table.sql` )
 
-有效数据表：即`product_id` 和 `industry` 中没有 0 的数据
+### C.2.1. 生成 `tf_value`, `idf_value`, `tf_idf_value`
 
--   创建 `ad_list` 的有效数据表`ad_valid`
-    -   数据量：1474930
-    -   从 `ad_list` 中导入数据
--   创建 1600 万 的有效数据表 `all_log_valid`
-    -   数据量：16411005
-    -   单词个数(`creative_id`)：1474930
-    -   文章个数(`user_id`)：886733
-    -   从`click_log`、`ad_valid`、`user_list` 中导入数据
--   创建基于内存表的`product_id`的有效数据表，用于保存临时统计的 `product_id`数据
--   创建 700 万 的有效数据表 `all_log_valid_7m`
-    -   数据量：7152231
-    -   单词个数(`creative_id`)：835716
-    -   文章个数(`user_id`)：807834
-    -   从`all_log_valid`中导入数据
--   创建 300 万 的有效数据表 `all_log_valid_3m`
-    -   数据量：3068413
-    -   单词个数(`creative_id`)：449699
-    -   文章个数(`user_id`)：610031
-    -   从`all_log_valid_7m`中导入数据
--   创建 100 万 的有效数据表 `all_log_valid_1m`
-    -   数据量：1007772
-    -   单词个数(`creative_id`)：203603
-        -   每个素材出现的次数超过「9个：17914、8个：20089、7个：22820、6个：26357、5个：31159、4个：37997、3个：48318、2个：65889、1个：101567」
-    -   文章个数(`user_id`)：373489
-        -   91天内读取素材数目超过「9个：13800、8个：17230、7个：21688、6个：28012、5个：37076、4个：51101、3个：73372、2个：112722、1个：190171」
-    -   从`all_log_valid_3m`中导入数据
+-   更新 `ad_list` 中的统计信息
+    -   `sum_creative_id_times` →  `tf_value`
+    -   `sum_user_id_times` → `idf_value`
+    -   `tf_idf_value = LOG(900000 / idf_value) * (tf_value + 1) / 2481135`
+        -   `idf_value + 1` : 防止出现 0 作被除数，这个数据集中不存在这个问题
 
-注1：创建的数据表尽量不使用主键，因为存储的时候需要条件检查，消耗时间；
+### C.2.2. 生成 `sparsity`, `sparsity_value`
 
-注2：为也加快检索，可以在插入数据以后，建立索引，方便数据检索
+-   更新 `user_list` 中的统计信息
+    -   `sum_creative_id_times`
+    -   `sum_creative_id_category`
+-   根据 `user_list` 更新 `click_log_all` 中 `user_id` 对应的 `creative_id` 的 `sparsity`
+    -   `click_log_all.sparsity = user_list.sum_creative_id_category`
+-   根据 `click_log_all` 中的 `creative_id` 最小值更新 `ad_list` 中  `creative_id` 对应的  `sparsity`
+    -   `ad_list.sparsity = MIN( click_log_all.sparsity )`
+-   更新 `ad_list` 中的统计信息
+    -   `sparsity_value = LOG(1 + tf_value) * LOG(900000 / idf_value) / A.sparsity`
+        -   `tf_value + 1` : 防止 LOG() 计算得到 0
 
-## C03. 创建统计数据表
+## C.3. 生成辅助数据表 ( `create-sequence-table.sql` )
 
--   创建`all_log_valid_1m`相关的统计数据表
-    -   创建 `count_number_1m_creative_id`视图：表示`all_log_valid_1m`中不同`creative_id`的数目
-    -   创建`value_1m_creative_id`表：表示`all_log_valid_1m`中每个`creative_id`出现的次数，以及每个`creative_id`相比总的`creative_id`所占的比例
+-   `train_creative_id_sparsity`
+    -   基于 `train_creative_id_sparsity `更新 `ad_list.creative_id_inc_sparsity`
+-   `train_creative_id_tf_idf`
+    -   基于 `train_creative_id_tf_idf `更新 `ad_list.creative_id_inc_tf_idf`
+
+## C.4. 创建导出数据表 ( `create-output-table.sql` )
+
+-   `train_data_all_output`
+    -   从 `click_log_all` 中导入原始数据
+        -   `time_id`
+        -   `user_id`
+        -   `creative_id`
+        -   `click_times`
+    -   从  `user_list` 中更新字段
+        -   `age`
+        -   `gender`
+    -   从 `ad_list` 中更新字段
+        -   `creative_id_inc_sparsity`
+        -   `creative_id_inc_tf_idf`
+        -   `ad_id`
+        -   `product_id`
+        -   `product_category`
+        -   `advertiser_id`
+        -   `industry`
+
+## C.5. 创建用于导出数据的视图 ( `create-view.sql` )
+
+-   `train_data_all_sparsity_v` : 导出基于  `sparsity` 排序和创建的 `creative_id_inc` 的 csv 文件
+-   `train_data_all_tf_idf_v` : 导出基于  `tf_idf` 排序和创建的 `creative_id_inc` 的 csv 文件
+
