@@ -13,7 +13,6 @@
 3.  VSCode Plugins: GitLens + Local History + MagicPython + Markdown All in One + markdownlint + Pangu-Markdown-VSCode + Python + Rainbow CSV + Sort lines + SQL Formatter + Visual Studio IntelliCode
 4.  AnaConda: Tensorflow + Notebook + yapf + pylint + gensim + pandas + matplotlib + scipy + scikit-learn
 
-
 ### Data
 
 整理数据
@@ -84,7 +83,12 @@
 3.  卷积神经网络 ( cnn )
 4.  标准差 ( std ) , 偏度 ( skew ) , 峭度 ( kurt ) , n 个唯一值 ( nunique, 即每个用户访问的素材的种类 ) , n 个访问素材 ( count, 每个用户访问素材的次数 ) , n 个素材点击次数 ( times, 每个用户访问素材的点击次数 )
 
-## directory
+## Directory
+
+-   ETL: 生成数据的SQL语句
+    -   README.MD : 数据导出流程说明，及 SQL 文件说明
+
+### Subdirectory
 
 -   sparsity：使用「稀疏性」排序 `creative_id`
     -   no_interval: 用户访问素材数据连续，没有访问素材的 `time_id`也不在数据中插入0
@@ -93,7 +97,6 @@
             -   data: 生成的Word2Vec训练数据和模型训练数据
             -   model: 保存的Word2Vec模型和训练模型
             -   report: 模型训练后，评估测试集的结果
-            -   sql: 生成数据的SQL语句
         -   no_repeat: 用户访问素材数据没有重复访问
         -   with_click_times: 用户访问素材数据允许依据 `click_times` 重复
 -   tf-idf：使用「tf-idf」排序 `creative_id`
