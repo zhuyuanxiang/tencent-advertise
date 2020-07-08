@@ -63,7 +63,8 @@ WHERE
 
 /* 
  基于 ad_list 更新 
- creative_id_inc,
+ creative_id_inc_sparsity,
+ creative_id_inc_tf_idf
  ad_id,
  product_id,
  product_category,
