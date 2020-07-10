@@ -16,10 +16,9 @@
 """
 import os
 
+import numpy as np
 import pandas as pd
 from show_data import show_example_data, show_word2vec_data, show_original_x_data
-
-seed = 42
 
 
 # ----------------------------------------------------------------------
@@ -71,3 +70,39 @@ def load_word2vec_file(file_name, field_list):
     print("数据加载完成。")
     show_original_x_data(x_csv)
     return x_csv
+
+
+def load_word2vec_weights(path, embedding_size, embedding_window, creative_id_window):
+    from gensim.models import KeyedVectors
+
+    file_name = path + 'creative_id_{0}_{1}_{2}.kv'.format(embedding_size, embedding_window, creative_id_window)
+    print('-' * 5 + ' ' * 3 + "加载 word2vec 模型 {0}".format(file_name) + ' ' * 3 + '-' * 5)
+    word2vec = KeyedVectors.load(file_name)
+    embedding_weights = np.zeros((creative_id_window, embedding_size))
+    for word, index in word2vec.vocab.items():
+        try:
+            embedding_weights[ord(word), :] = word2vec[word]
+        except KeyError:
+            pass
+    pass
+    embedding_weights[0, :] = np.zeros(embedding_size)
+    print("Word2Vec 模型加载完成。")
+    return embedding_weights
+
+
+def load_data_set(file_path, label_name):
+    data_type = "训练数据集"
+    print("加载{0}...".format(data_type))
+    x_train = np.load(file_path + 'x_train_' + label_name, allow_pickle=True)
+    y_train = np.load(file_path + 'y_train_' + label_name, allow_pickle=True)
+    show_example_data(x_train, y_train, data_type)
+    print(data_type + "加载成功。")
+
+    data_type = "测试数据集"
+    print("加载{0}...".format(data_type))
+    x_test = np.load(file_path + 'x_test_' + label_name, allow_pickle=True)
+    y_test = np.load(file_path + 'y_test_' + label_name, allow_pickle=True)
+    show_example_data(x_test, y_test, data_type)
+    print(data_type + "加载成功。")
+
+    return x_train, y_train, x_test, y_test
