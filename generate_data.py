@@ -20,6 +20,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from config import creative_id_max, time_id_max, user_id_num
+from config import seed
 from show_data import show_example_data
 
 
@@ -228,29 +229,22 @@ def generate_no_time_data(X_csv, y_csv, train_field_num, label_field_num, repeat
 
 
 # ----------------------------------------------------------------------
-def split_data(x_data, y_data, label_name):
-    print('-' * 5 + "   拆分{0}数据集   ".format(label_name) + '-' * 5)
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state=seed, stratify=y_data)
-    return x_train, y_train, x_test, y_test
-
-
-# ----------------------------------------------------------------------
 # 生成没有时间间隔的数据
-def generate_data_no_interval(X_data, y_data, creative_id_begin, creative_id_end):
+def generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end):
     print("数据生成中：", end='')
     # 初始化 X_doc 为空的列表
     X_doc = [[2] for _ in range(user_id_num)]
     y_doc = [0 for _ in range(user_id_num)]
-    data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
+    data_step = x_csv.shape[0] // 100  # 标识数据清洗进度的步长
     prev_user_id = -1  # -1 不在数据序列中
     creative_id_list = None
-    for i, row_data in enumerate(X_data):
+    for i, row_data in enumerate(x_csv):
         if (i % data_step) == 0:  # 数据清洗的进度
             print("第 {0} 条数据-->".format(i), end=';')
             pass
         user_id = row_data[0]
         creative_id = row_data[1]
-        y_doc[user_id] = y_data[i]
+        y_doc[user_id] = y_csv[i]
         # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
         # 没有修改代码为更为简洁和通用的形式，是现在操作速度会更快
         if user_id > prev_user_id:
@@ -268,4 +262,11 @@ def generate_data_no_interval(X_data, y_data, creative_id_begin, creative_id_end
         creative_id_list.append(creative_id)
         pass
     print("\n数据清洗完成！")
-    return X_doc, np.array(y_doc)
+    return np.array(X_doc), np.array(y_doc)
+
+
+# ----------------------------------------------------------------------
+def split_data(x_data, y_data, label_name):
+    print('-' * 5 + "   拆分{0}数据集   ".format(label_name) + '-' * 5)
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state=seed, stratify=y_data)
+    return x_train, y_train, x_test, y_test
