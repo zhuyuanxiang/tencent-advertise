@@ -36,6 +36,26 @@ def show_example_data(X, y, data_type='原始数据'):
 
 
 # ----------------------------------------------------------------------
+def show_original_x_data(X, data_type='原始数据'):
+    print('-' * 5 + "   展示数据集   " + '-' * 5)
+    print(data_type + ":(X[0]) =", X[0])
+    print(data_type + ":(X[30]) =", X[30])
+    print(data_type + ":(X[600]) =", X[600])
+    if len(X) > 8999:
+        print(data_type + "：(X[8999]) =", X[8999])
+    if len(X) > 119999:
+        print(data_type + "：(X[119999]) =", X[119999])
+    if len(X) > 224999:
+        print(data_type + "：(X[224999]) =", X[224999])
+    if len(X) > 674999:
+        print(data_type + "：(X[674999]) =", X[674999])
+    if len(X) > 899999:
+        print(data_type + "：(X[899999]) =", X[899999])
+        pass
+    pass
+
+
+# ----------------------------------------------------------------------
 def show_word2vec_data(X, data_type='原始数据'):
     print('-' * 5 + "   展示数据集   " + '-' * 5)
     print(data_type + ":(X[0]) =", X[0])
