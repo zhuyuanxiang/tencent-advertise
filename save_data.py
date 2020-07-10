@@ -19,8 +19,9 @@ import pickle
 
 
 # --------------------------------------------------
-def save_word2vec_data_with_interval(x_creative_id, creative_id_window):
-    file_name = 'save_data/word2vec/with_interval/creative_id_{0}'.format(creative_id_window)
+def save_word2vec_data(x_creative_id, creative_id_window, file_path):
+    file_name = file_path + 'creative_id_{0}'.format(creative_id_window)
+    # file_name = 'save_data/word2vec/with_interval/creative_id_{0}'.format(creative_id_window)
     print('-' * 5 + "   保存数据集:{0}   ".format(file_name) + '-' * 5)
     fname = open(file_name, 'wb')
     pickle.dump(x_creative_id, fname, -1)
@@ -29,8 +30,9 @@ def save_word2vec_data_with_interval(x_creative_id, creative_id_window):
 
 
 # --------------------------------------------------
-def save_word2vec_data_no_interval(x_creative_id, creative_id_window):
-    file_name = 'save_data/word2vec/no_interval/creative_id_{0}'.format(creative_id_window)
+def save_word2vec_data_no_interval(x_creative_id, creative_id_window, file_path):
+    file_name = file_path + 'creative_id_{0}'.format(creative_id_window)
+    # file_name = 'save_data/word2vec/no_interval/creative_id_{0}'.format(creative_id_window)
     print('-' * 5 + "   保存数据集:{0}   ".format(file_name) + '-' * 5)
     fname = open(file_name, 'wb')
     pickle.dump(x_creative_id, fname, -1)
