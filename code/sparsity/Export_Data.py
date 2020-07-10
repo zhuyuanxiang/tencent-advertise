@@ -40,14 +40,14 @@ def export_word2vec_data():
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
 
-    save_data_path = '../../save_data/sparsity/no_interval/with_repeat/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
+    save_data_path = '../../save_data/sparsity/no_interval/word2vec/'
+    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
-    save_data_path = '../../save_data/sparsity/no_interval/no_repeat/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
+    save_data_path = '../../save_data/sparsity/with_interval/word2vec/'
+    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
@@ -56,14 +56,14 @@ def export_word2vec_data():
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
 
-    save_data_path = '../../save_data/sparsity/no_interval/with_repeat/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
+    save_data_path = '../../save_data/sparsity/no_interval/word2vec/'
+    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
-    save_data_path = '../../save_data/sparsity/no_interval/no_repeat/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
+    save_data_path = '../../save_data/sparsity/with_interval/word2vec/'
+    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
