@@ -15,6 +15,8 @@
 @理解：
 """
 # common imports
+import pickle
+
 import numpy as np
 import winsound
 
@@ -38,7 +40,7 @@ from keras.regularizers import l2
 
 # ----------------------------------------------------------------------
 from generate_data import generate_data_no_interval_with_repeat
-from load_data import load_original_data, load_word2vec_weights
+from load_data import load_original_data, load_word2vec_weights, load_data_set
 from config import creative_id_max, user_id_num, creative_id_step_size, seed
 from show_data import show_example_data, show_reslut
 
@@ -52,9 +54,9 @@ def construct_model(label_name):
     model.add(Embedding(creative_id_window, embedding_size, input_length=max_len))
     if model_type == 'MLP':
         model.add(Flatten())
-        model.add(Dropout(0.5))
+        model.add(Dropout(0.2))
         model.add(Dense(embedding_size * max_len // 4, activation='relu', kernel_regularizer=l2(0.001)))
-        model.add(Dropout(0.5))
+        model.add(Dropout(0.2))
     elif model_type == 'Conv1D':
         model.add(Conv1D(32, 7, activation='relu', kernel_regularizer=l2(0.001)))
         model.add(Conv1D(32, 7, activation='relu', kernel_regularizer=l2(0.001)))
@@ -121,56 +123,42 @@ def main():
     no_interval_path = '../../save_model/sparsity/no_interval/word2vec/'
     data_file_path = '../../save_data/sparsity/no_interval/with_repeat/'
     model_file_path = '../../save_model/sparsity/no_interval/with_repeat/'
+    file_prefix = 'creative_id_{0}_{1}_{2}_{3}_{4}_'.format(label_name, model_type, max_len, embedding_size, creative_id_window)
     # ----------------------------------------------------------------------
     # 构建模型
     print('-' * 5 + ' ' * 3 + "构建网络模型" + ' ' * 3 + '-' * 5)
     output_parameters()
     model = construct_model(label_name)
     model.summary()
+    print("保存原始：", model.save(model_file_path + file_prefix + 'm0.h5'))
 
-    # ----------------------------------------------------------------------
-    # 加载数据
-    field_list = [
-        "user_id",  # 0
-        "creative_id_inc_sparsity",  # 1
-        "time_id",  # 2
-        "click_times",  # 3, click_times 属于值，不属于编号，不能再减1
-    ]
-    label_list = ['age', 'gender']
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
-    show_example_data(x_csv, y_csv)
-    # ----------------------------------------------------------------------
-    # 清洗数据集，生成所需要的数据
-    print('-' * 5 + ' ' * 3 + "清洗数据集" + ' ' * 3 + '-' * 5)
-    X_doc, y_doc = generate_data_no_interval_with_repeat(x_csv, y_csv[:, label_list.index(label_name)], creative_id_begin, creative_id_end)
-    show_example_data(X_doc, y_doc)
-    # ----------------------------------------------------------------------
-    # 填充数据集
-    x_doc_seq = pad_sequences(X_doc, maxlen=max_len, padding='post')
-    # print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
-    # output_example_data(x_doc_seq, y_seq)
-    # ----------------------------------------------------------------------
-    print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    X_train, X_test, y_train, y_test = train_test_split(x_doc_seq, y_doc, random_state=seed, stratify=y_doc)
-    print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
-
-    # ----------------------------------------------------------------------
-    # 训练网络模型
-    # 使用验证集
+    print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
+    x_train, y_train, x_test, y_test = load_data_set(data_file_path, label_name)
+    print('-' * 5 + ' ' * 3 + "填充训练数据集" + ' ' * 3 + '-' * 5)
+    x_train_seq = pad_sequences(x_train, maxlen=max_len, padding='post')
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
-    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, use_multiprocessing=True, verbose=2)
-    results = model.evaluate(X_test, y_test, verbose=0)
-    predictions = model.predict(X_test).squeeze()
+    history = model.fit(x_train_seq, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, verbose=2)
+    print("保存第一次训练模型", model.save_weights(model_file_path + file_prefix + 'm1.bin'))
+    with open(model_file_path + file_prefix + 'm1.pkl', 'wb') as fname:
+        pickle.dump(history, fname)
+    print("模型保存成功。")
+
+    print('-' * 5 + ' ' * 3 + "填充测试数据集" + ' ' * 3 + '-' * 5)
+    x_test = pad_sequences(x_test, maxlen=max_len, padding='post')
+    results = model.evaluate(x_test, y_test, verbose=0)
+    predictions = model.predict(x_test).squeeze()
     show_reslut(results, predictions, y_test, label_name)
 
-    # ----------------------------------------------------------------------
-    # 不使用验证集，训练次数减半
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
-    history = model.fit(X_train, y_train, epochs=epochs // 2, batch_size=batch_size, use_multiprocessing=True, verbose=2)
-    results = model.evaluate(X_test, y_test, verbose=0)
-    predictions = model.predict(X_test).squeeze()
+    history = model.fit(x_train_seq, y_train, epochs=epochs // 2, batch_size=batch_size, verbose=2)
+    print("保存第二次训练模型", model.save_weights(model_file_path + file_prefix + 'm2.bin'))
+    with open(model_file_path + file_prefix + 'm2.pkl', 'wb') as fname:
+        pickle.dump(history, fname)
+    print("模型保存成功。")
+
+    results = model.evaluate(x_test, y_test, verbose=0)
+    predictions = model.predict(x_test).squeeze()
     show_reslut(results, predictions, y_test, label_name)
-    pass
 
 
 # ----------------------------------------------------------------------
@@ -189,7 +177,7 @@ if __name__ == '__main__':
     file_name = '../../save_data/sparsity/train_data_all_sparsity_v.csv'
     model_type = 'MLP'
     RMSProp_lr = 5e-04
-    epochs = 20
+    epochs = 10
     batch_size = 256
     # ----------------------------------------------------------------------
     # 定义全局定制变量
