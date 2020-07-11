@@ -6,7 +6,7 @@
 ---------------------------
 @Software   :   PyCharm
 @Project    :   tencent-advertise
-@File       :   Export_Data.py
+@File       :   Export_tf_idf_Data.py
 @Version    :   v0.1
 @Time       :   2020-07-09 18:06
 @License    :   (C)Copyright 2018-2020, zYx.Tom
@@ -17,6 +17,7 @@
 # common imports
 import winsound
 from config import creative_id_step_size, seed
+
 
 # ----------------------------------------------------------------------
 def export_word2vec_data():
@@ -33,7 +34,7 @@ def export_word2vec_data():
     ]
     x_csv = load_word2vec_file('../../save_data/sparsity/train_data_all_sparsity_v.csv', field_list)
 
-    creative_id_window = creative_id_step_size * 5
+    creative_id_window = creative_id_step_size * 1
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
 
@@ -49,7 +50,7 @@ def export_word2vec_data():
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
-    creative_id_window = creative_id_step_size * 8
+    creative_id_window = creative_id_step_size * 3
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
 
@@ -86,18 +87,26 @@ def export_data_set():
     load_file_path = '../../save_data/sparsity/'
     save_file_path = '../../save_data/sparsity/no_interval/with_repeat/'
 
-    creative_id_window = creative_id_step_size * 5
+    x_csv, y_csv = load_original_data(load_file_path + 'train_data_all_sparsity_v.csv', field_list, label_list)
+
+    creative_id_window = creative_id_step_size * 1
     creative_id_begin = 0
     creative_id_end = creative_id_begin + creative_id_window
-
-    x_csv, y_csv = load_original_data(load_file_path + 'train_data_all_sparsity_v.csv', field_list, label_list)
     x_data, y_data = generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end)
-
     label_data = y_data[:, label_list.index(label_name)]
     x_train, x_test, y_train, y_test = train_test_split(x_data, label_data, random_state=seed, stratify=label_data)
     del x_data, y_data
+    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name, creative_id_window)
+    del x_train, y_train, x_test, y_test
 
-    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name)
+    creative_id_window = creative_id_step_size * 3
+    creative_id_begin = 0
+    creative_id_end = creative_id_begin + creative_id_window
+    x_data, y_data = generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end)
+    label_data = y_data[:, label_list.index(label_name)]
+    x_train, x_test, y_train, y_test = train_test_split(x_data, label_data, random_state=seed, stratify=label_data)
+    del x_data, y_data
+    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name, creative_id_window)
     del x_train, y_train, x_test, y_test
 
     print("\n数据清洗完成！")
