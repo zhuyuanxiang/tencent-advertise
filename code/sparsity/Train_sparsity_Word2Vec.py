@@ -6,7 +6,7 @@
 ---------------------------
 @Software   :   PyCharm
 @Project    :   Tencent-Advertise
-@File       :   Train_Word2Vec.py
+@File       :   Train_sparsity_Word2Vec.py
 @Version    :   v0.1
 @Time       :   2020-06-26 18:54
 @License    :   (C)Copyright 2018-2020, zYx.Tom
@@ -63,10 +63,11 @@ def save_word2vec_model(model, file_name):
 
 
 def main(path, creative_id_window):
-    word2vec_words_lists = load_words_list('../../save_data' + path, creative_id_window)
+    data_path = '../../save_data' + path
+    word2vec_words_lists = load_words_list(data_path, creative_id_window)
     word2vec_model = train_word2vec_model_with_gensim(word2vec_words_lists)
-    save_word2vec_model(
-        word2vec_model, '../../save_model' + path + file_prefix + "_{0}_{1}_{2}".format(embedding_size, embedding_window, creative_id_window))
+    file_name = '../../save_model' + path + file_prefix + "_{0}_{1}_{2}".format(embedding_size, embedding_window, creative_id_window)
+    save_word2vec_model(word2vec_model, file_name)
 
 
 # =====================================================
@@ -76,12 +77,12 @@ if __name__ == '__main__':
     embedding_window = 5
     file_prefix = 'creative_id'
     no_interval_path = '/sparsity/no_interval/word2vec/'
-    main(no_interval_path, creative_id_step_size * 5)
-    main(no_interval_path, creative_id_step_size * 8)
+    main(no_interval_path, creative_id_step_size * 1)
+    main(no_interval_path, creative_id_step_size * 3)
 
     with_interval_path = '/sparsity/with_interval/word2vec/'
-    main(with_interval_path, creative_id_step_size * 5)
-    main(with_interval_path, creative_id_step_size * 8)
+    main(with_interval_path, creative_id_step_size * 1)
+    main(with_interval_path, creative_id_step_size * 3)
 
     # 运行结束的提醒
     winsound.Beep(600, 500)
