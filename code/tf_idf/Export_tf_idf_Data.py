@@ -98,7 +98,7 @@ def export_data_set():
     x_train, x_test, y_train, y_test = train_test_split(x_data, label_data, random_state=seed, stratify=label_data)
     del x_data, y_data
 
-    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name)
+    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name, creative_id_window)
     del x_train, y_train, x_test, y_test
 
     print("\n数据清洗完成！")
