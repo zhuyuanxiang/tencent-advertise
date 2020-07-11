@@ -85,6 +85,7 @@ def load_word2vec_weights(path, embedding_size, embedding_window, creative_id_wi
         except KeyError:
             pass
     pass
+    # 0 是占位符，因此不记入模型的数据
     embedding_weights[0, :] = np.zeros(embedding_size)
     print("Word2Vec 模型加载完成。")
     return embedding_weights
@@ -93,15 +94,15 @@ def load_word2vec_weights(path, embedding_size, embedding_window, creative_id_wi
 def load_data_set(file_path, label_name):
     data_type = "训练数据集"
     print("加载{0}...".format(data_type))
-    x_train = np.load(file_path + 'x_train_' + label_name, allow_pickle=True)
-    y_train = np.load(file_path + 'y_train_' + label_name, allow_pickle=True)
+    x_train = np.load(file_path + 'x_train_' + label_name + '.npy', allow_pickle=True)
+    y_train = np.load(file_path + 'y_train_' + label_name + '.npy', allow_pickle=True)
     show_example_data(x_train, y_train, data_type)
     print(data_type + "加载成功。")
 
     data_type = "测试数据集"
     print("加载{0}...".format(data_type))
-    x_test = np.load(file_path + 'x_test_' + label_name, allow_pickle=True)
-    y_test = np.load(file_path + 'y_test_' + label_name, allow_pickle=True)
+    x_test = np.load(file_path + 'x_test_' + label_name + '.npy', allow_pickle=True)
+    y_test = np.load(file_path + 'y_test_' + label_name + '.npy', allow_pickle=True)
     show_example_data(x_test, y_test, data_type)
     print(data_type + "加载成功。")
 
