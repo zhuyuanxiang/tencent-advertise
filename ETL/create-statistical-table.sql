@@ -123,3 +123,55 @@ UPDATE
     ad_list AS A
 SET
     A.sparsity_value = LOG(1 + tf_value) * LOG(900000 / idf_value) / A.sparsity;
+
+/* 更新 sum_creative_id_classes 的值 */
+UPDATE
+    ad_list AS A,
+    (
+        SELECT
+            product_id,
+            product_category,
+            advertiser_id,
+            industry,
+            count(1) AS sum_creative_id_classes
+        FROM
+            `ad_list`
+        GROUP BY
+            product_id,
+            product_category,
+            advertiser_id,
+            industry
+    ) AS B
+SET
+    A.sum_creative_id_classes = B.sum_creative_id_classes
+WHERE
+    A.product_id = B.product_id
+    AND A.product_category = B.product_category
+    AND A.advertiser_id = B.advertiser_id
+    AND A.industry = B.industry;
+
+/* 更新 creative_id_inc_sparsity_hash 的值 */
+UPDATE
+    ad_list AS A,
+    (
+        SELECT
+            product_id,
+            product_category,
+            advertiser_id,
+            industry,
+            MIN(creative_id_inc_sparsity) AS creative_id_inc_sparsity_hash
+        FROM
+            `ad_list`
+        GROUP BY
+            product_id,
+            product_category,
+            advertiser_id,
+            industry
+    ) AS B
+SET
+    A.creative_id_inc_sparsity_hash = B.creative_id_inc_sparsity_hash
+WHERE
+    A.product_id = B.product_id
+    AND A.product_category = B.product_category
+    AND A.advertiser_id = B.advertiser_id
+    AND A.industry = B.industry;

@@ -1,6 +1,9 @@
 /* C4. 创建导出数据表 */
 /*
  创建全部字段的全部数据的临时表，用于导出所需要的数据
+ creative_id_inc_sparsity: {102400:20901360, 128000:21678363, 256000:23966881, 384000:25209187, 512000:26050292, 640000:26721047, 768000:27199307, 1024000:27945704}
+ creative_id_inc_tf_idf: {102400:21008901, 128000:21834744, 256000:24472181, 384000:25707264, 512000:26535350, 640000:27133052, 768000:27606449, 1024000:28293665}
+ sparsity 没有 tf_idf 的数据覆盖度高是正常的，因为 sparsity 更多关注的是数据量少的user_id
  */
 DROP TABLE train_data_all_output;
 
@@ -9,6 +12,7 @@ CREATE TABLE `train_data_all_output` (
     `user_id` int NOT NULL,
     `creative_id_inc_sparsity` int DEFAULT NULL,
     `creative_id_inc_tf_idf` int DEFAULT NULL,
+    `creative_id_inc_sparsity_hash` int DEFAULT NULL,
     `creative_id` int NOT NULL,
     `click_times` int NOT NULL,
     `ad_id` int DEFAULT NULL,
@@ -122,3 +126,25 @@ ADD
     INDEX `creative_id_inc_tf_idf_idx`(`creative_id_inc_tf_idf`) USING BTREE,
 ADD
     INDEX `ad_id_inc_idx`(`ad_id_inc`) USING BTREE;
+
+/* 更新 creative_id_inc_sparsity_hash 的值 */
+UPDATE
+    train_data_all_output AS A,
+SET
+    A.creative_id_inc_sparsity_hash = A.creative_id_inc_sparsity;
+
+UPDATE
+    train_data_all_output AS A,
+    ad_list AS B
+SET
+    A.creative_id_inc_sparsity_hash = B.creative_id_inc_sparsity_hash
+WHERE
+    A.creative_id_inc_sparsity > 383998
+    AND A.creative_id_inc_sparsity = B.creative_id_inc_sparsity;
+
+UPDATE
+    train_data_all_output AS A,
+SET
+    A.creative_id_inc_sparsity_hash = 1
+WHERE
+    A.creative_id_inc_sparsity_hash > 383998;

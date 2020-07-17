@@ -46,6 +46,7 @@ CREATE TABLE `ad_list` (
     `tf_value` int DEFAULT NULL COMMENT '素材出现的次数越多越重要',
     `idf_value` int DEFAULT NULL COMMENT '被访问的素材的用户数越少越重要',
     `tf_idf_value` double DEFAULT NULL COMMENT 'tf_idf_value = tf(单个素材出现次数) * idf(LOG(所有用户的数目/访问单个素材的用户数目))',
+    `sum_creative_id_classes` int DEFAULT NULL COMMENT '每个素材所在类别中的素材数目,类别基于product_id,product_category,advertiser_id,industry分类',
     PRIMARY KEY (`creative_id`)
 ) ENGINE = MYISAM DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci DELAY_KEY_WRITE = 1 COMMENT = 'ad.csv';
 
