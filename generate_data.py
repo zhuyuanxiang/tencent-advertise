@@ -19,8 +19,10 @@ import math
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+import config
 from config import creative_id_max, time_id_max, user_id_num
 from config import seed
+from config import creative_id_window, creative_id_begin, creative_id_end
 from show_data import show_example_data
 
 
@@ -230,39 +232,57 @@ def generate_no_time_data(X_csv, y_csv, train_field_num, label_field_num, repeat
 
 # ----------------------------------------------------------------------
 # 生成没有时间间隔的数据
-def generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end):
+def generate_data_no_interval_with_repeat(x_csv, y_csv):
     print("数据生成中：", end='')
-    # 初始化 X_doc 为空的列表
-    X_doc = [[2] for _ in range(user_id_num)]
-    y_doc = [0 for _ in range(user_id_num)]
+    prev_user_id = x_csv[0, 0]  # 第一个用户的 user_id
+    creative_id_list = [2]  # 第一个用户序列的起始标记
+    word2vec_list = [chr(2)]  # 第一个用户序列的起始标记
+    X_doc = [creative_id_list]
+    X_w2v = [word2vec_list]
+    y_doc = [y_csv[0]]  # 第一个用户的 label
     data_step = x_csv.shape[0] // 100  # 标识数据清洗进度的步长
-    prev_user_id = -1  # -1 不在数据序列中
-    creative_id_list = None
     for i, row_data in enumerate(x_csv):
         if (i % data_step) == 0:  # 数据清洗的进度
             print("第 {0} 条数据-->".format(i), end=';')
             pass
         user_id = row_data[0]
         creative_id = row_data[1]
-        y_doc[user_id] = y_csv[i]
-        # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
-        # 没有修改代码为更为简洁和通用的形式，是现在操作速度会更快
+
+        # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，新建一个新的用户序列并且添加到整个序列中
         if user_id > prev_user_id:
             prev_user_id = user_id
-            creative_id_list = X_doc[user_id]  # 这个是浅拷贝，即地址拷贝，修改 creative_id_list 即能修改 x_creative_id[user_id]
+            creative_id_list = [2]
+            X_doc.append(creative_id_list)
+            word2vec_list = [chr(2)]
+            X_w2v.append(word2vec_list)
+            y_doc.append(y_csv[i])
             pass
 
-        if creative_id_end > creative_id > creative_id_begin:
-            creative_id = creative_id - creative_id_begin
-        elif creative_id < creative_id_end - creative_id_max:
-            creative_id = creative_id_max - creative_id_begin + creative_id
-        else:
-            creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
-
         creative_id_list.append(creative_id)
+        word2vec_list.append(chr(creative_id))
         pass
     print("\n数据清洗完成！")
-    return np.array(X_doc), np.array(y_doc)
+    return np.array(X_doc), np.array(y_doc), np.array(X_w2v)
+
+
+def generate_balance_data(x_data, y_data):
+    if config.label_name == 'age':
+        balance_list = config.balance_age_list
+    elif config.label_name == 'gender':
+        balance_list = config.balance_gender_list
+    else:
+        raise Exception("错误的标签类型！")
+
+    x_extend, y_extend = [], []
+    data_step = x_data.shape[0] // 100  # 标识数据清洗进度的步长
+    for i, creative_id_list in enumerate(x_data):
+        if (i % data_step) == 0:  # 数据清洗的进度
+            print("第 {0} 条数据-->".format(i), end=';')
+        for j in range(balance_list[y_data[i]]):
+            x_extend.append(creative_id_list)
+            y_extend.append(y_data[i])
+
+    return np.append(x_data, x_extend), np.append(y_data, y_extend)
 
 
 # ----------------------------------------------------------------------
