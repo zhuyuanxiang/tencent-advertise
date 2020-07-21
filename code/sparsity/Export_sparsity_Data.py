@@ -16,16 +16,22 @@
 """
 # common imports
 import winsound
-from config import creative_id_step_size, seed
-
+import config
+from config import creative_id_step_size
 
 # ----------------------------------------------------------------------
+from load_data import load_original_data
+
+
 def export_word2vec_data():
     from load_data import load_word2vec_file
     from generate_data import generate_word2vec_data_with_interval
     from generate_data import generate_word2vec_data_no_interval
     from show_data import show_word2vec_data
     from save_data import save_word2vec_data
+
+    x_csv, _ = load_original_data()
+    x_creative_id = generate_word2vec_data_no_interval()
 
     field_list = [  # 输入数据处理：选择需要的列
         "user_id",  # 0
@@ -73,41 +79,40 @@ def export_word2vec_data():
 def export_data_set():
     from generate_data import generate_data_no_interval_with_repeat
     from load_data import load_original_data
-    from save_data import save_data_set
     from sklearn.model_selection import train_test_split
+    from generate_data import generate_balance_data
+    from save_data import save_data
 
-    field_list = [  # 输入数据处理：选择需要的列
-        "user_id",
-        "creative_id_inc_sparsity",
-        "time_id",
-        "click_times",
-    ]
-    label_name = 'gender'
-    label_list = ['age', 'gender']
-    load_file_path = '../../save_data/sparsity/'
-    save_file_path = '../../save_data/sparsity/no_interval/with_repeat/'
+    print('-' * 5 + "   加载原始数据   " + '-' * 5)
+    x_csv, y_csv = load_original_data()
 
-    x_csv, y_csv = load_original_data(load_file_path + 'train_data_all_sparsity_v.csv', field_list, label_list)
+    print('-' * 5 + "   加工数据为无间隔有重复的数据列表   " + '-' * 5)
+    x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
+    save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
 
-    creative_id_window = creative_id_step_size * 1
-    creative_id_begin = 0
-    creative_id_end = creative_id_begin + creative_id_window
-    x_data, y_data = generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end)
-    label_data = y_data[:, label_list.index(label_name)]
-    x_train, x_test, y_train, y_test = train_test_split(x_data, label_data, random_state=seed, stratify=label_data)
-    del x_data, y_data
-    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name, creative_id_window)
-    del x_train, y_train, x_test, y_test
+    print('-' * 5 + "   拆分训练数据集和测试数据集   " + '-' * 5)
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state=config.seed, stratify=y_data)
+    save_data(x_train, config.data_file_path + 'x_train', '训练数据集')
+    save_data(y_train, config.data_file_path + 'y_train', '训练数据集')
+    save_data(x_test, config.data_file_path + 'x_test', '测试数据集')
+    save_data(y_test, config.data_file_path + 'y_test', '测试数据集')
 
-    creative_id_window = creative_id_step_size * 3
-    creative_id_begin = 0
-    creative_id_end = creative_id_begin + creative_id_window
-    x_data, y_data = generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end)
-    label_data = y_data[:, label_list.index(label_name)]
-    x_train, x_test, y_train, y_test = train_test_split(x_data, label_data, random_state=seed, stratify=label_data)
-    del x_data, y_data
-    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name, creative_id_window)
-    del x_train, y_train, x_test, y_test
+    print('-' * 5 + "   平衡训练数据集({})的类别   ".format(config.label_name) + '-' * 5)
+    x_train_balance, y_train_balance = generate_balance_data(x_train, y_train)
+    save_data(x_train_balance, config.data_file_path + 'x_train_balance', '平衡的训练数据集')
+    save_data(y_train_balance, config.data_file_path + 'y_train_balance', '平衡的训练数据集')
+
+    print('-' * 5 + "   拆分训练数据集和验证数据集   " + '-' * 5)
+    x_train_val, x_val, y_train_val, y_val = train_test_split(x_train, y_train, random_state=config.seed, stratify=y_train)
+    save_data(x_train_val, config.data_file_path + 'x_train_val', '无验证训练数据集')
+    save_data(y_train_val, config.data_file_path + 'y_train_val', '无验证训练数据集')
+    save_data(x_val, config.data_file_path + 'x_val', '验证数据集')
+    save_data(y_val, config.data_file_path + 'y_val', '验证数据集')
+
+    print('-' * 5 + "   平衡拆分验证的训练数据集({})的类别   ".format(config.label_name) + '-' * 5)
+    x_train_val_balance, y_train_val_balance = generate_balance_data(x_train_val, y_train_val)
+    save_data(x_train_val_balance, config.data_file_path + 'x_train_val_balance', '平衡拆分验证的训练数据集')
+    save_data(y_train_val_balance, config.data_file_path + 'y_train_val_balance', '平衡拆分验证的训练数据集')
 
     print("\n数据清洗完成！")
 
@@ -115,6 +120,5 @@ def export_data_set():
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
     # export_word2vec_data()
-    export_data_set()
-    # 运行结束的提醒
+    export_data_set()  # 运行结束的提醒
     winsound.Beep(600, 500)
