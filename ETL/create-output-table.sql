@@ -39,7 +39,10 @@ SELECT
     creative_id,
     click_times
 FROM
-    click_log_all;
+    click_log_all
+ORDER BY
+    user_id,
+    time_id;
 
 /* 创建 train_data_all_output 的索引字段，方便后面更新其他字段的数据 */
 ALTER TABLE
@@ -127,9 +130,12 @@ ADD
 ADD
     INDEX `ad_id_inc_idx`(`ad_id_inc`) USING BTREE;
 
-/* 更新 creative_id_inc_sparsity_hash 的值 */
+/* 
+ 更新 creative_id_inc_sparsity_hash 的值 
+ 383997 ：需要让出 0，1，2
+ */
 UPDATE
-    train_data_all_output AS A,
+    train_data_all_output AS A
 SET
     A.creative_id_inc_sparsity_hash = A.creative_id_inc_sparsity;
 
@@ -139,12 +145,12 @@ UPDATE
 SET
     A.creative_id_inc_sparsity_hash = B.creative_id_inc_sparsity_hash
 WHERE
-    A.creative_id_inc_sparsity > 383998
+    A.creative_id_inc_sparsity > 383997
     AND A.creative_id_inc_sparsity = B.creative_id_inc_sparsity;
 
 UPDATE
-    train_data_all_output AS A,
+    train_data_all_output AS A
 SET
-    A.creative_id_inc_sparsity_hash = 1
+    A.creative_id_inc_sparsity_hash = -1
 WHERE
-    A.creative_id_inc_sparsity_hash > 383998;
+    A.creative_id_inc_sparsity_hash > 383997;
