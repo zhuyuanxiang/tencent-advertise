@@ -35,7 +35,7 @@ np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
 # ----------------------------------------------------------------------
 def build_google_net():
     """
-    含并行连结的网络
+    含并行连结的网络，没有串联多个模块是因为显卡无法高效训练所有参数
     :return:
     """
     model_input = build_single_input_api()
@@ -95,13 +95,13 @@ def build_inception_ap(inception_input, num_channels, inception_num):
     x1 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x1_conv1d'.format(inception_num))(inception_input)
     x1 = AveragePooling1D(name='incp{}_x1_ap'.format(inception_num))(x1)
 
-    x2 = Conv1D(num_channels * 1, 1, activation='relu', name='incp{}_x2_conv1d'.format(inception_num))(inception_input)
+    x2 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x2_conv1d'.format(inception_num))(inception_input)
     x2 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x2_1'.format(inception_num))(x2)
     x2 = AveragePooling1D(name='incp{}_x2_ap'.format(inception_num))(x2)
 
-    x3 = Conv1D(num_channels * 1, 1, activation='relu', name='incp{}_x3_conv1d'.format(inception_num))(inception_input)
+    x3 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x3_conv1d'.format(inception_num))(inception_input)
     x3 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x3_1'.format(inception_num))(x3)
-    x3 = Conv1D(num_channels * 3, 2, padding='same', activation='relu', name='incp{}_x3_2'.format(inception_num))(x3)
+    x3 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x3_2'.format(inception_num))(x3)
     x3 = AveragePooling1D(name='incp{}_x3_ap'.format(inception_num))(x3)
 
     x4 = AveragePooling1D(name='incp{}_x4_ap'.format(inception_num))(inception_input)
@@ -113,64 +113,50 @@ def build_inception_ap(inception_input, num_channels, inception_num):
 
 # ----------------------------------------------------------------------
 def build_inception_gm(inception_input, num_channels, inception_num):
+    """
+    TODO: 使用 model 封装模型，使模型更加易于理解
+    :param inception_input:
+    :param num_channels:
+    :param inception_num:
+    :return:
+    """
     x1 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x1_conv1d'.format(inception_num))(inception_input)
-    # x1 = BatchNormalization(name='incp{}_x1_bn'.format(inception_num))(x1)
     x1 = GlobalMaxPooling1D(name='incp{}_x1_gm'.format(inception_num))(x1)
 
     x2 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x2_conv1d'.format(inception_num))(inception_input)
     x2 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x2_1'.format(inception_num))(x2)
-    # x2 = BatchNormalization(name='incp{}_x2_bn'.format(inception_num))(x2)
     x2 = GlobalMaxPooling1D(name='incp{}_x2_gm'.format(inception_num))(x2)
 
     x3 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x3_conv1d'.format(inception_num))(inception_input)
     x3 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x3_1'.format(inception_num))(x3)
     x3 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x3_2'.format(inception_num))(x3)
-    # x3 = BatchNormalization(name='incp{}_x3_bn'.format(inception_num))(x3)
     x3 = GlobalMaxPooling1D(name='incp{}_x3_gm'.format(inception_num))(x3)
 
     x4 = MaxPooling1D(name='incp{}_x4_mp'.format(inception_num))(inception_input)
     x4 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x4_conv1d'.format(inception_num))(x4)
-    # x4 = BatchNormalization(name='incp{}_x4_bn'.format(inception_num))(x4)
     x4 = GlobalMaxPooling1D(name='incp{}_x4_gm'.format(inception_num))(x4)
+
     inception_output = concatenate([x1, x2, x3, x4], axis=-1)
-
-    # x5 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x5_conv1d'.format(inception_num))(inception_input)
-    # x5 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x5_1'.format(inception_num))(x5)
-    # x5 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x5_2'.format(inception_num))(x5)
-    # x5 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x5_3'.format(inception_num))(x5)
-    # x5 = GlobalMaxPooling1D(name='incp{}_x5_gm'.format(inception_num))(x5)
-    # inception_output = concatenate([x1, x2, x3, x4, x5], axis=-1)
-
     return inception_output
 
 
 # ----------------------------------------------------------------------
 def build_inception_ga(inception_input, num_channels, inception_num):
     x1 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x1_conv1d'.format(inception_num))(inception_input)
-    # x1 = BatchNormalization(name='incp{}_x1_bn'.format(inception_num))(x1)
     x1 = GlobalAveragePooling1D(name='incp{}_x1_ga'.format(inception_num))(x1)
 
     x2 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x2_conv1d'.format(inception_num))(inception_input)
     x2 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x2_1'.format(inception_num))(x2)
-    # x2 = BatchNormalization(name='incp{}_x2_bn'.format(inception_num))(x2)
     x2 = GlobalAveragePooling1D(name='incp{}_x2_ga'.format(inception_num))(x2)
 
     x3 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x3_conv1d'.format(inception_num))(inception_input)
     x3 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x3_1'.format(inception_num))(x3)
     x3 = Conv1D(num_channels * 2, 2, padding='same', activation='relu', name='incp{}_x3_2'.format(inception_num))(x3)
-    # x3 = BatchNormalization(name='incp{}_x3_bn'.format(inception_num))(x3)
     x3 = GlobalAveragePooling1D(name='incp{}_x3_ga'.format(inception_num))(x3)
 
     x4 = MaxPooling1D(name='incp{}_x4_mp'.format(inception_num))(inception_input)
     x4 = Conv1D(num_channels * 2, 1, activation='relu', name='incp{}_x4_conv1d'.format(inception_num))(x4)
-    # x4 = BatchNormalization(name='incp{}_x4_bn'.format(inception_num))(x4)
     x4 = GlobalAveragePooling1D(name='incp{}_x4_ga'.format(inception_num))(x4)
 
     inception_output = concatenate([x1, x2, x3, x4], axis=-1)
     return inception_output
-
-
-# ----------------------------------------------------------------------
-if __name__ == '__main__':
-    # 运行结束的提醒
-    winsound.Beep(600, 500)
