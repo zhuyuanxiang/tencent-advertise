@@ -37,6 +37,7 @@ def load_original_data():
     # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此字段的偏移量为 -1
     x_csv = df[config.field_list].values
     # 'creative_id_inc' 字段的偏移量为 3，是因为需要保留 {0, 1, 2}：0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（序列开始）
+    # TODO：建议 SQL 导出数据前就已经将数据序号改成从0开始，将 creative_id 的序号保留 0，1，2
     x_csv[:, 0] = x_csv[:, 0] - 1  # user_id 需要减 1
     x_csv[:, 1] = x_csv[:, 1] + (3 - 1)
     x_csv[:, 2] = x_csv[:, 2] - 1  # time_id 需要减 1
@@ -84,6 +85,7 @@ def load_word2vec_weights():
             pass
     pass
     # 0 是占位符，因此不记入模型的数据
+    # 将 0 的权重大小设置为 0.5，效果并不好
     embedding_weights[0, :] = np.zeros(embedding_size)
     print("Word2Vec 模型加载完成。")
     return embedding_weights
