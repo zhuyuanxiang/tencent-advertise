@@ -18,7 +18,7 @@ import numpy as np
 
 # ----------------------------------------------------------------------
 import config
-from config import user_id_num
+from config import user_id_max
 from config import creative_id_max, creative_id_step_size
 from config import max_len, embedding_size, embedding_window
 from config import model_type,epochs, batch_size, learning_rate
@@ -145,7 +145,7 @@ def show_parameters():
     if config.show_parameter:
         print("实验报告参数")
         print('-' * 5 + ' ' * 3 + "与数据相关的参数" + ' ' * 3 + '-' * 5)
-        print("\tuser_id_number =", user_id_num)
+        print("\tuser_id_max =", user_id_max)
         print("\tcreative_id_max =", creative_id_max)
         print("\tcreative_id_step_size =", creative_id_step_size)
         print("\tcreative_id_window =", config.creative_id_window)
