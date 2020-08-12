@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-'''
+"""
 @Author     :   zYx.Tom
 @Contact    :   526614962@qq.com
 @site       :   https://zhuyuanxiang.github.io
@@ -10,208 +10,19 @@
 @Version    :   v0.1
 @Time       :   2020-06-07 15:41
 @License    :   (C)Copyright 2018-2020, zYx.Tom
-@Reference  :   
+@Reference  :
 @Desc       :   数据预处理模块
 @理解：
-'''
-import math as m
-import winsound
+"""
 
+import config
 import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
 
-seed = 42
-
-
-# ----------------------------------------------------------------------
-def load_original_data(file_name, field_list, label_list):
-    """
-      从 csv 文件中载入原始数据
-      :param label_list: 载入数据的标签字段名称列表
-      :param field_list: 载入数据的字段训练名称列表
-      :param file_name: 载入数据的文件名
-      :return: x_csv, y_csv
-    """
-    print('-' * 5 + "   加载数据集   " + '-' * 5)
-    # 「CSV」文件字段名称
-    df = pd.read_csv(file_name, dtype=int)
-    # --------------------------------------------------
-    # 没有在数据库中处理索引，是因为尽量不在数据库中修正原始数据，除非是不得不变更的数据，这样子业务逻辑清楚
-    # user_id_inc:      X_csv[:,0]
-    # creative_id_inc:  X_csv[:,1]
-    # time_id:          X_csv[:,2]
-    # click_times:      X_csv[:,3]
-    # 索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的，因此字段的偏移量为 -1
-    x_csv = df[field_list].values - 1
-    # 'creative_id_inc' 字段的偏移量为 3，是因为需要保留 {0, 1, 2}：0 表示 “padding”（填充），1 表示 “unknown”（未知词），2 表示 “start”（序列开始）
-    x_csv[:, 1] = x_csv[:, 1] + 3
-    x_csv[:, 3] = x_csv[:, 3] + 1  # click_times 的数据已经是值，不是索引，不需要减 1
-    # --------------------------------------------------
-    # 目标数据处理：目标字段的偏移量是 -1，是因为索引在数据库中是从 1 开始的，在 Python 中是从 0 开始的
-    # 既可以加载 'age'，也可以加载 'gender'
-    y_csv = df[label_list].values - 1
-    print("数据加载完成。")
-    output_example_data(x_csv, y_csv, '加载数据')
-    return x_csv, y_csv
-
-
-# ----------------------------------------------------------------------
-def output_example_data(X, y, data_type='原始数据'):
-    print(data_type + ":(X[0], y[0]) =", X[0], y[0])
-    print(data_type + ":(X[30], y[30]) =", X[30], y[30])
-    print(data_type + ":(X[600], y[600]) =", X[600], y[600])
-    if len(y) > 8999:
-        print(data_type + "：(X[8999], y[8999]) =", X[8999], y[8999])
-    if len(y) > 119999:
-        print(data_type + "：(X[119999], y[119999]) =", X[119999], y[119999])
-    if len(y) > 224999:
-        print(data_type + "：(X[224999], y[224999]) =", X[224999], y[224999])
-    if len(y) > 674999:
-        print(data_type + "：(X[674999], y[674999]) =", X[674999], y[674999])
-    if len(y) > 899999:
-        print(data_type + "：(X[899999], y[899999]) =", X[899999], y[899999])
-        pass
-    pass
-
-
-# ----------------------------------------------------------------------
-def generate_fix_data(X_csv, y_csv, train_field_num, label_field_num, period_length, period_days):
-    print('-' * 5 + "   清洗数据集   " + '-' * 5)
-    data_length = y_csv.shape[0]
-    data_step = data_length // 100  # 标识数据清洗进度的步长
-    print("数据生成中（共 {0} 条数据)：".format(data_length), end='')
-    # 初始化 X_doc 为空的列表 : X_doc[:,0]: creative_id, X_doc[:,1]: click_times
-    # 初始化 y_doc 为空的列表 : y_doc[:,0]: age, X_doc[:,1]: gender
-    # X_doc 的列表维度 = 去除 user_id, time_id
-    X_doc = np.zeros([user_id_num, train_field_num, m.ceil(time_id_max / period_days) * period_length], dtype=object)
-    y_doc = np.zeros([user_id_num, label_field_num], dtype=int)
-    prev_user_id = -1
-    prev_time_id = 0
-    period_index = 0
-    for i, row_data in enumerate(X_csv):
-        if (i % data_step) == 0:  # 数据清洗的进度
-            print("第 {0} 条数据-->".format(i), end=';')
-            pass
-        user_id = row_data[0]
-        time_id = row_data[2]
-
-        for j in range(label_field_num):
-            y_doc[user_id, j] = y_csv[i, j]
-
-        # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
-        if user_id > prev_user_id:
-            # 重置临时变量
-            prev_user_id = user_id
-            prev_time_id = 0
-            period_index = 0
-            pass
-
-        if (time_id - prev_time_id) >= period_days:
-            prev_time_id = time_id // period_days * period_days
-            period_index = 0
-
-        if period_index == period_length:  # 每个周期访问素材填满后不再填充
-            continue
-
-        # row_data[0]: user_id
-        creative_id = row_data[1]  # 这个值已经在读取时修正过，增加了偏移量 2，保留了 {0,1}
-        # row_data[2]: time_id
-        click_times = row_data[3]  # 这个不是词典，本身就是值，不需要再调整
-
-        # 素材是关键
-        if creative_id_end > creative_id > creative_id_begin:
-            creative_id = creative_id - creative_id_begin
-        elif creative_id < creative_id_end - creative_id_max:
-            creative_id = creative_id_max - creative_id_begin + creative_id
-        else:
-            creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
-
-        X_doc[user_id, 0, (time_id // period_days) * period_length + period_index] = creative_id
-        X_doc[user_id, 1, (time_id // period_days) * period_length + period_index] = click_times
-        period_index = period_index + 1
-        pass
-    print("\n数据清洗完成！")
-    output_example_data(X_doc, y_doc, data_type='清洗数据')
-    return X_doc, y_doc
-
-
-# ----------------------------------------------------------------------
-def generate_no_time_data(X_csv, y_csv, train_field_num, label_field_num, repeat_creative_id):
-    print('-' * 5 + "   清洗数据集   " + '-' * 5)
-    data_length = y_csv.shape[0]
-    data_step = data_length // 100  # 标识数据清洗进度的步长
-    print("数据生成中（共 {0} 条数据)：".format(data_length), end='')
-    X_doc = np.zeros([user_id_num, train_field_num], dtype=object)
-    y_doc = np.zeros([user_id_num, label_field_num], dtype=int)
-    # -1 不在数据序列中
-    prev_user_id = -1
-    for i, row_data in enumerate(X_csv):
-        if (i % data_step) == 0:  # 数据清洗的进度
-            print("第 {0} 条数据-->".format(i), end=';')
-            pass
-        user_id = row_data[0]
-
-        # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
-        if user_id > prev_user_id:
-            prev_user_id = user_id
-            # 新建用户序列时，数据序列用 2 表示用户序列的开始，标签序列更新为用户的标签
-            # X_doc[user_id] = [2]  # TODO:似乎不需要序列开始标志
-            for j in range(train_field_num):
-                X_doc[user_id, j] = []
-
-            for j in range(label_field_num):
-                y_doc[user_id, j] = int(y_csv[i, j])
-
-            pass
-
-        # row_data[0]: user_id
-        creative_id = row_data[1]
-        # row_data[2]: time_id
-        click_times = row_data[3]
-
-        # 素材(creative_id)是关键
-        if creative_id_end > creative_id > creative_id_begin:
-            creative_id = creative_id - creative_id_begin
-        elif creative_id < creative_id_end - creative_id_max:
-            creative_id = creative_id_max - creative_id_begin + creative_id
-        else:
-            creative_id = 1  # 超过词典大小的素材标注为 1，即「未知」
-            pass
-
-        if X_doc[user_id, 0].count(creative_id) and not repeat_creative_id:  # 重复访问的素材不加入 no_time 的序列数据中
-            continue
-
-        X_doc[user_id, 0].append(creative_id)
-        X_doc[user_id, 1].append(click_times)
-
-    print("\n数据清洗完成！")
-    output_example_data(X_doc, y_doc, data_type='清洗数据')
-    return X_doc, y_doc
-
-
-# ----------------------------------------------------------------------
-def split_data(x_data, y_data, label_name):
-    print('-' * 5 + "   拆分{0}数据集   ".format(label_name) + '-' * 5)
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state=seed, stratify=y_data)
-    return x_train, y_train, x_test, y_test
-
-
-# ----------------------------------------------------------------------
-def save_data(x_train, y_train, x_test, y_test, file_suffix, label_name):
-    data_type = "训练数据集"
-    print('-' * 5 + "   {0}：{1}   ".format(data_type, len(y_train)) + '-' * 5)
-    output_example_data(x_train, y_train, data_type)
-    np.save('save_data/x_train_' + file_suffix + '_' + label_name, x_train)
-    np.save('save_data/y_train_' + file_suffix + '_' + label_name, y_train)
-    print(data_type + "保存成功。")
-
-    data_type = "测试数据集"
-    print('-' * 5 + "   {0}：{1}   ".format(data_type, len(y_train)) + '-' * 5)
-    output_example_data(x_test, y_test, data_type)
-    np.save('save_data/x_test_' + file_suffix + '_' + label_name, x_test)
-    np.save('save_data/y_test_' + file_suffix + '_' + label_name, y_test)
-    print(data_type + "保存成功。")
+from config import creative_id_step_size, creative_id_begin, creative_id_end
+from generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, generate_fix_data, generate_no_time_data, split_data
+from load_data import load_original_data, load_word2vec_file
+from save_data import save_word2vec_data, save_word2vec_data, save_data_set
+from show_data import show_word2vec_data
 
 
 # ----------------------------------------------------------------------
@@ -250,6 +61,9 @@ def save_data(x_train, y_train, x_test, y_test, file_suffix, label_name):
 # data_fix_week()
 #       生成每周固定长度的数据
 # ----------------------------------------------------------------------
+from tools import beep_end
+
+
 def data_no_time():
     # 载入数据需要的变量
     file_name = './data/train_data_all_min_complete_v.csv'
@@ -263,7 +77,7 @@ def data_no_time():
     # --------------------------------------------------
     # 加载数据
     label_list = ['age', 'gender']
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+    x_csv, y_csv = load_original_data()
 
     # --------------------------------------------------
     # 清洗数据集，生成不重复的数据，用于 MaxPooling()训练
@@ -275,13 +89,13 @@ def data_no_time():
     # 拆分「age」多分类数据
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender, x_data, y_data
 
     # --------------------------------------------------
@@ -294,21 +108,21 @@ def data_no_time():
     # 拆分「age」多分类数据
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender, x_data, y_data
 
 
 # ----------------------------------------------------------------------
-def data_sequence(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence(X_data, y_data, user_id_max, creative_id_num):
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
@@ -320,7 +134,7 @@ def data_sequence(X_data, y_data, user_id_num, creative_id_num):
         user_id = row_data[2] - 1  # 索引从 0 开始
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 tmp_user_id = user_id
@@ -342,10 +156,10 @@ def data_sequence(X_data, y_data, user_id_num, creative_id_num):
 
 # ----------------------------------------------------------------------
 # 生成的用户序列数据：0 表示这天没有访问素材；1 表示这个素材不在词典中
-def data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_no_start(X_data, y_data, user_id_max, creative_id_num):
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
@@ -357,7 +171,7 @@ def data_sequence_no_start(X_data, y_data, user_id_num, creative_id_num):
         user_id = row_data[2] - 1  # 索引从 0 开始
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 tmp_user_id = user_id
@@ -391,13 +205,13 @@ def data_fix():
 
     # --------------------------------------------------
     # 加载数据
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+    x_csv, y_csv = load_original_data()
 
     # ==================================================
     # 清洗数据集，生成所需要的数据 ( 每人每天访问素材的数量 )
     period_length = 7
     period_days = 1
-    x_data, y_data = generate_fix_data(x_csv, y_csv, field_list, '', period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
 
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
@@ -405,13 +219,13 @@ def data_fix():
     file_suffix = 'fix_day'
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender
 
     del x_data, y_data
@@ -420,7 +234,7 @@ def data_fix():
     # 清洗数据集，生成所需要的数据 ( 每人每天访问素材的数量 )
     period_length = 15
     period_days = 3
-    x_data, y_data = generate_fix_data(x_csv, y_csv, field_list, '', period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
 
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
@@ -428,13 +242,13 @@ def data_fix():
     file_suffix = 'fix_three_days'
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender
 
     del x_data, y_data
@@ -443,7 +257,7 @@ def data_fix():
     # 清洗数据集，生成所需要的数据 ( 每人每天访问素材的数量 )
     period_length = 21
     period_days = 7
-    x_data, y_data = generate_fix_data(x_csv, y_csv, field_list, '', period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
 
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
@@ -451,13 +265,13 @@ def data_fix():
     file_suffix = 'fix_week'
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender
 
     del x_data, y_data
@@ -483,11 +297,11 @@ def data_fix_day():
     # --------------------------------------------------
     # 加载数据
     label_list = ['age']
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+    x_csv, y_csv = load_original_data()
 
     # --------------------------------------------------
     # 清洗数据集，生成所需要的数据
-    x_data, y_data = generate_fix_data(x_csv, y_csv, len(field_list) - 2, len(label_list), period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
     del x_csv, y_csv
 
     # --------------------------------------------------
@@ -497,17 +311,17 @@ def data_fix_day():
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
     del x_data, y_data
 
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # --------------------------------------------------
     # 加载数据
     label_list = ['gender']
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+    x_csv, y_csv = load_original_data()
 
     # --------------------------------------------------
     # 清洗数据集，生成所需要的数据
-    x_data, y_data = generate_fix_data(x_csv, y_csv, len(field_list) - 2, len(label_list), period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
     del x_csv, y_csv
 
     # 拆分「gender」二分类数据
@@ -515,7 +329,7 @@ def data_fix_day():
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 0], label_name)
     del x_data, y_data
 
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender
     pass
 
@@ -537,11 +351,11 @@ def data_fix_three_days():
 
     # --------------------------------------------------
     # 加载数据
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+    x_csv, y_csv = load_original_data()
 
     # --------------------------------------------------
     # 清洗数据集，生成所需要的数据
-    x_data, y_data = generate_fix_data(x_csv, y_csv, len(field_list) - 2, len(label_list), period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
     del x_csv, y_csv
 
     # --------------------------------------------------
@@ -549,13 +363,13 @@ def data_fix_three_days():
     # 拆分「age」多分类数据
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender
     del x_data, y_data
     pass
@@ -578,11 +392,11 @@ def data_fix_week():
 
     # --------------------------------------------------
     # 加载数据
-    x_csv, y_csv = load_original_data(file_name, field_list, label_list)
+    x_csv, y_csv = load_original_data()
 
     # --------------------------------------------------
     # 清洗数据集，生成所需要的数据
-    x_data, y_data = generate_fix_data(x_csv, y_csv, len(field_list) - 2, len(label_list), period_length, period_days)
+    x_data, y_data = generate_fix_data(x_csv, y_csv)
     del x_csv, y_csv
 
     # --------------------------------------------------
@@ -590,23 +404,23 @@ def data_fix_week():
     # 拆分「age」多分类数据
     label_name = label_list[0]
     x_train_age, y_train_age, x_test_age, y_test_age = split_data(x_data, y_data[:, 0], label_name)
-    save_data(x_train_age, y_train_age, x_test_age, y_test_age, file_suffix, label_name)
+    save_data_set(x_train_age, y_train_age, x_test_age, y_test_age)
     del x_train_age, y_train_age, x_test_age, y_test_age
 
     # 拆分「gender」二分类数据
     label_name = label_list[1]
     x_train_gender, y_train_gender, x_test_gender, y_test_gender = split_data(x_data, y_data[:, 1], label_name)
-    save_data(x_train_gender, y_train_gender, x_test_gender, y_test_gender, file_suffix, label_name)
+    save_data_set(x_train_gender, y_train_gender, x_test_gender, y_test_gender)
     del x_train_gender, y_train_gender, x_test_gender, y_test_gender
     del x_data, y_data
     pass
 
 
 # ----------------------------------------------------------------------
-def data_sequence_with_interval(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_with_interval(X_data, y_data, user_id_max, creative_id_num):
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     tmp_time_id = 0
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
@@ -620,7 +434,7 @@ def data_sequence_with_interval(X_data, y_data, user_id_num, creative_id_num):
         user_id = row_data[2] - 1  # 索引从 0 开始
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 tmp_user_id = user_id
@@ -647,10 +461,10 @@ def data_sequence_with_interval(X_data, y_data, user_id_num, creative_id_num):
 
 
 # ----------------------------------------------------------------------
-def data_sequence_reverse_with_interval(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_reverse_with_interval(X_data, y_data, user_id_max, creative_id_num):
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
@@ -662,7 +476,7 @@ def data_sequence_reverse_with_interval(X_data, y_data, user_id_num, creative_id
         user_id = row_data[2] - 1  # 索引从 0 开始
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 # 新建用户序列前，将旧的用户序列前面增加3天数据，后面增加3天数据
@@ -687,10 +501,10 @@ def data_sequence_reverse_with_interval(X_data, y_data, user_id_num, creative_id
 
 
 # ----------------------------------------------------------------------
-def data_sequence_times(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_times(X_data, y_data, user_id_max, creative_id_num):
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     for i, row_data in enumerate(X_data):
@@ -704,7 +518,7 @@ def data_sequence_times(X_data, y_data, user_id_num, creative_id_num):
         click_times = row_data[3]
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 tmp_user_id = user_id
@@ -726,10 +540,10 @@ def data_sequence_times(X_data, y_data, user_id_num, creative_id_num):
 
 
 # ----------------------------------------------------------------------
-def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_times_with_interval(X_data, y_data, user_id_max, creative_id_num):
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     tmp_time_id = 0
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
@@ -744,7 +558,7 @@ def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_n
         click_times = row_data[3]
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 tmp_user_id = user_id
@@ -771,11 +585,11 @@ def data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_n
 
 
 # ----------------------------------------------------------------------
-def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num):
+def data_sequence_times_with_empty(X_data, y_data, user_id_max, creative_id_num):
     # 生成每个用户的数据序列，按天数排序，没有数据的天就置0
     print("数据清洗中：", end='')
-    X_doc = np.zeros([user_id_num], dtype=object)
-    y_doc = np.zeros([user_id_num])
+    X_doc = np.zeros([user_id_max], dtype=object)
+    y_doc = np.zeros([user_id_max])
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
     tmp_time_id = 0
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
@@ -792,7 +606,7 @@ def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num)
         click_times = row_data[3]
 
         # user_id 是否属于关注的用户范围，访问素材数量过低的用户容易成为噪声
-        if user_id < user_id_num:
+        if user_id < user_id_max:
             # 原始数据的 user_id 已经排序了，因此出现新的 user_id 时，就新建一个用户序列
             if user_id != tmp_user_id:
                 tmp_user_id = user_id
@@ -818,6 +632,38 @@ def data_sequence_times_with_empty(X_data, y_data, user_id_num, creative_id_num)
     return X_doc, y_doc
 
 
+# =====================================================
+# 生成用于 Word2Vec 训练使用的数据集
+def data_word2vec():
+    x_csv = load_word2vec_file('', [])
+
+    config.creative_id_window = creative_id_step_size * 5
+    config.creative_id_begin = creative_id_step_size * 0
+    config.creative_id_end = config.creative_id_begin + config.creative_id_window
+    x_creative_id = generate_word2vec_data_with_interval(x_csv)
+    show_word2vec_data(x_creative_id)
+    save_word2vec_data(x_creative_id, config.creative_id_window, '')
+    del x_creative_id
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
+    show_word2vec_data(x_creative_id)
+    save_word2vec_data(x_creative_id, config.creative_id_window, '')
+    del x_creative_id
+
+    config.creative_id_window = creative_id_step_size * 8
+    config.creative_id_begin = creative_id_step_size * 0
+    config.creative_id_end = config.creative_id_begin + config.creative_id_window
+    x_creative_id = generate_word2vec_data_with_interval(x_csv)
+    show_word2vec_data(x_creative_id)
+    save_word2vec_data(x_creative_id, config.creative_id_window, '')
+    del x_creative_id
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
+    show_word2vec_data(x_creative_id)
+    save_word2vec_data(x_creative_id, config.creative_id_window, '')
+    del x_creative_id
+
+    print("\n数据清洗完成！")
+
+
 # ----------------------------------------------------------------------
 def extend_user_id_sequence(X_doc, extend_user_id, extend_len):
     pre_user_id_list = X_doc[extend_user_id].copy()
@@ -830,18 +676,10 @@ def extend_user_id_sequence(X_doc, extend_user_id, extend_len):
 
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
-    # 清洗数据需要的变量
-    user_id_num = 900000  # 用户数
-    creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
-    click_times_max = 152  # 所有素材中最大的点击次数
-    time_id_max = 91
-    creative_id_step_size = 128000
-    creative_id_window = creative_id_step_size * 5
-    creative_id_begin = creative_id_step_size * 0
-    creative_id_end = creative_id_begin + creative_id_window
-    data_no_time()
+    # data_no_time()
     # data_fix_day()  # 固定每人每天访问素材的数量
     # data_fix_three_days()  # 固定每人每三天访问素材的数量
     # data_fix_week()  # 固定每人每周访问素材的数量
+    data_word2vec()
     # 运行结束的提醒
-    winsound.Beep(600, 500)
+    beep_end()
