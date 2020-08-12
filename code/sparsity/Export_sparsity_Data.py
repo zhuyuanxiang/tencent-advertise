@@ -15,12 +15,12 @@
 @理解：
 """
 # common imports
-import winsound
 import config
-from config import creative_id_step_size
 
-# ----------------------------------------------------------------------
+from config import creative_id_step_size
+from generate_data import generate_fix_data
 from load_data import load_original_data
+from tools import beep_end
 
 
 def export_word2vec_data():
@@ -31,7 +31,7 @@ def export_word2vec_data():
     from save_data import save_word2vec_data
 
     x_csv, _ = load_original_data()
-    x_creative_id = generate_word2vec_data_no_interval()
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
 
     field_list = [  # 输入数据处理：选择需要的列
         "user_id",  # 0
@@ -45,13 +45,13 @@ def export_word2vec_data():
     creative_id_end = creative_id_begin + creative_id_window
 
     save_data_path = '../../save_data/sparsity/no_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
     save_data_path = '../../save_data/sparsity/with_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_with_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
@@ -61,13 +61,13 @@ def export_word2vec_data():
     creative_id_end = creative_id_begin + creative_id_window
 
     save_data_path = '../../save_data/sparsity/no_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
     save_data_path = '../../save_data/sparsity/with_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_with_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
@@ -83,13 +83,17 @@ def export_data_set():
     from generate_data import generate_balance_data
     from save_data import save_data
 
-    print('-' * 5 + "   加载原始数据   " + '-' * 5)
+    print('-' * 5 + '>' * 3 + "加载原始数据" + '<' * 3 + '-' * 5)
     x_csv, y_csv = load_original_data()
 
-    print('-' * 5 + "   加工数据为无间隔有重复的数据列表   " + '-' * 5)
-    x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
+    print('-' * 5 + '>' * 3 + "加工数据为定长的数据列表" + '<' * 3 + '-' * 5)
+    x_data, y_data, x_w2v = generate_fix_data(x_csv, y_csv)
     save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
 
+    # print('-' * 5 + "   加工数据为无间隔有重复的数据列表   " + '-' * 5)
+    # x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
+    # save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
+    #
     print('-' * 5 + "   拆分训练数据集和测试数据集   " + '-' * 5)
     x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state=config.seed, stratify=y_data)
     save_data(x_train, config.data_file_path + 'x_train', '训练数据集')
@@ -121,4 +125,5 @@ def export_data_set():
 if __name__ == '__main__':
     # export_word2vec_data()
     export_data_set()  # 运行结束的提醒
-    winsound.Beep(600, 500)
+
+    beep_end()
