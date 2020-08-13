@@ -34,7 +34,7 @@ def show_figures():
     pass
 
 
-def show_title(message):
+def show_title(message=""):
     # 输出运行模块的标题
-    print('-' * 5, '>' + message + '<', '-' * 5)
+    print('-' * 5 + '>' + message + '<' + '-' * 5)
     pass
