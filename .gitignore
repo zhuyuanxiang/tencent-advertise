@@ -144,3 +144,5 @@ log_dir/*
 save_data/*
 save_model/*
 /code/tmp/tmp.py
+/word2vec.ipynb
+/code/tmp/tmp.ipynb
