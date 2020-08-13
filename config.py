@@ -14,7 +14,7 @@
 @Desc       :   
 @理解：
 """
-import MySQLdb
+# import MySQLdb
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,7 +26,7 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 设置数据显示的精确度为小数点后3位
-np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
+np.set_printoptions(precision = 3, suppress = True, threshold = np.inf, linewidth = 200)
 # to make this notebook's output stable across runs
 seed = 42
 np.random.seed(seed)
@@ -40,9 +40,9 @@ ad_id_max = 2264190  # 最大的广告编号=广告的种类
 advertiser_id_max = 62965  # 最大的广告主编号(52090)
 click_times_max = 152  # 所有素材中最大的点击次数
 creative_id_max = 2481135 - 1 + 3  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
-industry_max = 335  # 最大的产业类别编号
-product_category_max = 18  # 最大的产品类别编号
-product_id_max = 44313  # 最大的产品编号(33273)
+industry_max = 335  # 最大的产业类别编号(326),存在缺失值(/N)的数据
+product_category_max = 18  # 最大的产品类别编号(建议对它使用众数，因为每个用户的类别数不太稀疏)
+product_id_max = 44313  # 最大的产品编号(33273),存在缺失值(/N)的数据
 time_id_max = 91
 user_id_max = 900000  # 用户数
 
@@ -79,10 +79,11 @@ show_parameter = True  # 显示模型参数
 
 # 与训练相关的参数
 field_list = [  # 输入数据处理：选择需要的列
-    "user_id",
-    "creative_id_inc_sparsity_hash",
-    "time_id",
-    "click_times",
+        "user_id",
+        "creative_id_inc_sparsity_hash",
+        "time_id",
+        "click_times",
+        "product_category"
 ]
 label_list = ['age', 'gender']
 label_name = 'gender'
@@ -90,8 +91,8 @@ label_name = 'gender'
 # sql = "SELECT user_id,creative_id_inc_sparsity_hash AS creative_id_inc_sparsity,time_id,click_times,age,gender " \
 #       "FROM train_data_all_output ORDER BY user_id,time_id"
 # df = pd.read_sql(config.sql,config.conn)
-fix_period_length = 21
-fix_period_days = 7
+fix_period_length = 13
+fix_period_days = 1
 load_file_path = '../../save_data/sparsity_hash/original/{}/'.format(creative_id_window)
 load_file_name = load_file_path + 'train_data_all_output.csv'
 # data_file_path = '../../save_data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(creative_id_window, label_name)
@@ -99,17 +100,19 @@ load_file_name = load_file_path + 'train_data_all_output.csv'
 
 # model_w2v_path = '../../save_model/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(creative_id_window)
 # model_file_path = '../../save_model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
-#     creative_id_window, label_name, model_type
-# )
+#     creative_id_window, label_name, model_type)
 
-data_file_path = '../../save_data/sparsity_hash/fix_7_21/creative_id/{0}/{1}/'.format(creative_id_window, label_name)
-data_w2v_path = '../../save_data/sparsity_hash/word2vec/fix_7_21/creative_id/{0}/'.format(creative_id_window)
+data_w2v_path = '../../save_data/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{0}/'.format(
+        fix_period_days, fix_period_length, creative_id_window)
+data_file_path = '../../save_data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
+        fix_period_days, fix_period_length, creative_id_window, label_name)
 
-model_w2v_path = '../../save_model/sparsity_hash/word2vec/fix_7_21/creative_id/{0}/'.format(creative_id_window)
-model_file_path = '../../save_model/sparsity_hash/fix_7_21/word2vec/creative_id/{0}/{1}/{2}/'.format(
-    creative_id_window, label_name, model_type
-)
+model_w2v_path = '../../save_model/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{0}/'.format(
+        fix_period_days, fix_period_length, creative_id_window)
+model_file_path = '../../save_model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
+        fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
 model_file_prefix = 'embedding_{0}_{1}_'.format(embedding_size, max_len)
+
 x_train_file_name = 'x_train'  # 训练数据
 y_train_file_name = 'y_train'  # 训练数据
 train_data_type = '训练数据集'
@@ -118,6 +121,7 @@ train_data_type = '训练数据集'
 # train_data_type='平衡的训练数据集'
 x_test_file_name = 'x_test'  # 测试数据
 y_test_file_name = 'y_test'  # 测试数据
+
 balance_age_list = [11, 2, 1, 2, 2, 3, 5, 12, 20, 34]
 balance_gender_list = [0, 1]
 
