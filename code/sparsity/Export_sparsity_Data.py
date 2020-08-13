@@ -23,59 +23,6 @@ from load_data import load_original_data
 from tools import beep_end, show_title
 
 
-def export_word2vec_data():
-    from load_data import load_word2vec_file
-    from generate_data import generate_word2vec_data_with_interval
-    from generate_data import generate_word2vec_data_no_interval
-    from show_data import show_word2vec_data
-    from save_data import save_word2vec_data
-
-    x_csv, _ = load_original_data()
-    x_creative_id = generate_word2vec_data_no_interval(x_csv)
-
-    field_list = [  # 输入数据处理：选择需要的列
-            "user_id",  # 0
-            "creative_id_inc_sparsity",  # 1
-            "time_id",  # 2
-            "product_category",  # 3
-    ]
-    x_csv = load_word2vec_file('../../save_data/sparsity/train_data_all_sparsity_v.csv', field_list)
-
-    creative_id_window = creative_id_step_size * 1
-    creative_id_begin = creative_id_step_size * 0
-    creative_id_end = creative_id_begin + creative_id_window
-
-    save_data_path = '../../save_data/sparsity/no_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv)
-    show_word2vec_data(x_creative_id)
-    save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
-    del x_creative_id
-
-    save_data_path = '../../save_data/sparsity/with_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv)
-    show_word2vec_data(x_creative_id)
-    save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
-    del x_creative_id
-
-    creative_id_window = creative_id_step_size * 3
-    creative_id_begin = creative_id_step_size * 0
-    creative_id_end = creative_id_begin + creative_id_window
-
-    save_data_path = '../../save_data/sparsity/no_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv)
-    show_word2vec_data(x_creative_id)
-    save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
-    del x_creative_id
-
-    save_data_path = '../../save_data/sparsity/with_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv)
-    show_word2vec_data(x_creative_id)
-    save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
-    del x_creative_id
-
-    print("\n数据清洗完成！")
-
-
 # ----------------------------------------------------------------------
 def export_data_set():
     from generate_data import generate_data_no_interval_with_repeat
