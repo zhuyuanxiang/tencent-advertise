@@ -53,14 +53,14 @@ X_data, y_data = load_data(file_name,label_name='age')
 
 # ----------------------------------------------------------------------
 # 定义全局变量
-user_id_num = 50000  # 用户数
+user_id_max = 50000  # 用户数
 creative_id_end = 50000  # 素材数
 max_len = 16
 
 # ----------------------------------------------------------------------
 # 清洗数据集
-# X_doc, y_doc = data_sequence(X_data, y_data, user_id_num, creative_id_num)
-X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_num, creative_id_end)
+# X_doc, y_doc = data_sequence(X_data, y_data, user_id_max, creative_id_num)
+X_doc, y_doc = data_sequence_no_start(X_data, y_data, user_id_max, creative_id_end)
 # ----------------------------------------------------------------------
 # 填充数据集
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
@@ -114,7 +114,7 @@ print("sum(y_test) =", sum(y_test))
 print("sum(abs(predictions-y_test))=error_number=",
       sum(abs(np.array(predictions > 0.5, dtype = int) - y_test)))
 print("实验报告参数")
-print("user_id_number =", user_id_num)
+print("user_id_maxber =", user_id_max)
 print("creative_id_number =", creative_id_end)
 print("max_len =", max_len)
 print("embedding_size =", embedding_size)

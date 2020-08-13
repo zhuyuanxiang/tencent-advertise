@@ -2,6 +2,5 @@
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
     "editor.formatOnSave": true,
-    "python.formatting.provider": "yapf",
-    "python.pythonPath": "C:\\Users\\ygpfr\\Anaconda3\\envs\\tf-gpu\\python.exe"
+    "python.pythonPath": "C:\\Users\\ygpfr\\Anaconda3\\envs\\tf-gpu\\python.exe",
 }

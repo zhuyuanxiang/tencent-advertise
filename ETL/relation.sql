@@ -90,3 +90,113 @@ FROM
     ad
 LIMIT
     0, 1000;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_1;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_2;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_3;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_4;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_5;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_6;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_7;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_8;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_9;
+
+SELECT
+    count(1)
+FROM
+    all_log_age_10;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_1;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_2;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_3;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_4;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_5;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_6;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_7;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_8;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_9;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    all_log_age_10;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    `all_log_gender_1`;
+
+SELECT
+    count(DISTINCT user_id)
+FROM
+    `all_log_gender_2`;

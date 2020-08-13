@@ -77,10 +77,10 @@ def load_data():
 # 生成所需要的数据
 def generate_data(X_data, y_data):
     print("数据生成中：", end = '')
-    y_doc = np.zeros([user_id_num], dtype = int)
+    y_doc = np.zeros([user_id_max], dtype = int)
     # 初始化 X_doc 为空的列表
-    X_doc = np.zeros([user_id_num], dtype = object)
-    for user_id in range(user_id_num):
+    X_doc = np.zeros([user_id_max], dtype = object)
+    for user_id in range(user_id_max):
         X_doc[user_id] = []
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     tmp_user_id = -1  # -1 表示 id 不在数据序列中
@@ -127,7 +127,7 @@ def output_example_data(X, y):
 def construct_model():
     output_parameters()
     model = Sequential()
-    model.add(Input(shape = (user_id_num, max_len)))
+    model.add(Input(shape = (user_id_max, max_len)))
     model.add(LSTM(embedding_size))
 
     if label_name == "age":
@@ -153,7 +153,7 @@ def construct_model():
 
 def output_parameters():
     print("实验报告参数")
-    print("\tuser_id_number =", user_id_num)
+    print("\tuser_id_maxber =", user_id_max)
     print("\tmax_len =", max_len)
     print("\tembedding_size =", embedding_size)
     print("\tepochs =", epochs)
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     # 定义全局通用变量
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
-    user_id_num = 900000  # 用户数
+    user_id_max = 900000  # 用户数
     model_type = "GlobalMaxPooling1D+MLP"
     RMSProp_lr = 5e-04
     epochs = 20

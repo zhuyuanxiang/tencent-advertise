@@ -1,4 +1,4 @@
-dataset,user_id_num,creative_id_start,creative_id_end,max_len,embedding_size,epochs,batch_size,RMSProp,preprocess,network,parameters,first_loss,first_acc,max_loss,max_acc,max_epoch,last_loss,last_acc,test_loss,test_acc,over_fit,over_epoch,all_test_loss,all_test_acc
+dataset,user_id_max,creative_id_start,creative_id_end,max_len,embedding_size,epochs,batch_size,RMSProp,preprocess,network,parameters,first_loss,first_acc,max_loss,max_acc,max_epoch,last_loss,last_acc,test_loss,test_acc,over_fit,over_epoch,all_test_loss,all_test_acc
 no_sequence,900k,,781240,32,32,20,256,0.0005,no_sequence,GlobalMaxPooling1D,,1.7548,0.3094,1.5333,0.3864,9,1.9014,0.3711,1.902,0.3703,TRUE,10,2.0451,0.3667
 no_sequence,900k,,781240,128,128,20,256,0.0005,no_sequence,GlobalMaxPooling1D+MLP,"0.5,64",1.7804,0.2994,1.536,0.3837,14,1.5578,0.3824,1.5555,0.3822,TRUE,15,1.5567,0.3941
 no_sequence,900k,,1.1m,128,128,20,256,0.0005,no_sequence,GlobalMaxPooling1D,,1.8889,0.2645,1.6321,0.3521,14,1.6967,0.349,1.6914,0.3518,TRUE,10,1.7713,0.3507

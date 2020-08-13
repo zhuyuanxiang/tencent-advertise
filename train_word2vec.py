@@ -71,7 +71,7 @@ def main(path, window):
 # =====================================================
 if __name__ == '__main__':
     # 清洗数据需要的变量
-    user_id_num = 900000  # 用户数
+    user_id_max = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
     click_times_max = 152  # 所有素材中最大的点击次数
     time_id_max = 91

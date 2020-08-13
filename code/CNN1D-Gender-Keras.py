@@ -63,13 +63,13 @@ X_data = df[["time_id", "creative_id_inc", "user_id_inc", "click_times"]].values
 
 # [14000,7000]
 
-user_id_num = 12000
+user_id_max = 12000
 creative_id_end = 6000
 embedding_size=200
 max_len=91
 data_shape = (creative_id_end,)
-batch_size = int(user_id_num / 30)
-epochs = int(user_id_num / 150)
+batch_size = int(user_id_max / 30)
+epochs = int(user_id_max / 150)
 
 # 对数据进行 One-Hot 编码，但是不是只有一个「1」的编码
 # 以每个用户91天访问了哪些素材进行编码，维度是素材库的大小，访问的素材为1，没有访问的素材为0，
@@ -79,11 +79,11 @@ epochs = int(user_id_num / 150)
 # user_id_inc：表示用户的编码，这个编码已经处理过，按照 91天 内访问素材的数量逆序排列(大的在前面)
 # 超过维度的用户放弃
 # time_id：表示91天内第几天访问的广告
-X_one_hot = np.zeros([user_id_num, creative_id_end], dtype = np.bool)
-y_one_hot = np.zeros([user_id_num])
+X_one_hot = np.zeros([user_id_max, creative_id_end], dtype = np.bool)
+y_one_hot = np.zeros([user_id_max])
 for i, row_data in enumerate(X_data):
     user_id = row_data[2] - 1
-    if user_id < user_id_num:
+    if user_id < user_id_max:
         creative_id = row_data[1]
         if creative_id >= creative_id_end:
             creative_id = 0
@@ -128,7 +128,7 @@ model.compile(optimizer = keras.optimizers.RMSprop(lr = 0.0001),
               metrics = [keras.metrics.sparse_categorical_accuracy])
 
 print("* 验证模型→留出验证集")
-split_number = int(user_id_num * 0.1)
+split_number = int(user_id_max * 0.1)
 X_val_scaled = X_train_scaled[:split_number]
 partial_X_train_scaled = X_train_scaled[split_number:]
 

@@ -61,7 +61,7 @@ print("数据加载完成。")
 
 # ----------------------------------------------------------------------
 print("* 清洗数据集")
-user_id_num = 50000  # 用户数
+user_id_max = 50000  # 用户数
 creative_id_end = 50000  # 素材数
 max_len = 320
 
@@ -83,7 +83,7 @@ from preprocessing import (data_sequence, data_sequence_times, data_sequence_tim
 # data_sequence_with_fix()
 #       每天固定几个数据，没有数据的天就置0，超过范围的数据就截断，点击次数超过 1 次的也只有一条数据，
 
-X_doc, y_doc = data_sequence_times_with_interval(X_data, y_data, user_id_num, creative_id_end)
+X_doc, y_doc = data_sequence_times_with_interval(X_data, y_data, user_id_max, creative_id_end)
 # padding: 字符串，'pre' 或 'post' ，在序列的前端补齐还是在后端补齐。
 X = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
 y = y_doc
@@ -119,7 +119,7 @@ print("训练数据 =", X_train[0], y_train[0])
 # 过拟合了，训练集的精度越来越高，测试集的精度开始下降
 # verbose: Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
 epochs = 20
-# batch_size = int(user_id_num / 30)
+# batch_size = int(user_id_max / 30)
 batch_size = 256
 model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
           validation_split = 0.2, use_multiprocessing = True, verbose = 2)

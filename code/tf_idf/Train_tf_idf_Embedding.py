@@ -41,8 +41,8 @@ from keras.regularizers import l2
 # ----------------------------------------------------------------------
 from generate_data import generate_data_no_interval_with_repeat
 from load_data import load_original_data, load_word2vec_weights, load_data_set
-from config import creative_id_max, user_id_num, creative_id_step_size, seed
-from show_data import show_example_data, show_reslut
+from config import creative_id_max, user_id_max, creative_id_step_size, seed
+from show_data import show_example_data, show_result
 
 
 # ----------------------------------------------------------------------
@@ -105,7 +105,7 @@ def construct_model(label_name):
 
 def output_parameters():
     print("实验报告参数")
-    print("\tuser_id_number =", user_id_num)
+    print("\tuser_id_max =", user_id_max)
     print("\tcreative_id_max =", creative_id_max)
     print("\tcreative_id_step_size =", creative_id_step_size)
     print("\tcreative_id_window =", creative_id_window)
@@ -139,7 +139,7 @@ def main():
     print("模型保存成功！")
 
     print('=' * 5 + ' ' * 3 + "加载数据" + ' ' * 3 + '=' * 5)
-    x_train, y_train, x_test, y_test = load_data_set(data_file_path, label_name)
+    x_train, y_train, x_test, y_test = load_data_set(data_file_path)
 
     data_type = "填充训练数据集"
     print('-' * 5 + ' ' * 3 + data_type + ' ' * 3 + '-' * 5)
@@ -162,7 +162,7 @@ def main():
 
     results = model.evaluate(x_test, y_test, verbose=0)
     predictions = model.predict(x_test).squeeze()
-    show_reslut(results, predictions, y_test, label_name)
+    show_result(results, predictions, y_test)
 
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
     history = model.fit(x_train_seq, y_train, epochs=epochs // 2, batch_size=batch_size, verbose=2)
@@ -174,7 +174,7 @@ def main():
 
     results = model.evaluate(x_test, y_test, verbose=0)
     predictions = model.predict(x_test).squeeze()
-    show_reslut(results, predictions, y_test, label_name)
+    show_result(results, predictions, y_test)
 
     pass
 

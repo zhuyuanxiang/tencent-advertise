@@ -1,4 +1,4 @@
-/* product_id, industry 没有丢失标签的数据*/
+/* 创建 product_id, industry 没有丢失标签的数据*/
 CREATE VIEW ad_valid AS
 SELECT
   *
@@ -7,6 +7,7 @@ FROM
 WHERE
   product_id <> -1
   AND industry <> -1;
+
 SELECT
   *
 FROM

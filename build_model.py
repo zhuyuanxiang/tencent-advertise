@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-    
+# -*- encoding: utf-8 -*-
 """
 @Author     :   zYx.Tom
 @Contact    :   526614962@qq.com
@@ -20,10 +20,8 @@ import sys
 import sklearn
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import winsound
-from Cython.Plex import Seq
-from keras import Sequential, optimizers, losses, metrics
+from keras import Sequential, optimizers, losses, metrics, Input, Model
 from keras.layers import Embedding, Flatten, Dropout, Dense, Conv1D, GlobalMaxPooling1D, GRU, LSTM, Bidirectional, MaxPooling1D
 from keras.regularizers import l2
 from tensorflow import keras
@@ -51,7 +49,7 @@ assert np.__version__ >= "1.18.1"
 
 
 def build_single_input():
-    model = Sequential()
+    model = Sequential(name='creative_id')
     # mask_zero 在 MaxPooling 层中不能支持
     model.add(Embedding(creative_id_window, embedding_size, input_length=max_len, weights=[load_word2vec_weights()], trainable=False))
     return model
@@ -77,38 +75,69 @@ def build_single_output(model: keras.Sequential):
             # optimizer=optimizers.RMSprop(lr=RMSProp_lr),
             optimizer=optimizers.Adam(learning_rate),
             loss=losses.binary_crossentropy,
-            metrics=[metrics.binary_accuracy])
+            metrics=[metrics.binary_accuracy]
+        )
     else:
         raise Exception("错误的标签类型！")
     return model
+
+
+def build_single_input_api():
+    input_creative_id = Input(shape=(max_len,), dtype='int32', name='creative_id')
+    return [input_creative_id]
+
+
+def build_single_model_api(model_input, model_output):
+    model = Model(model_input, model_output)
+    print("%s——模型构建完成！" % model_type)
+    print("* 编译模型")
+    if label_name == 'age':
+        model.compile(
+            optimizer=optimizers.RMSprop(learning_rate),
+            loss=losses.sparse_categorical_crossentropy,
+            metrics=[metrics.sparse_categorical_accuracy]
+        )
+    elif label_name == 'gender':
+        model.compile(optimizer=optimizers.Adam(learning_rate), loss=losses.binary_crossentropy, metrics=[metrics.binary_accuracy])
+    else:
+        raise Exception("错误的标签类型！")
+    return model
+
+
+def build_single_output_api(concatenated):
+    if label_name == 'age':
+        model_output = Dense(10, activation='softmax', kernel_regularizer=l2(0.001))(concatenated)
+    elif label_name == 'gender':
+        model_output = Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001))(concatenated)
+    else:
+        raise Exception("错误的标签类型！")
+    return model_output
 
 
 # ----------------------------------------------------------------------
 def build_mlp():
     model = build_single_input()
     model.add(Flatten())
-    model.add(Dropout(0.2))
-    model.add(Dense(embedding_size * max_len // 4, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Dropout(0.2))
-    model.add(build_single_output(model))
+    model.add(Dropout(0.5))
+    model.add(Dense(embedding_size * 4, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dropout(0.5))
     return build_single_output(model)
 
 
 # ----------------------------------------------------------------------
 def build_conv1d_mlp():
     model = build_single_input()
-    model.add(Conv1D(64, 7, strides=2, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Conv1D(128, 7, strides=2, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Conv1D(embedding_size * 2, 2, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Conv1D(embedding_size * 2, 2, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(MaxPooling1D())
     model.add(Flatten())
-    model.add(Dropout(0.2))
-    model.add(Dense(embedding_size * max_len // 4, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Dropout(0.2))
-    model.add(build_single_output(model))
+    model.add(Dropout(0.5))
+    model.add(Dense(embedding_size * 4, activation='relu', kernel_regularizer=l2(0.001)))
     return build_single_output(model)
 
 
 # ----------------------------------------------------------------------
-def build_conv1d():
+def build_conv1d() -> object:
     model = build_single_input()
     model.add(Conv1D(embedding_size * 2, 2, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Conv1D(embedding_size * 2, 2, activation='relu', kernel_regularizer=l2(0.001)))
@@ -129,7 +158,6 @@ def build_conv1d():
     # model.add(Conv1D(embedding_size * 16, 3, strides=2, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(GlobalMaxPooling1D())
     model.add(Dropout(0.2))
-    model.add(build_single_output(model))
     return build_single_output(model)
 
 
@@ -137,7 +165,6 @@ def build_conv1d():
 def build_global_max_pooling1d():
     model = build_single_input()
     model.add(GlobalMaxPooling1D())
-    model.add(build_single_output(model))
     return build_single_output(model)
 
 
@@ -151,7 +178,6 @@ def build_gru():
     model = build_single_input()
     model.add(GRU(embedding_size, dropout=0.2, recurrent_dropout=0.2))
     # model.add(LSTM(128, dropout = 0.5, recurrent_dropout = 0.5))
-    model.add(build_single_output(model))
     return build_single_output(model)
 
 
@@ -163,7 +189,6 @@ def build_lstm():
     :return:
     """
     model = build_single_input()
-    model.add(build_single_output(model))
     return build_single_output(model)
 
 
@@ -171,10 +196,9 @@ def build_lstm():
 def build_conv1d_lstm():
     model = build_single_input()
 
-    model.add(Conv1D(32, 5, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Conv1D(32, 5, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(LSTM(16, dropout=0.5, recurrent_dropout=0.5))
-    model.add(build_single_output(model))
+    model.add(Conv1D(embedding_size, 5, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Conv1D(embedding_size, 5, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(LSTM(embedding_size, dropout=0.5, recurrent_dropout=0.5))
     return build_single_output(model)
 
 
@@ -187,7 +211,6 @@ def build_bidirectional_lstm():
     """
     model = build_single_input()
     model.add(Bidirectional(LSTM(embedding_size, dropout=0.2, recurrent_dropout=0.2)))
-    model.add(build_single_output(model))
     return build_single_output(model)
 
 
@@ -207,7 +230,6 @@ def build_le_net():
     model.add(Dropout(0.2))
     model.add(Dense(embedding_size * 3, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Dropout(0.2))
-    model.add(build_single_output(model))
     return build_single_output(model)
 
 
@@ -222,102 +244,19 @@ def build_alex_net():
     model.add(Conv1D(embedding_size * 2, kernel_size=2, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Conv1D(embedding_size * 2, kernel_size=2, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(MaxPooling1D())
-    model.add(Conv1D(embedding_size * 3, kernel_size=2, padding='same', activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Conv1D(embedding_size * 3, kernel_size=2, padding='same', activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Conv1D(embedding_size * 4, kernel_size=2, padding='same', activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Conv1D(embedding_size * 4, kernel_size=2, padding='same', activation='relu', kernel_regularizer=l2(0.001)))
     model.add(MaxPooling1D())
+    model.add(Conv1D(embedding_size * 8, kernel_size=2, padding='valid', activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Conv1D(embedding_size * 8, kernel_size=2, padding='valid', activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Conv1D(embedding_size * 4, kernel_size=2, padding='valid', activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Conv1D(embedding_size * 4, kernel_size=2, padding='valid', activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Conv1D(embedding_size * 3, kernel_size=2, padding='valid', activation='relu', kernel_regularizer=l2(0.001)))
     model.add(MaxPooling1D())
     model.add(Flatten())
-    model.add(Dropout(0.3))
-    model.add(Dense(embedding_size * embedding_size // 2, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Dropout(0.3))
-    model.add(Dense(embedding_size * embedding_size // 2, activation='relu', kernel_regularizer=l2(0.001)))
-    model.add(Dropout(0.2))
-    model.add(build_single_output(model))
-    return build_single_output(model)
-
-
-# ----------------------------------------------------------------------
-def build_vgg():
-    """
-    使用重复元素的网络
-    :param model:
-    :return:
-    """
-    model = build_single_input()
-    conv_arch = ((2, 64), (2, 128), (2, 256), (2, 256))
-    for (num_convs, num_channels) in conv_arch:
-        model.add(vgg_block(num_convs, num_channels))
-    model.add(Flatten())
-    model.add(Dense(embedding_size * 2, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(embedding_size * 8, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Dropout(0.5))
-    model.add(Dense(embedding_size * 2, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(embedding_size * 8, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Dropout(0.5))
     return build_single_output(model)
-
-
-def vgg_block(num_convs, num_channels):
-    blk = Sequential()
-    for _ in range(num_convs):
-        blk.add(Conv1D(num_channels, kernel_size=2, padding='same', activation='relu'))
-    blk.add(MaxPooling1D())
-    return blk
-
-
-# ----------------------------------------------------------------------
-def build_nin():
-    """
-    网络中的网络
-    :param model:
-    :return:
-    """
-    model = build_single_input()
-    model.add(nin_block(64, 3, 2, 'valid'))
-    model.add(MaxPooling1D())
-    model.add(nin_block(128, 3, 1, 'same'))
-    model.add(MaxPooling1D())
-    model.add(nin_block(64, 2, 1, 'same'))
-    model.add(MaxPooling1D())
-    model.add(Dropout(0.5))
-    model.add(nin_block(1, 2, 1, 'same'))
-    model.add(GlobalMaxPooling1D())
-    model.add(Flatten())
-    model.add(build_single_output(model))
-    return model
-
-
-def nin_block(num_channels, kernel_size, strides, padding):
-    blk = Sequential()
-    blk.add(Conv1D(num_channels, kernel_size, strides, padding, activation='relu'))
-    blk.add(Conv1D(num_channels, kernel_size=1, activation='relu'))
-    blk.add(Conv1D(num_channels, kernel_size=1, activation='relu'))
-    return blk
-
-
-# ----------------------------------------------------------------------
-def build_google_net():
-    """
-    含并行连结的网络
-    :param model:
-    :return:
-    """
-    model = build_single_input()
-    model.add(build_single_output(model))
-    return model
-
-
-# ----------------------------------------------------------------------
-def build_res_net():
-    """
-    残差网络
-    :param model:
-    :return:
-    """
-    model = build_single_input()
-    model.add(build_single_output(model))
-    return model
 
 
 # ----------------------------------------------------------------------
@@ -328,8 +267,7 @@ def build_dense_net():
     :return:
     """
     model = build_single_input()
-    model.add(build_single_output(model))
-    return model
+    return build_single_output(model)
 
 
 # ----------------------------------------------------------------------
@@ -340,8 +278,7 @@ def build_rcnn():
     :return:
     """
     model = build_single_input()
-    model.add(build_single_output(model))
-    return model
+    return build_single_output(model)
 
 
 # ----------------------------------------------------------------------
@@ -352,8 +289,7 @@ def build_text_cnn():
     :return:
     """
     model = build_single_input()
-    model.add(build_single_output(model))
-    return model
+    return build_single_output(model)
 
 
 # ----------------------------------------------------------------------
@@ -364,8 +300,7 @@ def build_fcn():
     :return:
     """
     model = build_single_input()
-    model.add(build_single_output(model))
-    return model
+    return build_single_output(model)
 
 
 # ----------------------------------------------------------------------

@@ -39,13 +39,13 @@ def export_word2vec_data():
     creative_id_end = creative_id_begin + creative_id_window
 
     save_data_path = '../../save_data/tf_idf/no_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
     save_data_path = '../../save_data/tf_idf/with_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_with_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
@@ -55,13 +55,13 @@ def export_word2vec_data():
     creative_id_end = creative_id_begin + creative_id_window
 
     save_data_path = '../../save_data/tf_idf/no_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_no_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_no_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
     save_data_path = '../../save_data/tf_idf/with_interval/word2vec/'
-    x_creative_id = generate_word2vec_data_with_interval(x_csv, creative_id_begin, creative_id_end)
+    x_creative_id = generate_word2vec_data_with_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
@@ -91,14 +91,14 @@ def export_data_set():
     creative_id_begin = 0
     creative_id_end = creative_id_begin + creative_id_window
 
-    x_csv, y_csv = load_original_data(load_file_path + 'train_data_all_tf_idf_v.csv', field_list, label_list)
-    x_data, y_data = generate_data_no_interval_with_repeat(x_csv, y_csv, creative_id_begin, creative_id_end)
+    x_csv, y_csv = load_original_data()
+    x_data, y_data = generate_data_no_interval_with_repeat(x_csv, y_csv)
 
     label_data = y_data[:, label_list.index(label_name)]
     x_train, x_test, y_train, y_test = train_test_split(x_data, label_data, random_state=seed, stratify=label_data)
     del x_data, y_data
 
-    save_data_set(x_train, y_train, x_test, y_test, save_file_path, label_name, creative_id_window)
+    save_data_set(x_train, y_train, x_test, y_test)
     del x_train, y_train, x_test, y_test
 
     print("\n数据清洗完成！")

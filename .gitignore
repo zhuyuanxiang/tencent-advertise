@@ -143,3 +143,4 @@ log_dir/*
 log_dir/*
 save_data/*
 save_model/*
+/code/tmp/tmp.py

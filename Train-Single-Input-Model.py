@@ -41,7 +41,7 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 设置数据显示的精确度为小数点后3位
-np.set_printoptions(precision = 3, suppress = True, threshold = np.inf, linewidth = 200)
+np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
 # to make this notebook's output stable across runs
 seed = 42
 np.random.seed(seed)
@@ -58,7 +58,7 @@ assert np.__version__ >= "1.18.1"
 def load_data():
     # 「CSV」文件字段名称
     # "time_id","user_id_inc","user_id","creative_id_inc","creative_id","click_times","age","gender"
-    df = pd.read_csv(file_name, dtype = int)
+    df = pd.read_csv(file_name, dtype=int)
     # -----------------------------------
     # 输入数据处理：选择需要的列
     if sequence_data:
@@ -82,20 +82,20 @@ def load_data():
 # 生成所需要的数据
 def generate_data(X_data, y_data):
     global unknown_word, data_seq_head
-    print("数据生成中：", end = '')
+    print("数据生成中：", end='')
     if sequence_data:
         unknown_word = True  # 是否使用未知词 1
         data_seq_head = True  # 是否生成序列头 2
-    y_doc = np.zeros([user_id_num], dtype = int)
+    y_doc = np.zeros([user_id_max], dtype=int)
     # 初始化 X_doc 为空的列表
-    X_doc = np.zeros([user_id_num], dtype = object)
+    X_doc = np.zeros([user_id_max], dtype=object)
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     tmp_user_id = -1
     tmp_time_id = 0
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print(".", end = '')
+            print(".", end='')
             pass
         user_id = row_data[0]
         time_id = row_data[2]
@@ -168,13 +168,13 @@ def generate_data(X_data, y_data):
 
 
 def generate_fix_data(X_data, y_data):
-    print("数据生成中（共 {0} 条数据)：".format(30000000), end = '')
-    y_doc = np.zeros([user_id_num], dtype = int)
+    print("数据生成中（共 {0} 条数据)：".format(30000000), end='')
+    y_doc = np.zeros([user_id_max], dtype=int)
     # 初始化 X_doc 为空的列表
     # X_doc[:,0]: creative_id
     # X_doc[:,1]: click_times
     train_field_num = field_num - 2  # filed_list 去除 user_id, time_id
-    X_doc = np.zeros([user_id_num, train_field_num, time_id_max * period_length // period_days], dtype = object)
+    X_doc = np.zeros([user_id_max, train_field_num, time_id_max * period_length // period_days], dtype=object)
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     prev_user_id = -1
     prev_time_id = 0
@@ -182,11 +182,11 @@ def generate_fix_data(X_data, y_data):
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print("第 {0} 条数据-->".format(i), end = ';')
+            print("第 {0} 条数据-->".format(i), end=';')
             pass
         user_id = row_data[0]
         time_id = row_data[2]
-        if user_id >= user_id_num:
+        if user_id >= user_id_max:
             break
         y_doc[user_id] = y_data[i] if age_sigmoid == -1 or label_name == 'gender' else int(age_sigmoid == y_data[i])
         # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
@@ -256,16 +256,16 @@ def construct_model():
     output_parameters()
     model = Sequential()
     # mask_zero 在 MaxPooling 层中不能支持
-    model.add(Embedding(creative_id_window, embedding_size, input_length = max_len))
+    model.add(Embedding(creative_id_window, embedding_size, input_length=max_len))
     if model_type == 'MLP':
         model.add(Flatten())
-        model.add(Dense(8, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Dense(8, activation='relu', kernel_regularizer=l2(0.001)))
         model.add(Dropout(0.5))
-        model.add(Dense(4, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Dense(4, activation='relu', kernel_regularizer=l2(0.001)))
         model.add(Dropout(0.5))
     elif model_type == 'Conv1D':
-        model.add(Conv1D(32, 7, activation = 'relu', kernel_regularizer = l2(0.001)))
-        model.add(Conv1D(32, 7, activation = 'relu', kernel_regularizer = l2(0.001)))
+        model.add(Conv1D(32, 7, activation='relu', kernel_regularizer=l2(0.001)))
+        model.add(Conv1D(32, 7, activation='relu', kernel_regularizer=l2(0.001)))
         model.add(GlobalMaxPooling1D())
     elif model_type == 'GlobalMaxPooling1D':
         model.add(GlobalMaxPooling1D())
@@ -273,70 +273,70 @@ def construct_model():
         model.add(GlobalMaxPooling1D())
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size // 2, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 2, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('softmax'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size // 2, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 2, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size // 2, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 2, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size // 4, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 4, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('softmax'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size // 4, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 4, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size // 4, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size // 4, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
     elif model_type == 'GRU+MLP':
-        model.add(GRU(embedding_size, dropout = 0.5, recurrent_dropout = 0.5))
+        model.add(GRU(embedding_size, dropout=0.5, recurrent_dropout=0.5))
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
         model.add(Dropout(0.5))
-        model.add(Dense(embedding_size, kernel_regularizer = l2(0.001)))
+        model.add(Dense(embedding_size, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
     elif model_type == 'GRU':
-        model.add(GRU(embedding_size, dropout = 0.2, recurrent_dropout = 0.2))
+        model.add(GRU(embedding_size, dropout=0.2, recurrent_dropout=0.2))
         # model.add(LSTM(128, dropout = 0.5, recurrent_dropout = 0.5))
     elif model_type == 'Conv1D+LSTM':
-        model.add(Conv1D(32, 5, activation = 'relu', kernel_regularizer = l2(0.001)))
-        model.add(Conv1D(32, 5, activation = 'relu', kernel_regularizer = l2(0.001)))
-        model.add(LSTM(16, dropout = 0.5, recurrent_dropout = 0.5))
+        model.add(Conv1D(32, 5, activation='relu', kernel_regularizer=l2(0.001)))
+        model.add(Conv1D(32, 5, activation='relu', kernel_regularizer=l2(0.001)))
+        model.add(LSTM(16, dropout=0.5, recurrent_dropout=0.5))
     elif model_type == 'Bidirectional-LSTM':
-        model.add(Bidirectional(LSTM(embedding_size, dropout = 0.2, recurrent_dropout = 0.2)))
+        model.add(Bidirectional(LSTM(embedding_size, dropout=0.2, recurrent_dropout=0.2)))
     else:
         raise Exception("错误的网络模型类型")
 
     if label_name == "age":
         model.add(Dropout(0.5))
-        model.add(Dense(10, kernel_regularizer = l2(0.001)))
+        model.add(Dense(10, kernel_regularizer=l2(0.001)))
         model.add(BatchNormalization())
         model.add(Activation('softmax'))
         # model.add(Dense(10, activation = 'softmax', kernel_regularizer = l2(0.001)))
@@ -344,20 +344,20 @@ def construct_model():
         print("* 编译模型")
         # Keras 好像不能支持 report_tensor_allocations_upon_oom
         # 运行时会 Python 会报错：Process finished with exit code -1073741819 (0xC0000005)
-        model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
-                      loss = losses.sparse_categorical_crossentropy,
-                      metrics = [metrics.sparse_categorical_accuracy])
+        model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                      loss=losses.sparse_categorical_crossentropy,
+                      metrics=[metrics.sparse_categorical_accuracy])
     elif label_name == 'gender':
         # model.add(Dropout(0.5))
         # model.add(Dense(1, kernel_regularizer = l2(0.001)))
         # model.add(BatchNormalization())
         # model.add(Activation('sigmoid'))
-        model.add(Dense(1, activation = 'sigmoid', kernel_regularizer = l2(0.001)))
+        model.add(Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001)))
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
-        model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
-                      loss = losses.binary_crossentropy,
-                      metrics = [metrics.binary_accuracy])
+        model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                      loss=losses.binary_crossentropy,
+                      metrics=[metrics.binary_accuracy])
     else:
         raise Exception("错误的标签类型！")
     return model
@@ -365,7 +365,7 @@ def construct_model():
 
 def output_parameters():
     print("实验报告参数")
-    print("\tuser_id_number =", user_id_num)
+    print("\tuser_id_maxber =", user_id_max)
     print("\tcreative_id_max =", creative_id_max)
     print("\tcreative_id_step_size =", creative_id_step_size)
     print("\tcreative_id_window =", creative_id_window)
@@ -393,13 +393,13 @@ def train_model(X_data, y_data):
     output_example_data(X_doc, y_doc)
     # ----------------------------------------------------------------------
     # 填充数据集
-    X_seq = pad_sequences(X_doc, maxlen = max_len, padding = 'post')
+    X_seq = pad_sequences(X_doc, maxlen=max_len, padding='post')
     y_seq = y_doc
     # print('-' * 5 + ' ' * 3 + "填充数据集" + ' ' * 3 + '-' * 5)
     # output_example_data(X_seq, y_seq)
     # ----------------------------------------------------------------------
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    X_train, X_test, y_train, y_test = train_test_split(X_seq, y_seq, random_state = seed, stratify = y_seq)
+    X_train, X_test, y_train, y_test = train_test_split(X_seq, y_seq, random_state=seed, stratify=y_seq)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
     # print('-' * 5 + ' ' * 3 + "训练数据集" + ' ' * 3 + '-' * 5)
     # output_example_data(X_train, y_train)
@@ -410,23 +410,23 @@ def train_model(X_data, y_data):
     # ----------------------------------------------------------------------
     # 输出训练的结果
     def output_result():
-        print("模型预测-->", end = '')
+        print("模型预测-->", end='')
         print("损失值 = {}，精确度 = {}".format(results[0], results[1]))
         if label_name == 'age':
             np_argmax = np.argmax(predictions, 1)
             # print("前 30 个真实的预测数据 =", np.array(X_test[:30], dtype = int))
-            print("前 30 个真实的目标数据 =", np.array(y_test[:30], dtype = int))
-            print("前 30 个预测的目标数据 =", np.array(np.argmax(predictions[:30], 1), dtype = int))
+            print("前 30 个真实的目标数据 =", np.array(y_test[:30], dtype=int))
+            print("前 30 个预测的目标数据 =", np.array(np.argmax(predictions[:30], 1), dtype=int))
             print("前 30 个预测的结果数据 =", )
             print(predictions[:30])
             for i in range(10):
                 print("类别 {0} 的真实数目：{1}，预测数目：{2}".format(i, sum(y_test == i), sum(np_argmax == i)))
         elif label_name == 'gender':
-            predict_gender = np.array(predictions > 0.5, dtype = int)
+            predict_gender = np.array(predictions > 0.5, dtype=int)
             print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
                   sum(abs(predict_gender - y_test)) / sum(y_test) * 100, '%')
-            print("前100个真实的目标数据 =", np.array(y_test[:100], dtype = int))
-            print("前100个预测的目标数据 =", np.array(predict_gender[:100], dtype = int))
+            print("前100个真实的目标数据 =", np.array(y_test[:100], dtype=int))
+            print("前100个预测的目标数据 =", np.array(predict_gender[:100], dtype=int))
             print("sum(predictions>0.5) =", sum(predict_gender))
             print("sum(y_test) =", sum(y_test))
             print("sum(abs(predictions-y_test))=error_number=", sum(abs(predict_gender - y_test)))
@@ -441,18 +441,18 @@ def train_model(X_data, y_data):
     # 训练网络模型
     # 使用验证集
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
-    model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size,
-              validation_split = 0.2, use_multiprocessing = True, verbose = 2)
-    results = model.evaluate(X_test, y_test, verbose = 0)
+    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,
+              validation_split=0.2, use_multiprocessing=True, verbose=2)
+    results = model.evaluate(X_test, y_test, verbose=0)
     predictions = model.predict(X_test).squeeze()
     output_result()
 
     # ----------------------------------------------------------------------
     # 不使用验证集，训练次数减半
     print('-' * 5 + ' ' * 3 + "不使用验证集训练网络模型，训练次数减半" + ' ' * 3 + '-' * 5)
-    model.fit(X_train, y_train, epochs = epochs // 2, batch_size = batch_size,
-              use_multiprocessing = True, verbose = 2)
-    results = model.evaluate(X_test, y_test, verbose = 0)
+    model.fit(X_train, y_train, epochs=epochs // 2, batch_size=batch_size,
+              use_multiprocessing=True, verbose=2)
+    results = model.evaluate(X_test, y_test, verbose=0)
     predictions = model.predict(X_test).squeeze()
     output_result()
     pass
@@ -618,7 +618,7 @@ if __name__ == '__main__':
     file_name = './data/train_data_all_no_sequence.csv'
     label_name = 'age'
     time_id_max = 91
-    user_id_num = 900000  # 用户数
+    user_id_max = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
     ad_id_max = 2264190  # 最大的广告编号=广告的种类
     product_id_max = 44313  # 最大的产品编号

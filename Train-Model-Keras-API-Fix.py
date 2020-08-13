@@ -42,7 +42,7 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 设置数据显示的精确度为小数点后3位
-np.set_printoptions(precision = 3, suppress = True, threshold = np.inf, linewidth = 200)
+np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
 # to make this notebook's output stable across runs
 seed = 42
 np.random.seed(seed)
@@ -58,7 +58,7 @@ assert np.__version__ >= "1.18.1"
 # 从文件中载入数据
 def load_data():
     # 「CSV」文件字段名称
-    df = pd.read_csv(file_name, dtype = int)
+    df = pd.read_csv(file_name, dtype=int)
     # --------------------------------------------------
     # 输入数据处理：选择需要的列
     X_csv = df[field_list].values
@@ -85,13 +85,13 @@ def load_data():
 # ==================================================
 # 生成所需要的数据
 def generate_fix_data(X_data, y_data):
-    print("数据生成中（共 {0} 条数据)：".format(30000000), end = '')
-    y_doc = np.zeros([user_id_num], dtype = int)
+    print("数据生成中（共 {0} 条数据)：".format(30000000), end='')
+    y_doc = np.zeros([user_id_max], dtype=int)
     # 初始化 X_doc 为空的列表
     # X_doc[:,0]: creative_id
     # X_doc[:,1]: click_times
     train_field_num = field_num - 2  # filed_list 去除 user_id, time_id
-    X_doc = np.zeros([user_id_num, train_field_num, time_id_max * period_length // period_days], dtype = object)
+    X_doc = np.zeros([user_id_max, train_field_num, time_id_max * period_length // period_days], dtype=object)
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     prev_user_id = -1
     prev_time_id = 0
@@ -99,11 +99,11 @@ def generate_fix_data(X_data, y_data):
     for i, row_data in enumerate(X_data):
         # 数据清洗的进度
         if (i % data_step) == 0:
-            print("第 {0} 条数据-->".format(i), end = ';')
+            print("第 {0} 条数据-->".format(i), end=';')
             pass
         user_id = row_data[0]
         time_id = row_data[2]
-        if user_id >= user_id_num:
+        if user_id >= user_id_max:
             break
         y_doc[user_id] = y_data[i] if age_sigmoid == -1 or label_name == 'gender' else int(age_sigmoid == y_data[i])
         # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
@@ -169,7 +169,7 @@ def output_example_data(X, y):
 
 # ==================================================
 # 损失函数建议不再变更
-def myCrossEntropy(y_true, y_pred, e = 0.3):
+def myCrossEntropy(y_true, y_pred, e=0.3):
     loss = K.sparse_categorical_crossentropy(y_true, y_pred)
     loss0 = K.sparse_categorical_crossentropy(K.zeros_like(y_true), y_pred)
     loss1 = K.sparse_categorical_crossentropy(K.ones_like(y_true), y_pred)
@@ -192,26 +192,26 @@ def myCrossEntropy(y_true, y_pred, e = 0.3):
 # 训练网络模型
 def construct_model():
     input_creative_id = Input(
-        shape = (time_id_max * period_length // period_days), dtype = 'int32', name = 'creative_id'
+        shape=(time_id_max * period_length // period_days), dtype='int32', name='creative_id'
     )
     embedded_creative_id = Embedding(
-        creative_id_window, embedding_size, name = 'creative_id_embedded')(input_creative_id)
+        creative_id_window, embedding_size, name='creative_id_embedded')(input_creative_id)
     # encoded_creative_id = GlobalMaxPooling1D(name = 'creative_id_encoded')(embedded_creative_id)
-    x = Conv1D(embedding_size, 3, 2, activation = 'relu', name = 'creative_id_convolution_0101')(embedded_creative_id)
-    x = Dropout(0.5, name = 'creative_id_D_0101')(x)
-    x = BatchNormalization(name = 'creative_id_BN_0101')(x)
-    x = MaxPooling1D(8, name = 'creative_id_pool_0101')(x)
-    x = Dropout(0.5, name = 'creative_id_D_0102')(x)
-    x = BatchNormalization(name = 'creative_id_BN_0102')(x)
+    x = Conv1D(embedding_size, 3, 2, activation='relu', name='creative_id_convolution_0101')(embedded_creative_id)
+    x = Dropout(0.5, name='creative_id_D_0101')(x)
+    x = BatchNormalization(name='creative_id_BN_0101')(x)
+    x = MaxPooling1D(8, name='creative_id_pool_0101')(x)
+    x = Dropout(0.5, name='creative_id_D_0102')(x)
+    x = BatchNormalization(name='creative_id_BN_0102')(x)
     # x = Conv1D(embedding_size, 3, 2, activation = 'relu', name = 'creative_id_convolution_0102')(x)
     # x = Dropout(0.5, name = 'creative_id_D_0201')(x)
     # x = BatchNormalization(name = 'creative_id_BN_0201')(x)
     # # x = MaxPooling1D(3, name = 'creative_id_pool_0102')(x)
     # # x = Dropout(0.5, name = 'creative_id_D_0202')(x)
     # # x = BatchNormalization(name = 'creative_id_BN_0202')(x)
-    x = GRU(embedding_size, dropout = 0.5, recurrent_dropout = 0.5,
-            return_sequences = True, name = 'creative_id_GRU_0101')(x)
-    encoded_creative_id = GlobalMaxPooling1D(name = 'creative_id_encoded')(x)
+    x = GRU(embedding_size, dropout=0.5, recurrent_dropout=0.5,
+            return_sequences=True, name='creative_id_GRU_0101')(x)
+    encoded_creative_id = GlobalMaxPooling1D(name='creative_id_encoded')(x)
 
     # # LSTM(14) : 是因为 91 天正好是 14 个星期
     # # LSTM(32) : 方便计算
@@ -244,29 +244,29 @@ def construct_model():
     # ], axis = -1)
     #
     # x = Dropout(0.5)(concatenated)
-    x = Dropout(0.5, name = 'Dense_Dropout_0101')(encoded_creative_id)
-    x = Dense((embedding_size + 0), kernel_regularizer = l2(0.001), name = 'Dense_0101')(x)
-    x = BatchNormalization(name = 'Dense_BN_0101')(x)
-    x = Activation('relu', name = 'Dense_Activation_0101')(x)
+    x = Dropout(0.5, name='Dense_Dropout_0101')(encoded_creative_id)
+    x = Dense((embedding_size + 0), kernel_regularizer=l2(0.001), name='Dense_0101')(x)
+    x = BatchNormalization(name='Dense_BN_0101')(x)
+    x = Activation('relu', name='Dense_Activation_0101')(x)
 
-    x = Dropout(0.5, name = 'Dense_Dropout_0102')(x)
-    x = Dense((embedding_size + 0), kernel_regularizer = l2(0.001), name = 'Dense_0102')(x)
-    x = BatchNormalization(name = 'Dense_BN_0102')(x)
-    x = Activation('relu', name = 'Dense_Activation_0102')(x)
+    x = Dropout(0.5, name='Dense_Dropout_0102')(x)
+    x = Dense((embedding_size + 0), kernel_regularizer=l2(0.001), name='Dense_0102')(x)
+    x = BatchNormalization(name='Dense_BN_0102')(x)
+    x = Activation('relu', name='Dense_Activation_0102')(x)
 
-    x = Dropout(0.5, name = 'Dense_Dropout_0201')(x)
-    x = Dense((embedding_size + 0) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0201')(x)
-    x = BatchNormalization(name = 'Dense_BN_0201')(x)
-    x = Activation('relu', name = 'Dense_Activation_0201')(x)
+    x = Dropout(0.5, name='Dense_Dropout_0201')(x)
+    x = Dense((embedding_size + 0) // 2, kernel_regularizer=l2(0.001), name='Dense_0201')(x)
+    x = BatchNormalization(name='Dense_BN_0201')(x)
+    x = Activation('relu', name='Dense_Activation_0201')(x)
 
-    x = Dropout(0.5, name = 'Dense_Dropout_0202')(x)
-    x = Dense((embedding_size + 0) // 2, kernel_regularizer = l2(0.001), name = 'Dense_0202')(x)
-    x = BatchNormalization(name = 'Dense_BN_0202')(x)
-    x = Activation('relu', name = 'Dense_Activation_0202')(x)
+    x = Dropout(0.5, name='Dense_Dropout_0202')(x)
+    x = Dense((embedding_size + 0) // 2, kernel_regularizer=l2(0.001), name='Dense_0202')(x)
+    x = BatchNormalization(name='Dense_BN_0202')(x)
+    x = Activation('relu', name='Dense_Activation_0202')(x)
 
     if label_name == "age" and age_sigmoid == -1:
         x = Dropout(0.5)(x)
-        x = Dense(10, kernel_regularizer = l2(0.001), name = 'output')(x)
+        x = Dense(10, kernel_regularizer=l2(0.001), name='output')(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('softmax')(x)
 
@@ -281,13 +281,13 @@ def construct_model():
 
         print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
 
-        model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
-                      loss = myCrossEntropy,
+        model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                      loss=myCrossEntropy,
                       # loss = losses.sparse_categorical_crossentropy,
-                      metrics = [metrics.sparse_categorical_accuracy])
+                      metrics=[metrics.sparse_categorical_accuracy])
     elif label_name == 'gender' or age_sigmoid != -1:
         x = Dropout(0.5)(x)
-        x = Dense(1, kernel_regularizer = l2(0.001), name = 'output')(x)
+        x = Dense(1, kernel_regularizer=l2(0.001), name='output')(x)
         x = BatchNormalization()(x)
         output_tensor = Activation('sigmoid')(x)
 
@@ -302,9 +302,9 @@ def construct_model():
 
         print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
 
-        model.compile(optimizer = optimizers.RMSprop(lr = RMSProp_lr),
-                      loss = losses.binary_crossentropy,
-                      metrics = [metrics.binary_accuracy])
+        model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                      loss=losses.binary_crossentropy,
+                      metrics=[metrics.binary_accuracy])
     else:
         raise Exception("错误的标签类型！")
     return model
@@ -314,7 +314,7 @@ def construct_model():
 def output_parameters():
     print("实验报告参数")
     print("\t label_name =", label_name)
-    print("\t user_id_number =", user_id_num)
+    print("\t user_id_maxber =", user_id_max)
     print("\t time_id_max =", time_id_max)
     print("\t creative_id_begin =", creative_id_begin)
     print("\t creative_id_end =", creative_id_end)
@@ -331,22 +331,22 @@ def output_parameters():
 # ==================================================
 # 输出训练的结果
 def output_result(results, predictions, y_test):
-    print("模型预测-->", end = '')
+    print("模型预测-->", end='')
     print("损失值 = {}，精确度 = {}".format(results[0], results[1]))
     if label_name == 'age':
         np_argmax = np.argmax(predictions, 1)
-        print("前 30 个真实的目标数据 =", np.array(y_test[:30], dtype = int))
-        print("前 30 个预测的目标数据 =", np.array(np.argmax(predictions[:30], 1), dtype = int))
+        print("前 30 个真实的目标数据 =", np.array(y_test[:30], dtype=int))
+        print("前 30 个预测的目标数据 =", np.array(np.argmax(predictions[:30], 1), dtype=int))
         print("前 30 个预测的结果数据 =", )
         print(predictions[:30])
         for i in range(10):
             print("类别 {0} 的真实数目：{1}，预测数目：{2}".format(i, sum(y_test == i), sum(np_argmax == i)))
     elif label_name == 'gender':
-        predict_gender = np.array(predictions > 0.5, dtype = int)
+        predict_gender = np.array(predictions > 0.5, dtype=int)
         print("sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
               sum(abs(predict_gender - y_test)) / sum(y_test) * 100, '%')
-        print("前100个真实的目标数据 =", np.array(y_test[:100], dtype = int))
-        print("前100个预测的目标数据 =", np.array(predict_gender[:100], dtype = int))
+        print("前100个真实的目标数据 =", np.array(y_test[:100], dtype=int))
+        print("前100个预测的目标数据 =", np.array(predict_gender[:100], dtype=int))
         print("sum(predictions>0.5) =", sum(predict_gender))
         print("sum(y_test) =", sum(y_test))
         print("sum(abs(predictions-y_test))=error_number=", sum(abs(predict_gender - y_test)))
@@ -367,10 +367,10 @@ def continue_train_model():
     model = keras.models.load_model('/save_model/m1.h5')
     model.summary()
     print('-' * 5 + ' ' * 3 + "加载 npy 数据集" + ' ' * 3 + '-' * 5)
-    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle = True)
-    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle = True)
-    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle = True)
-    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle = True)
+    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle=True)
+    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle=True)
+    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle=True)
+    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle=True)
 
 
 def train_model():
@@ -386,10 +386,10 @@ def train_model():
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     # --------------------------------------------------
     print('-' * 5 + ' ' * 3 + "加载 npy 数据集" + ' ' * 3 + '-' * 5)
-    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle = True)
-    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle = True)
-    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle = True)
-    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle = True)
+    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle=True)
+    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle=True)
+    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle=True)
+    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle=True)
 
     # # 加载数据
     # print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -417,16 +417,16 @@ def train_model():
     history = model.fit({
         'creative_id': X_train[:, 0],
         'click_times': X_train[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
-    }, y_train, epochs = epochs, batch_size = batch_size,
-        validation_split = 0.2, use_multiprocessing = True, verbose = 2)
+    }, y_train, epochs=epochs, batch_size=batch_size,
+        validation_split=0.2, use_multiprocessing=True, verbose=2)
     print("保存第一次训练模型", model.save_weights('save_model/m1.bin'))
-    f = open('m2.pkl', 'wb')
+    f = open('m1.pkl', 'wb')
     pickle.dump(history, f)
     f.close()
     results = model.evaluate({
         'creative_id': X_test[:, 0],
         'click_times': X_test[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
-    }, y_test, use_multiprocessing = True, verbose = 0)
+    }, y_test, use_multiprocessing=True, verbose=0)
     predictions = model.predict({
         'creative_id': X_test[:, 0],
         'click_times': X_test[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
@@ -438,8 +438,8 @@ def train_model():
     history = model.fit({
         'creative_id': X_train[:, 0],
         'click_times': X_train[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
-    }, y_train, epochs = epochs // 2, batch_size = batch_size, use_multiprocessing = True,
-        verbose = 2)
+    }, y_train, epochs=epochs // 2, batch_size=batch_size, use_multiprocessing=True,
+        verbose=2)
     print("保存第二次训练模型", model.save_weights('save_model/m2.bin'))
     f = open('m2.pkl', 'wb')
     pickle.dump(history, f)
@@ -448,7 +448,7 @@ def train_model():
     results = model.evaluate({
         'creative_id': X_test[:, 0],
         'click_times': X_test[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
-    }, y_test, use_multiprocessing = True, verbose = 0)
+    }, y_test, use_multiprocessing=True, verbose=0)
     predictions = model.predict({
         'creative_id': X_test[:, 0],
         'click_times': X_test[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
@@ -481,7 +481,7 @@ if __name__ == '__main__':
     label_name = ''
     age_sigmoid = -1
     # 定义全局序列变量
-    user_id_num = 900000  # 用户数
+    user_id_max = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
     time_id_max = 91
     click_times_max = 152  # 所有素材中最大的点击次数

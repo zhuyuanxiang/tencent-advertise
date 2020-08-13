@@ -84,7 +84,7 @@ def load_data():
 # 生成所需要的数据
 def generate_data(X_data, y_data):
     print("数据生成中：", end = '')
-    y_doc = np.zeros([user_id_num], dtype = int)
+    y_doc = np.zeros([user_id_max], dtype = int)
     # 初始化 X_doc 为空的列表
     # X_doc[:,0]: creative_id
     # X_doc[:,1]: product_id, X_doc[:,2]: product_category
@@ -92,7 +92,7 @@ def generate_data(X_data, y_data):
     # X_doc[:,5]: click_times
     # filed_list 去除 user_id, time_id
     train_field_num = field_num - 2
-    X_doc = np.zeros([user_id_num, train_field_num], dtype = object)
+    X_doc = np.zeros([user_id_max, train_field_num], dtype = object)
     data_step = X_data.shape[0] // 100  # 标识数据清洗进度的步长
     prev_user_id = -1
     prev_time_id = 0
@@ -103,7 +103,7 @@ def generate_data(X_data, y_data):
             pass
         user_id = row_data[0]
         time_id = row_data[2]
-        if user_id >= user_id_num:
+        if user_id >= user_id_max:
             break
         y_doc[user_id] = y_data[i] if age_sigmoid == -1 or label_name == 'gender' else int(age_sigmoid == y_data[i])
         # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
@@ -313,7 +313,7 @@ def construct_model():
 # ==================================================
 def output_parameters():
     print("实验报告参数")
-    print("\tuser_id_number =", user_id_num)
+    print("\tuser_id_maxber =", user_id_max)
     print("\tcreative_id_max =", creative_id_max)
     print("\tcreative_id_step_size =", creative_id_step_size)
     print("\tcreative_id_window =", creative_id_window)
@@ -380,7 +380,7 @@ def train_model():
     # --------------------------------------------------
     # 拆分数据集，按 3:1 分成 训练数据集 和 测试数据集
     print('-' * 5 + ' ' * 3 + "拆分数据集" + ' ' * 3 + '-' * 5)
-    X_doc_user_id = np.arange(0, user_id_num)
+    X_doc_user_id = np.arange(0, user_id_max)
     X_train_idx, X_test_idx, y_train, y_test = train_test_split(
         X_doc_user_id, y_doc, random_state = seed, stratify = y_doc)
     print("训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
@@ -491,7 +491,7 @@ if __name__ == '__main__':
     label_name = 'age'  # age: 多分类问题；gender: 二分类问题
     age_sigmoid = 2  # age_sigmoid==-1: 多分类问题，否则是对某个类别的二分类问题
     # 定义全局序列变量
-    user_id_num = 900000  # 用户数
+    user_id_max = 900000  # 用户数
     creative_id_max = 2481135 - 1  # 最大的素材编号 = 素材的总数量 - 1，这个编号已经修正了数据库与Python索引的区别
     time_id_max = 91
     click_times_max = 152  # 所有素材中最大的点击次数
