@@ -20,7 +20,7 @@ import config
 from config import creative_id_step_size
 from generate_data import generate_fix_data
 from load_data import load_original_data
-from tools import beep_end
+from tools import beep_end, show_title
 
 
 def export_word2vec_data():
@@ -34,9 +34,10 @@ def export_word2vec_data():
     x_creative_id = generate_word2vec_data_no_interval(x_csv)
 
     field_list = [  # 输入数据处理：选择需要的列
-        "user_id",  # 0
-        "creative_id_inc_sparsity",  # 1
-        "time_id",  # 2
+            "user_id",  # 0
+            "creative_id_inc_sparsity",  # 1
+            "time_id",  # 2
+            "product_category",  # 3
     ]
     x_csv = load_word2vec_file('../../save_data/sparsity/train_data_all_sparsity_v.csv', field_list)
 
@@ -83,47 +84,49 @@ def export_data_set():
     from generate_data import generate_balance_data
     from save_data import save_data
 
-    print('-' * 5 + '>' * 3 + "加载原始数据" + '<' * 3 + '-' * 5)
+    show_title("加载原始数据")
     x_csv, y_csv = load_original_data()
 
-    print('-' * 5 + '>' * 3 + "加工数据为定长的数据列表" + '<' * 3 + '-' * 5)
-    x_data, y_data, x_w2v = generate_fix_data(x_csv, y_csv)
-    save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
-
-    # print('-' * 5 + "   加工数据为无间隔有重复的数据列表   " + '-' * 5)
-    # x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
+    # show_title("加工数据为定长的数据列表")
+    # x_data, y_data, x_w2v = generate_fix_data(x_csv, y_csv)
     # save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
-    #
-    print('-' * 5 + "   拆分训练数据集和测试数据集   " + '-' * 5)
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state=config.seed, stratify=y_data)
+
+    print('-' * 5 + "   加工数据为无间隔有重复的数据列表   " + '-' * 5)
+    x_data, y_data, x_w2v, x_prc = generate_data_no_interval_with_repeat(x_csv, y_csv)
+    save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
+    save_data(x_prc, config.data_file_path + 'x_prc', 'product_category数据集')
+
+    show_title("拆分训练数据集和测试数据集")
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, random_state = config.seed, stratify = y_data)
     save_data(x_train, config.data_file_path + 'x_train', '训练数据集')
     save_data(y_train, config.data_file_path + 'y_train', '训练数据集')
     save_data(x_test, config.data_file_path + 'x_test', '测试数据集')
     save_data(y_test, config.data_file_path + 'y_test', '测试数据集')
 
-    print('-' * 5 + "   平衡训练数据集({})的类别   ".format(config.label_name) + '-' * 5)
+    show_title("平衡训练数据集({})的类别".format(config.label_name))
     x_train_balance, y_train_balance = generate_balance_data(x_train, y_train)
     save_data(x_train_balance, config.data_file_path + 'x_train_balance', '平衡的训练数据集')
     save_data(y_train_balance, config.data_file_path + 'y_train_balance', '平衡的训练数据集')
 
-    print('-' * 5 + "   拆分训练数据集和验证数据集   " + '-' * 5)
-    x_train_val, x_val, y_train_val, y_val = train_test_split(x_train, y_train, random_state=config.seed, stratify=y_train)
+    show_title("拆分训练数据集和验证数据集")
+    x_train_val, x_val, y_train_val, y_val = train_test_split(x_train, y_train, random_state = config.seed,
+                                                              stratify = y_train)
     save_data(x_train_val, config.data_file_path + 'x_train_val', '无验证训练数据集')
     save_data(y_train_val, config.data_file_path + 'y_train_val', '无验证训练数据集')
     save_data(x_val, config.data_file_path + 'x_val', '验证数据集')
     save_data(y_val, config.data_file_path + 'y_val', '验证数据集')
 
-    print('-' * 5 + "   平衡拆分验证的训练数据集({})的类别   ".format(config.label_name) + '-' * 5)
+    show_title("平衡拆分验证的训练数据集({})的类别".format(config.label_name))
     x_train_val_balance, y_train_val_balance = generate_balance_data(x_train_val, y_train_val)
     save_data(x_train_val_balance, config.data_file_path + 'x_train_val_balance', '平衡拆分验证的训练数据集')
     save_data(y_train_val_balance, config.data_file_path + 'y_train_val_balance', '平衡拆分验证的训练数据集')
 
-    print("\n数据清洗完成！")
+    show_title("数据清洗完成！")
 
 
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
     # export_word2vec_data()
-    export_data_set()  # 运行结束的提醒
+    export_data_set()
 
-    beep_end()
+    beep_end()  # 运行结束的提醒
