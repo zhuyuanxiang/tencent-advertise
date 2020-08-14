@@ -14,11 +14,11 @@
 @Desc       :   卷积神经网络模型
 @理解：
 """
-# common imports
+from keras.layers import Conv1D, Dense, Dropout, Flatten, GlobalMaxPooling1D, MaxPooling1D
+from keras.regularizers import l2
+
 from build_model import build_single_input, build_single_output
 from config import embedding_size
-from keras.layers import Conv1D, MaxPooling1D, Flatten, Dropout, Dense, GlobalMaxPooling1D
-from keras.regularizers import l2
 
 
 def build_conv1d_mlp():
@@ -102,16 +102,6 @@ def build_alex_net():
     model.add(Dropout(0.5))
     model.add(Dense(embedding_size * 8, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Dropout(0.5))
-    return build_single_output(model)
-
-
-def build_dense_net():
-    """
-    稠密连接网络
-    :param model:
-    :return:
-    """
-    model = build_single_input()
     return build_single_output(model)
 
 
