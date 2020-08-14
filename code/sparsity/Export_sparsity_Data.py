@@ -14,23 +14,41 @@
 @Desc       :   输出训练使用的数据集
 @理解：
 """
+
+from sklearn.model_selection import train_test_split
+
 # common imports
 import config
-
-from config import creative_id_step_size
-from generate_data import generate_fix_data
+from config import data_file_path, train_data_type
+from generate_data import generate_balance_data
+from generate_data import generate_data_no_interval_with_repeat
+from load_data import load_data
 from load_data import load_original_data
+from save_data import save_data
 from tools import beep_end, show_title
 
 
 # ----------------------------------------------------------------------
-def export_data_set():
-    from generate_data import generate_data_no_interval_with_repeat
-    from load_data import load_original_data
-    from sklearn.model_selection import train_test_split
-    from generate_data import generate_balance_data
-    from save_data import save_data
+def export_balance_set():
+    x_train = load_data(data_file_path + 'x_train', train_data_type)
+    y_train = load_data(data_file_path + 'y_train', train_data_type)
 
+    show_title("平衡训练数据集({})的类别".format(config.label_name))
+    x_train_balance, y_train_balance = generate_balance_data(x_train, y_train)
+    save_data(x_train_balance, config.data_file_path + 'x_train_balance', '平衡的训练数据集')
+    save_data(y_train_balance, config.data_file_path + 'y_train_balance', '平衡的训练数据集')
+
+    x_train_val = load_data(data_file_path + 'x_train_val', train_data_type)
+    y_train_val = load_data(data_file_path + 'y_train_val', train_data_type)
+
+    show_title("平衡拆分验证的训练数据集({})的类别".format(config.label_name))
+    x_train_val_balance, y_train_val_balance = generate_balance_data(x_train_val, y_train_val)
+    save_data(x_train_val_balance, config.data_file_path + 'x_train_val_balance', '平衡拆分验证的训练数据集')
+    save_data(y_train_val_balance, config.data_file_path + 'y_train_val_balance', '平衡拆分验证的训练数据集')
+
+
+# ----------------------------------------------------------------------
+def export_data_set():
     show_title("加载原始数据")
     x_csv, y_csv = load_original_data()
 
@@ -40,11 +58,11 @@ def export_data_set():
 
     print('-' * 5 + "   加工数据为无间隔有重复的数据列表   " + '-' * 5)
     x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
-    save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
+    # save_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
 
     show_title("拆分训练数据集和测试数据集")
     x_train, x_test, y_train, y_test = train_test_split(
-            x_data, y_data, random_state = config.seed, stratify = y_data)
+            x_data, y_data, random_state=config.seed, stratify=y_data)
     save_data(x_train, config.data_file_path + 'x_train', '训练数据集')
     save_data(y_train, config.data_file_path + 'y_train', '训练数据集')
     save_data(x_test, config.data_file_path + 'x_test', '测试数据集')
@@ -52,7 +70,7 @@ def export_data_set():
 
     show_title("拆分训练数据集和验证数据集")
     x_train_val, x_val, y_train_val, y_val = train_test_split(
-            x_train, y_train, random_state = config.seed, stratify = y_train)
+            x_train, y_train, random_state=config.seed, stratify=y_train)
     save_data(x_train_val, config.data_file_path + 'x_train_val', '无验证训练数据集')
     save_data(y_train_val, config.data_file_path + 'y_train_val', '无验证训练数据集')
     save_data(x_val, config.data_file_path + 'x_val', '验证数据集')
@@ -74,5 +92,5 @@ def export_data_set():
 # ----------------------------------------------------------------------
 if __name__ == '__main__':
     export_data_set()
-
+    # export_balance_set()
     beep_end()  # 运行结束的提醒
