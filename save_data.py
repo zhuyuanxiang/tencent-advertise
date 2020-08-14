@@ -37,6 +37,7 @@ def save_word2vec_weights(model_w2v):
     model_w2v.wv.save(file_name)
     print("Word2Vec 模型保存完成。")
 
+
 # ----------------------------------------------------------------------
 # 保存用于训练和测试模型时使用的数据集，缩短模型调优时载入数据的时间，固定模型训练的数据，方便模型对比
 def save_data_set(x_train, y_train, x_test, y_test):
@@ -61,6 +62,6 @@ def save_data(data, file_name, data_type='原始数据'):
         show_word2vec_data(data, data_type)
     else:
         show_original_data(data, data_type)
-    print("保存{0}：{1}-->".format(data_type, len(data)), end='')
+    print("保存{0}：{1}条数据 --> ".format(data_type, len(data)), end='')
     np.save(file_name, data)
-    print(data_type + ':{}-->保存成功！'.format(file_name))
+    print(data_type + ':{}.npy --> 保存成功！'.format(file_name))
