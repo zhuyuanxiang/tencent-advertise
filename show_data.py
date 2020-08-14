@@ -21,7 +21,7 @@ import config
 from config import user_id_max
 from config import creative_id_max, creative_id_step_size
 from config import max_len, embedding_size, embedding_window
-from config import model_type,epochs, batch_size, learning_rate
+from config import model_type, epochs, batch_size, learning_rate
 from config import label_name
 
 
@@ -63,6 +63,14 @@ def show_original_x_data(X, data_type='原始数据'):
             print(data_type + "：(X[899999]) =", X[899999])
             pass
         pass
+
+
+# ----------------------------------------------------------------------
+def show_data_result(data, data_type='原始数据'):
+    if isinstance(data[0], list) and isinstance(data[0][0], str):
+        show_word2vec_data(data, data_type)
+    else:
+        show_original_data(data, data_type)
 
 
 # ----------------------------------------------------------------------
