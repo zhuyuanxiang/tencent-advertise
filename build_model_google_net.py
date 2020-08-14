@@ -17,14 +17,12 @@
 # common imports
 import os
 import numpy as np
-import winsound
-from keras.layers import Embedding, Dropout, Dense, Conv1D, MaxPooling1D, concatenate, AveragePooling1D, GlobalMaxPooling1D, GlobalAveragePooling1D
+from keras.layers import Dropout, Dense, Conv1D, MaxPooling1D, concatenate, AveragePooling1D, GlobalMaxPooling1D, GlobalAveragePooling1D
 from keras.regularizers import l2
 
 # ----------------------------------------------------------------------
-from build_model import build_single_input_api, build_single_output_api, build_single_model_api
-from config import creative_id_window, embedding_size, max_len
-from load_data import load_word2vec_weights
+from build_model import build_single_output_api, build_single_model_api, build_creative_id_input, build_embedded_creative_id
+from config import embedding_size
 
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -38,7 +36,7 @@ def build_google_net():
     含并行连结的网络，没有串联多个模块是因为显卡无法高效训练所有参数
     :return:
     """
-    model_input = build_single_input_api()
+    model_input = [build_creative_id_input()]
     x0 = build_embedded_creative_id(model_input)
 
     # x1 = build_inception_mp(x0, embedding_size * 1, 1)
@@ -59,14 +57,6 @@ def build_google_net():
     x_output = Dense(embedding_size, activation='relu', kernel_regularizer=l2(0.001))(x_output)
     model_output = build_single_output_api(x_output)
     return build_single_model_api(model_input, model_output)
-
-
-def build_embedded_creative_id(model_input):
-    embedded_creative_id = Embedding(
-        creative_id_window, embedding_size, input_length=max_len, weights=[load_word2vec_weights()], trainable=False
-    )
-    x_input = embedded_creative_id(model_input[0])
-    return x_input
 
 
 # ----------------------------------------------------------------------
