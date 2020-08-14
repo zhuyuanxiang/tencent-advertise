@@ -15,22 +15,10 @@
 @理解：
 """
 # common imports
-import os
-import numpy as np
-import winsound
+from build_model import build_single_input, build_single_output
+from config import embedding_size
 from keras import Sequential
-from keras.layers import Embedding, Dropout, Dense, Conv1D, MaxPooling1D, concatenate, AveragePooling1D, GlobalMaxPooling1D, GlobalAveragePooling1D
-from keras.regularizers import l2
-
-# ----------------------------------------------------------------------
-from build_model import build_single_input_api, build_single_output_api, build_single_model_api, build_single_input, build_single_output
-from config import creative_id_window, embedding_size, max_len
-from load_data import load_word2vec_weights
-
-# 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-# 设置数据显示的精确度为小数点后3位
-np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
+from keras.layers import Dropout, Conv1D, MaxPooling1D, GlobalAveragePooling1D
 
 
 # ----------------------------------------------------------------------
@@ -59,10 +47,3 @@ def nin_block(num_channels, kernel_size, strides, padding):
     blk.add(Conv1D(num_channels, kernel_size=1, activation='relu'))
     blk.add(Conv1D(num_channels, kernel_size=1, activation='relu'))
     return blk
-
-
-# ----------------------------------------------------------------------
-# ----------------------------------------------------------------------
-if __name__ == '__main__':
-    # 运行结束的提醒
-    winsound.Beep(600, 500)
