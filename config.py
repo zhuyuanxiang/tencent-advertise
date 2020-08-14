@@ -26,7 +26,7 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 设置数据显示的精确度为小数点后3位
-np.set_printoptions(precision = 3, suppress = True, threshold = np.inf, linewidth = 200)
+np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
 # to make this notebook's output stable across runs
 seed = 42
 np.random.seed(seed)
@@ -70,7 +70,7 @@ model_type = "ResNet"  # VGG: 使用重复元素的神经网络
 # model_type = "GM"  # GlobalMaxPooling1D：1 维全局池化层
 
 learning_rate = 3e-04
-epochs = 40
+epochs = 30
 batch_size = 1024
 max_len = 128  # {64:803109，128:882952, 256:898459, 384:899686} 个用户；{64:1983350，128:2329077} 个素材
 embedding_size = 32
@@ -79,11 +79,11 @@ show_parameter = True  # 显示模型参数
 
 # 与训练相关的参数
 field_list = [  # 输入数据处理：选择需要的列
-        "user_id",
-        "creative_id_inc_sparsity_hash",
-        "time_id",
-        "click_times",
-        "product_category"
+    "user_id",
+    "creative_id_inc_sparsity_hash",
+    "time_id",
+    "click_times",
+    "product_category"
 ]
 label_list = ['age', 'gender']
 label_name = 'gender'
@@ -95,37 +95,49 @@ fix_period_length = 13
 fix_period_days = 1
 load_file_path = '../../save_data/sparsity_hash/original/{}/'.format(creative_id_window)
 load_file_name = load_file_path + 'train_data_all_output.csv'
-# data_file_path = '../../save_data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(creative_id_window, label_name)
-# data_w2v_path = '../../save_data/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(creative_id_window)
+data_file_path = '../../save_data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(creative_id_window, label_name)
+data_w2v_path = '../../save_data/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(creative_id_window)
 
-# model_w2v_path = '../../save_model/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(creative_id_window)
-# model_file_path = '../../save_model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
-#     creative_id_window, label_name, model_type)
+model_w2v_path = '../../save_model/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(creative_id_window)
+model_file_path = '../../save_model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
+    creative_id_window, label_name, model_type)
 
-data_w2v_path = '../../save_data/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{0}/'.format(
-        fix_period_days, fix_period_length, creative_id_window)
-data_file_path = '../../save_data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
-        fix_period_days, fix_period_length, creative_id_window, label_name)
-
-model_w2v_path = '../../save_model/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{0}/'.format(
-        fix_period_days, fix_period_length, creative_id_window)
-model_file_path = '../../save_model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
-        fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
+# data_w2v_path = '../../save_data/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{2}/'.format(
+#         fix_period_days, fix_period_length, creative_id_window)
+# data_file_path = '../../save_data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
+#         fix_period_days, fix_period_length, creative_id_window, label_name)
+#
+# model_w2v_path = '../../save_model/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{2}/'.format(
+#         fix_period_days, fix_period_length, creative_id_window)
+# model_file_path = '../../save_model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
+#         fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
 model_file_prefix = 'embedding_{0}_{1}_'.format(embedding_size, max_len)
 
-x_train_file_name = 'x_train'  # 训练数据
-y_train_file_name = 'y_train'  # 训练数据
+# 训练数据
 train_data_type = '训练数据集'
+x_train_file_name = 'x_train'
+y_train_file_name = 'y_train'
+x_train_val_file_name = 'x_train_val'
+y_train_val_file_name = 'y_train_val'
+
+# train_data_type = '平衡的训练数据集'
 # x_train_file_name = 'x_train_balance'
 # y_train_file_name = 'y_train_balance'
-# train_data_type='平衡的训练数据集'
-x_test_file_name = 'x_test'  # 测试数据
-y_test_file_name = 'y_test'  # 测试数据
+# x_train_val_file_name = 'x_train_val_balance'
+# y_train_val_file_name = 'y_train_val_balance'
 
-balance_age_list = [11, 2, 1, 2, 2, 3, 5, 12, 20, 34]
-balance_gender_list = [0, 1]
+# 验证数据
+x_val_file_name = 'x_val'
+y_val_file_name = 'y_val'
+# 测试数据
+x_test_file_name = 'x_test'
+y_test_file_name = 'y_test'
+
+# 平衡数据时，每个类别的倍数，例如：1表示1倍，即不增加数据；2表示2倍，增加1倍的数据；12表示12倍，增加11倍的数据
+balance_age_list = [12, 3, 2, 3, 3, 4, 6, 13, 21, 35]
+balance_gender_list = [1, 2]
 
 # 控制开关
-show_data = False  # 显示加载的数据
+show_data = True  # 显示加载的数据
 show_result = True  # 显示训练结果
 save_model = False  # 保存训练模型
