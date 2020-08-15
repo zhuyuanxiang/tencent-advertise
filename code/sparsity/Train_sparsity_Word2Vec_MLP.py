@@ -78,7 +78,7 @@ def construct_model():
 # ----------------------------------------------------------------------
 def main():
     from keras_preprocessing.sequence import pad_sequences
-    from load_data import load_data
+    from load_data import load_model_data
     from show_data import show_result, show_parameters
 
     show_title("构建网络模型")
@@ -89,16 +89,16 @@ def main():
 
     show_title("加载与填充{}".format(train_data_type))
 
-    x_train = load_data(data_file_path + x_train_file_name, train_data_type + "(x_train)")[:, 0]
-    y_train = load_data(data_file_path + y_train_file_name, train_data_type + "(y_train")
+    x_train = load_model_data(data_file_path + x_train_file_name, train_data_type + "(x_train)")[:, 0]
+    y_train = load_model_data(data_file_path + y_train_file_name, train_data_type + "(y_train")
     x_train_seq = pad_sequences(x_train, maxlen=max_len, padding='post')
 
-    x_train_val = load_data(data_file_path + config.x_train_val_file_name, train_data_type + "(" + config.x_train_val_file_name + ")")[:, 0]
-    y_train_val = load_data(data_file_path + config.y_train_val_file_name, train_data_type + "(" + config.y_train_val_file_name + ")")
+    x_train_val = load_model_data(data_file_path + config.x_train_val_file_name, train_data_type + "(" + config.x_train_val_file_name + ")")[:, 0]
+    y_train_val = load_model_data(data_file_path + config.y_train_val_file_name, train_data_type + "(" + config.y_train_val_file_name + ")")
     x_train_val_seq = pad_sequences(x_train_val, maxlen=max_len, padding='post')
 
-    x_val = load_data(data_file_path + config.x_val_file_name, train_data_type + "(" + config.x_val_file_name + ")")[:, 0]
-    y_val = load_data(data_file_path + config.y_val_file_name, train_data_type + "(" + config.y_val_file_name + ")")
+    x_val = load_model_data(data_file_path + config.x_val_file_name, train_data_type + "(" + config.x_val_file_name + ")")[:, 0]
+    y_val = load_model_data(data_file_path + config.y_val_file_name, train_data_type + "(" + config.y_val_file_name + ")")
     x_val_seq = pad_sequences(x_val, maxlen=max_len, padding='post')
 
     show_title("存在验证集训练网络模型")
@@ -107,8 +107,8 @@ def main():
     save_model_m1(history, model)
 
     show_title("加载与填充测试数据集")
-    x_test = load_data(data_file_path + x_test_file_name, '测试数据集(x_test)')[:, 0]
-    y_test = load_data(data_file_path + y_test_file_name, '测试数据集(y_test)')
+    x_test = load_model_data(data_file_path + x_test_file_name, '测试数据集(x_test)')[:, 0]
+    y_test = load_model_data(data_file_path + y_test_file_name, '测试数据集(y_test)')
     x_test = pad_sequences(x_test, maxlen=max_len, padding='post')
     results = model.evaluate({'creative_id': x_test}, y_test, verbose=0)
     predictions = model.predict({'creative_id': x_test}).squeeze()

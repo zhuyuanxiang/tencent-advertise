@@ -17,37 +17,38 @@
 import winsound
 # ----------------------------------------------------------------------
 from gensim.models import Word2Vec
-from load_data import load_data
-from config import embedding_size, embedding_window, seed, data_w2v_path, model_w2v_path
+
+from config import embedding_size, embedding_window, seed, data_w2v_path
+from load_data import load_model_data
 from save_data import save_word2vec_weights
+from tools import show_title, beep_end
 
 
 def train_word2vec_model_with_gensim(words_lists):
-
-    print('-' * 5 + "   训练 word2vec({0}_{1}) 模型   ".format(embedding_size, embedding_window) + '-' * 5)
+    show_title("训练 word2vec({0}_{1}) 模型".format(embedding_size, embedding_window))
     model = Word2Vec(
-        words_lists,
-        size=embedding_size,
-        window=embedding_window,
-        min_count=1,
-        seed=seed,
-        workers=8,
-        sg=0,  # 0:CBOW; 1:Skip-Gram
-        iter=20,
-        sorted_vocab=False,
-        batch_words=4096
+            words_lists,
+            size=embedding_size,
+            window=embedding_window,
+            min_count=1,
+            seed=seed,
+            workers=8,
+            sg=0,  # 0:CBOW; 1:Skip-Gram
+            iter=20,
+            sorted_vocab=False,
+            batch_words=4096
     )
     return model
 
 
 def train_word2vec_model_with_tensorflow(words_lists, size, window, seed=seed, sg=0, iter=5, batch_words=4096):
+    #TODO: 使用GPU训练
     pass
 
 
 # =====================================================
 if __name__ == '__main__':
-    x_w2v = load_data(data_w2v_path + 'x_w2v')
+    x_w2v = load_model_data(data_w2v_path + 'x_w2v')
     model_word2vec = train_word2vec_model_with_gensim(x_w2v)
     save_word2vec_weights(model_word2vec)
-    # 运行结束的提醒
-    winsound.Beep(600, 500)
+    beep_end()
