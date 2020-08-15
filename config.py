@@ -16,8 +16,10 @@
 """
 # import MySQLdb
 import os
+
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 
 # ----------------------------------------------------------------------
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
@@ -30,6 +32,21 @@ np.set_printoptions(precision=3, suppress=True, threshold=np.inf, linewidth=200)
 # to make this notebook's output stable across runs
 seed = 42
 np.random.seed(seed)
+
+# 显存设置使用默认状况最好
+
+# 按需要分配显存，显存可以节约，但是内存占用会变大
+# if tf.__version__.startswith('1.'):  # tensorflow 1
+#     config = tf.ConfigProto()  # allow_soft_placement=True
+#     config.gpu_options.allow_growth = True
+#     sess = tf.Session(config=config)
+# else:  # tensorflow 2
+#     tf.config.gpu.set_per_process_memory_growth(enabled=True)
+
+# 对需要进行限制的GPU进行设置，设置的不对程序无法运行
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# tf.config.experimental.set_virtual_device_configuration(
+#         gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5000)])
 
 # ----------------------------------------------------------------------
 # 定义全局通用变量
@@ -79,11 +96,11 @@ show_parameter = True  # 显示模型参数
 
 # 与训练相关的参数
 field_list = [  # 输入数据处理：选择需要的列
-    "user_id",
-    "creative_id_inc_sparsity_hash",
-    "time_id",
-    "click_times",
-    "product_category"
+        "user_id",
+        "creative_id_inc_sparsity_hash",
+        "time_id",
+        "click_times",
+        "product_category"
 ]
 label_list = ['age', 'gender']
 label_name = 'gender'
@@ -100,7 +117,7 @@ data_w2v_path = '../../save_data/sparsity_hash/word2vec/no_interval/with_repeat/
 
 model_w2v_path = '../../save_model/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(creative_id_window)
 model_file_path = '../../save_model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
-    creative_id_window, label_name, model_type)
+        creative_id_window, label_name, model_type)
 
 # data_w2v_path = '../../save_data/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{2}/'.format(
 #         fix_period_days, fix_period_length, creative_id_window)
