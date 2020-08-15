@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import winsound
-from tensorflow import keras
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import metrics
@@ -66,7 +65,7 @@ creative_id_end = 50000  # 素材数
 max_len = 320
 
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-from preprocessing import (data_sequence, data_sequence_times, data_sequence_times_with_interval)
+from 无用代码.preprocessing import (data_sequence_times_with_interval)
 
 # data_sequence()
 #       点击次数超过 1 次的也只有一条数据，没有数据的天就跳过(不填充0)
@@ -94,8 +93,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed, s
 print("\t训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
 
 # ----------------------------------------------------------------------
-from network import (construct_Bidirectional_LSTM, construct_Conv1d, construct_Conv1d_LSTM,
-                     construct_LSTM, construct_mlp, )
+from network import (construct_LSTM, )
 
 print("* 构建模型")
 # embedding_size = int(creative_id_num / 100)
