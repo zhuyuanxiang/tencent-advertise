@@ -93,17 +93,23 @@ def main():
     y_train = load_model_data(data_file_path + y_train_file_name, train_data_type + "(y_train")
     x_train_seq = pad_sequences(x_train, maxlen=max_len, padding='post')
 
-    x_train_val = load_model_data(data_file_path + config.x_train_val_file_name, train_data_type + "(" + config.x_train_val_file_name + ")")[:, 0]
-    y_train_val = load_model_data(data_file_path + config.y_train_val_file_name, train_data_type + "(" + config.y_train_val_file_name + ")")
+    x_train_val = load_model_data(data_file_path + config.x_train_val_file_name,
+                                  train_data_type + "(" + config.x_train_val_file_name + ")")[:, 0]
+    y_train_val = load_model_data(data_file_path + config.y_train_val_file_name,
+                                  train_data_type + "(" + config.y_train_val_file_name + ")")
     x_train_val_seq = pad_sequences(x_train_val, maxlen=max_len, padding='post')
 
-    x_val = load_model_data(data_file_path + config.x_val_file_name, train_data_type + "(" + config.x_val_file_name + ")")[:, 0]
-    y_val = load_model_data(data_file_path + config.y_val_file_name, train_data_type + "(" + config.y_val_file_name + ")")
+    x_val = load_model_data(data_file_path + config.x_val_file_name,
+                            train_data_type + "(" + config.x_val_file_name + ")")[:, 0]
+    y_val = load_model_data(data_file_path + config.y_val_file_name,
+                            train_data_type + "(" + config.y_val_file_name + ")")
     x_val_seq = pad_sequences(x_val, maxlen=max_len, padding='post')
 
     show_title("存在验证集训练网络模型")
-    # history = model.fit({'creative_id': x_train_seq}, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, verbose=2)
-    history = model.fit(x={'creative_id': x_train_val_seq}, y=y_train_val, epochs=epochs, batch_size=batch_size, validation_data=(x_val_seq, y_val), verbose=2)
+    # history = model.fit({'creative_id': x_train_seq}, y_train, epochs=epochs, batch_size=batch_size,
+    #                     validation_split=0.2, verbose=2)
+    history = model.fit(x={'creative_id': x_train_val_seq}, y=y_train_val, epochs=epochs, batch_size=batch_size,
+                        validation_data=(x_val_seq, y_val), verbose=2)
     save_model_m1(history, model)
 
     show_title("加载与填充测试数据集")
