@@ -18,11 +18,11 @@ import numpy as np
 
 # ----------------------------------------------------------------------
 import config
-from config import user_id_max
 from config import creative_id_max, creative_id_step_size
+from config import label_name
 from config import max_len, embedding_size, embedding_window
 from config import model_type, epochs, batch_size, learning_rate
-from config import label_name
+from config import user_id_max
 
 
 def show_example_data(X, y, data_type='原始数据'):
@@ -134,8 +134,8 @@ def show_result(results, predictions, y_test):
         elif label_name == 'gender':
             predict_gender = np.array(predictions > 0.5, dtype=int)
             print(
-                "sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
-                sum(abs(predict_gender - y_test)) / sum(y_test) * 100, '%'
+                    "sum(abs(predictions>0.5-y_test_scaled))/sum(y_test_scaled) = error% =",
+                    sum(abs(predict_gender - y_test)) / sum(y_test) * 100, '%'
             )
             print("前100个真实的目标数据 =", np.array(y_test[:100], dtype=int))
             print("前100个预测的目标数据 =", np.array(predict_gender[:100], dtype=int))
