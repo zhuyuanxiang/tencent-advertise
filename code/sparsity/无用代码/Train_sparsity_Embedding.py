@@ -120,9 +120,9 @@ def output_parameters():
 def main():
     global embedding_size
     label_name = 'gender'
-    no_interval_path = '../../save_model/sparsity/no_interval/word2vec/'
-    data_file_path = '../../save_data/sparsity/no_interval/with_repeat/'
-    model_file_path = '../../save_model/sparsity/no_interval/with_repeat/'
+    no_interval_path = '../../../save_model/sparsity/no_interval/word2vec/'
+    data_file_path = '../../../save_data/sparsity/no_interval/with_repeat/'
+    model_file_path = '../../../save_model/sparsity/no_interval/with_repeat/'
     file_prefix = 'creative_id_{0}_{1}_{2}_{3}_{4}_'.format(label_name, model_type, max_len, embedding_size, creative_id_window)
     # ----------------------------------------------------------------------
     # 构建模型
