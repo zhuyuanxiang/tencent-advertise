@@ -8,8 +8,14 @@
 
 准备环境
 
-1.  硬件环境：CPU ( i5~i9 ) +GPU ( 2060~2080 ) +RAM ( 16G~64G ) +SSD ( 256G~1T ) +HDD ( 1T~4T )
-2.  软件环境：OS ( Windows/Linux ) + AnaConda + Python + CUDA + CuDNN + VSCode + PyCharm + Typora + MySQL + Navicat + Office + Git + GitHub
+1.  硬件环境：
+    1.  最低配置：CPU ( i5 ) +GPU ( 2060 ) +RAM ( 16G ) +SSD ( 256G ) +HDD ( 1T )
+    2.  建议配置：CPU ( i9 ) +GPU ( 2080 ) +RAM ( 64G ) +SSD ( 1T ) +HDD ( 4T )
+2.  软件环境：
+    1.  OS ( Windows/Linux ) 
+    2.  运行环境：AnaConda + Python + CUDA + CuDNN
+    3.  开发环境：VSCode + PyCharm + Typora + MySQL + Navicat + Office
+    4.  管理环境：Git + GitHub
 3.  VSCode Plugins: GitLens + Local History + MagicPython + Markdown All in One + markdownlint + Pangu-Markdown-VSCode + Python + Rainbow CSV + Sort lines + SQL Formatter + Visual Studio IntelliCode
 4.  AnaConda: Tensorflow + Notebook + yapf + pylint + gensim + pandas + matplotlib + scipy + scikit-learn
 
@@ -25,7 +31,10 @@
     1.  sparsity: 每个用户访问素材的种类，单个用户访问的素材的稀疏度相同，每个素材以所有访问这个素材的用户标注的稀疏度中最小的那个值为这个素材的稀疏度，从而保证低稀疏度的素材也能被用于用户标注
     2.  tf: 每个素材访问的频度，即每个素材出现的次数，高频度的素材尽可能被用于用户标注
     3.  idf: 每个素材被多少用户所访问，访问用户数越少的素材越需要被用于用户标注
-    4.  重要性排名：`sparsity<idf<tf`，因为 sparsity 保证每个用户都有用于标注的素材；idf 保证标注用户的素材具有独特性；tf 保证标注用户的素材具有普遍性，即覆盖的用户数尽可能多
+    4.  重要性排名：`sparsity<idf<tf`
+        1.   sparsity 保证每个用户都有用于标注的素材；
+        2.  idf 保证标注用户的素材具有独特性；
+        3.  tf 保证标注用户的素材具有普遍性，即覆盖的用户数尽可能多
 3.  生成 user_id_inc, creative_id_inc
     1.  根据 sparsity 生成 user_id_inc，是因为低稀疏度的用户不容易辨识，因此排在前面用于测试小数据集时使用，最终需要使用全部数据集(90万)进行训练，因此 user_id_inc 的生成不重要，也不必要
     2.  根据 sparsity(正序)、tf(逆序)、idf(正序) 来生成 creative_id_inc，因为素材有(240万)，只能取最能标注用户的素材来进行训练
@@ -34,10 +43,13 @@
 
 提取特征
 
-1.  Word2Vec: `640000*32`, `1024000*32`
+1.  Word2Vec: `384000*32`,`640000*32`, `1024000*32`
     1.  训练序列不插入 0，因为用户访问的数据具有相关性
     2.  使用 CBOW 训练，因为用户访问的数据不具有强序列性
-2.  全局特征：average ( ) , first ( ) , last ( ) , max ( ) , median ( ) , min ( ) , mode ( ) , pca ( )
+2.  全局特征：
+    1.  average ( ) , first ( ) , last ( ) , max ( ) , median ( ) , min ( ) , 
+    2.  mode ( ) ：众数在连续型数据中作用不大
+    3.  pca ( )，ica() ：主成分分析的问题是数据会被归一化
 3.  序列特征：rnn ( )
 4.  局部特征：cnn ( ) , 3*32, 然后摊平
 5.  统计特征：std ( ) , skew ( ) , kurt ( ) , nuique ( ) , count ( ) , times ( )
