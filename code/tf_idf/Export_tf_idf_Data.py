@@ -22,8 +22,8 @@ from config import creative_id_step_size, seed
 # ----------------------------------------------------------------------
 def export_word2vec_data():
     from 无用代码.load_data import load_word2vec_file
-    from generate_data import generate_word2vec_data_with_interval
-    from generate_data import generate_word2vec_data_no_interval
+    from 无用代码.generate_data import generate_word2vec_data_with_interval
+    from 无用代码.generate_data import generate_word2vec_data_no_interval
     from show_data import show_word2vec_data
     from 无用代码.save_data import save_word2vec_data
 

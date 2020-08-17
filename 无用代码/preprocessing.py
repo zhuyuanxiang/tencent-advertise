@@ -20,7 +20,9 @@ import config
 import numpy as np
 
 from config import creative_id_step_size, creative_id_begin, creative_id_end, seed
-from generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, generate_fix_data, generate_no_time_data
+from generate_data import generate_no_time_data
+from 无用代码.generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, \
+    generate_fix_data
 from load_data import load_original_data
 from 无用代码.load_data import load_word2vec_file
 from save_data import save_word2vec_data
