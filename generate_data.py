@@ -14,22 +14,18 @@
 @Desc       :   数据生成模块
 @理解：
 """
+import math
 import random
 
-import config
-import math
 import numpy as np
 
+import config
+from config import creative_id_begin, creative_id_end
 from config import creative_id_max, time_id_max, user_id_max, fix_period_days, fix_period_length
-from config import creative_id_window, creative_id_begin, creative_id_end
-from config import seed
 from show_data import show_example_data
-from sklearn.model_selection import train_test_split
+
 
 # ----------------------------------------------------------------------
-from tools import show_title
-
-
 def generate_word2vec_data_with_interval(x_csv):
     print('-' * 5 + "   清洗数据集:{0}~{1} 个素材   ".format(creative_id_begin, creative_id_end) + '-' * 5)
     data_length = x_csv.shape[0]
@@ -123,19 +119,20 @@ def generate_word2vec_data_no_interval(x_csv):
 # ----------------------------------------------------------------------
 def generate_day_list_data(X_csv, y_csv):
     """
-    生成每个用户每天访问数据列表，用于生成每天的均值数据(或者其他按天给出的统计特征)
-    :param X_csv:
+    生成每个用户每天访问数据的不截断列表，用于生成每天的均值数据(或者其他按天给出的统计特征)
+    :param X_csv: 待训练使用的原始数据
     :param y_csv:
     """
     from tools import show_title
-    show_title('清洗数据集')
+    show_title('生成每个用户每天访问数据的不截断列表')
     data_length = y_csv.shape[0]
     data_step = data_length // 100
     print("数据生成中（共 {0} 条数据)：".format(data_length), end='')
-    X_doc = np.empty([user_id_max, time_id_max], dtype=object)
-    y_doc = np.empty([user_id_max, ], dtype=int)
-    prev_user_id = -1
-    creative_id_list = None
+    X_creative_id = np.empty([user_id_max, time_id_max], dtype=object)
+    creative_id_list = X_creative_id[0, 0]
+    # X_product_category = np.empty([user_id_max, time_id_max,1], dtype=object)
+    y_gender = np.empty([user_id_max], dtype=int)
+    prev_user_id = prev_time_id = -1
     for i, row_data in enumerate(X_csv):
         if (i % data_step) == 0:  # 数据清洗的进度
             print("第 {0} 条数据-->".format(i), end=';')
@@ -143,12 +140,27 @@ def generate_day_list_data(X_csv, y_csv):
         user_id = row_data[0]
         creative_id = row_data[1]
         time_id = row_data[2]
+        click_times = row_data[3]
+        # product_category = row_data[4]
 
-        creative_id_list = X_doc[user_id, time_id]
+        if user_id > prev_user_id:
+            y_gender[user_id] = y_csv[i]
+            prev_user_id = user_id
+            prev_time_id = -1
+
+        if time_id > prev_time_id:
+            creative_id_list = X_creative_id[user_id, time_id] = []
+
+        for _ in range(click_times):
+            creative_id_list.append(creative_id)
+            # X_creative_id[user_id, time_id, 1].append(product_category)
+
+    return np.array(X_creative_id), np.array(y_gender)
 
 
 # ----------------------------------------------------------------------
 def generate_fix_data(X_csv, y_csv):
+    # TODO: 可以与 generate_day_list_data() 重构，将整理后的数据按照要求周期要求进行整理
     print('-' * 5 + "   清洗数据集   " + '-' * 5)
     data_length = y_csv.shape[0]
     data_step = data_length // 100  # 标识数据清洗进度的步长
@@ -158,7 +170,7 @@ def generate_fix_data(X_csv, y_csv):
     # X_doc 的列表维度 = 去除 user_id, time_id
     X_doc = np.zeros([user_id_max, math.ceil(time_id_max / fix_period_days) * fix_period_length], dtype=object)
     y_doc = np.zeros([user_id_max, ], dtype=int)
-    prev_user_id = 0  # 前一条数据的用户编号
+    prev_user_id = -1  # 前一条数据的用户编号
     prev_period_index = 0  # 周期索引，即处理到第几个周期
     period_data_index = 0  # 周期内数据保存的位置索引
     for i, row_data in enumerate(X_csv):
@@ -172,10 +184,8 @@ def generate_fix_data(X_csv, y_csv):
 
         # 整理过的数据已经按照 user_id 的顺序编号，当 user_id 变化时，就代表前一个用户的数据已经清洗完成
         if user_id > prev_user_id:
-            # 重置临时变量
             prev_user_id = user_id
-            period_data_index = 0
-            pass
+            prev_period_index = period_data_index = 0
 
         if (time_id - prev_period_index) >= fix_period_days:
             prev_period_index = time_id // fix_period_days * fix_period_days
@@ -192,6 +202,7 @@ def generate_fix_data(X_csv, y_csv):
 
 # ----------------------------------------------------------------------
 def generate_no_time_data(X_csv, y_csv, train_field_num, label_field_num, repeat_creative_id):
+    # TODO: 可以与 generate_day_list_data() 重构，将整理后数据的格式进行整理
     print('-' * 5 + "   清洗数据集   " + '-' * 5)
     data_length = y_csv.shape[0]
     data_step = data_length // 100  # 标识数据清洗进度的步长
@@ -248,6 +259,7 @@ def generate_no_time_data(X_csv, y_csv, train_field_num, label_field_num, repeat
 # ----------------------------------------------------------------------
 # 生成没有时间间隔的数据
 def generate_data_no_interval_with_repeat(x_csv, y_csv):
+    # TODO: 可以与 generate_day_list_data() 重构，将整理后数据的格式进行整理
     print("数据生成中：", end='')
     # creative_id_list = [2]  # 第一个用户序列的起始标记，这个序列用于训练分类模型
     # word2vec_list = [chr(2)]  # 第一个用户序列的起始标记，这个序列用于训练嵌入数据
@@ -287,6 +299,7 @@ def generate_data_no_interval_with_repeat(x_csv, y_csv):
 
 
 def generate_balance_data(x_data, y_data):
+    # TODO: 数据增强？
     if config.label_name == 'age':
         balance_list = config.balance_age_list
     elif config.label_name == 'gender':
@@ -316,11 +329,3 @@ def generate_balance_data(x_data, y_data):
             y_extend.append(y_data[i])
     print('\t')
     return np.append(x_data, np.array(x_extend), axis=0), np.append(y_data, y_extend)
-
-
-# ----------------------------------------------------------------------
-def split_data(x_data, y_data, label_name):
-    print('-' * 5 + "   拆分{0}数据集   ".format(label_name) + '-' * 5)
-    x_train, x_test, y_train, y_test = train_test_split(
-        x_data, y_data, random_state=seed, stratify=y_data)
-    return x_train, y_train, x_test, y_test

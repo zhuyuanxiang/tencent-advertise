@@ -14,12 +14,13 @@
 @Desc       :   数据预处理模块
 @理解：
 """
+from sklearn.model_selection import train_test_split
 
 import config
 import numpy as np
 
-from config import creative_id_step_size, creative_id_begin, creative_id_end
-from generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, generate_fix_data, generate_no_time_data, split_data
+from config import creative_id_step_size, creative_id_begin, creative_id_end, seed
+from generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, generate_fix_data, generate_no_time_data
 from load_data import load_original_data
 from 无用代码.load_data import load_word2vec_file
 from save_data import save_word2vec_data
@@ -685,3 +686,10 @@ if __name__ == '__main__':
     data_word2vec()
     # 运行结束的提醒
     beep_end()
+
+
+def split_data(x_data, y_data, label_name):
+    print('-' * 5 + "   拆分{0}数据集   ".format(label_name) + '-' * 5)
+    x_train, x_test, y_train, y_test = train_test_split(
+            x_data, y_data, random_state=seed, stratify=y_data)
+    return x_train, y_train, x_test, y_test
