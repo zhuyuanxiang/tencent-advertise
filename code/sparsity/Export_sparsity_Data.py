@@ -20,8 +20,8 @@ from sklearn.model_selection import train_test_split
 # common imports
 import config
 from config import data_file_path, train_data_type
+from generate_data import generate_balance_data
 from load_data import load_model_data
-from load_data import load_original_data
 from save_data import save_model_data
 from tools import beep_end, show_title
 
@@ -31,8 +31,6 @@ def export_balance_set():
     """
     使用已经导出的文件，单独导出平衡数据集
     """
-    from generate_data import generate_balance_data
-
     x_train = load_model_data(data_file_path + 'x_train', train_data_type)
     y_train = load_model_data(data_file_path + 'y_train', train_data_type)
 
@@ -55,24 +53,30 @@ def export_all_data_set():
     """
     一次性导出所有的数据
     """
-    from generate_data import generate_balance_data, generate_fix_data
-
+    from load_data import load_original_data
     show_title("加载原始数据")
     x_csv, y_csv = load_original_data()
 
-    show_title("加工数据为定长的数据列表")
-    x_data, y_data, x_w2v = generate_fix_data(x_csv, y_csv)
+    from generate_data import generate_day_list_data
+    show_title("生成每个用户每天访问数据的不截断列表")
+    x_data, y_data = generate_day_list_data(x_csv, y_csv)
+
+    # show_title("加工数据为定长的数据列表")
+    # from generate_data import generate_fix_data
+    # x_data, y_data, x_w2v = generate_fix_data(x_csv, y_csv)
 
     # show_title("加工数据为无间隔有重复的数据列表")
     # from generate_data import generate_data_no_interval_with_repeat
     # x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
 
+    from generate_data import generate_w2v_data
     show_title("保存用于Word2Vec训练的数据")
+    x_w2v = generate_w2v_data(x_data)
     save_model_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
 
     show_title("拆分训练数据集和测试数据集")
     x_train, x_test, y_train, y_test = train_test_split(
-        x_data, y_data, random_state=config.seed, stratify=y_data)
+            x_data, y_data, random_state=config.seed, stratify=y_data)
     save_model_data(x_train, config.data_file_path + 'x_train', '训练数据集')
     save_model_data(y_train, config.data_file_path + 'y_train', '训练数据集')
     save_model_data(x_test, config.data_file_path + 'x_test', '测试数据集')
@@ -80,7 +84,7 @@ def export_all_data_set():
 
     show_title("拆分训练数据集和验证数据集")
     x_train_val, x_val, y_train_val, y_val = train_test_split(
-        x_train, y_train, random_state=config.seed, stratify=y_train)
+            x_train, y_train, random_state=config.seed, stratify=y_train)
     save_model_data(x_train_val, config.data_file_path + 'x_train_val', '无验证训练数据集')
     save_model_data(y_train_val, config.data_file_path + 'y_train_val', '无验证训练数据集')
     save_model_data(x_val, config.data_file_path + 'x_val', '验证数据集')
