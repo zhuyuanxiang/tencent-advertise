@@ -18,9 +18,8 @@ import numpy as np
 import pandas as pd
 
 import config
-from save_data import get_w2v_file_name
 from show_data import show_example_data, show_data_result
-from tools import show_title
+from tools import show_title, get_w2v_file_name
 
 
 # --------------------------------------------------
@@ -56,23 +55,9 @@ def load_original_data():
 
 # --------------------------------------------------
 def load_word2vec_weights():
-    from gensim.models import KeyedVectors
-    from config import embedding_size, creative_id_window
     file_name = get_w2v_file_name()
     show_title("加载 word2vec 模型 {0}".format(file_name))
-    model_w2v = KeyedVectors.load(file_name)
-    # 初始化嵌入式模型权重矩阵
-    # 0 是占位符，因此不记入模型的数据
-    # 补：将 0 的权重大小设置为 0.5，效果并不好
-    embedding_weights = np.empty((creative_id_window, embedding_size))
-    embedding_weights[0, :] = np.zeros(embedding_size)
-    # 需要将训练的单词(word) 与 数组的序号(ord(word))对应
-    for word, index in model_w2v.vocab.items():
-        try:
-            embedding_weights[ord(word), :] = model_w2v[word]
-        except KeyError:
-            pass
-
+    embedding_weights = np.load(file_name + '.npy', allow_pickle=True)
     print("Word2Vec 模型加载完成。")
     return embedding_weights
 

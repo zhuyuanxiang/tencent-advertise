@@ -94,32 +94,25 @@ label_name = 'gender'
 # df = pd.read_sql(config.sql,config.conn)
 fix_period_length = 13
 fix_period_days = 1
-load_file_path = '../../save_data/sparsity_hash/original/{}/'.format(creative_id_window)
+load_file_path = f'../../save_data/sparsity_hash/original/{creative_id_window}/'
 load_file_name = load_file_path + 'train_data_all_output.csv'
+
+data_w2v_path = f'../../save_data/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
+model_w2v_path = f'../../save_model/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 
 export_data_type = 'fix_day'
 if export_data_type == 'fix_day':
-    data_w2v_path = '../../save_data/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{2}/'.format(
-            fix_period_days, fix_period_length, creative_id_window)
     data_file_path = '../../save_data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
             fix_period_days, fix_period_length, creative_id_window, label_name)
-
-    model_w2v_path = '../../save_model/sparsity_hash/word2vec/fix_{0}_{1}/creative_id/{2}/'.format(
-            fix_period_days, fix_period_length, creative_id_window)
     model_file_path = '../../save_model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
             fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
 elif export_data_type == 'no_interval':
     data_file_path = '../../save_data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(
             creative_id_window, label_name)
-    data_w2v_path = '../../save_data/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(
-            creative_id_window)
-
-    model_w2v_path = '../../save_model/sparsity_hash/word2vec/no_interval/with_repeat/creative_id/{0}/'.format(
-            creative_id_window)
     model_file_path = '../../save_model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
             creative_id_window, label_name, model_type)
 
-model_file_prefix = 'embedding_{0}_{1}_'.format(embedding_size, max_len)
+model_file_prefix = f'embedding_{embedding_size}_{max_len}_'
 
 # 训练数据
 train_data_type = '训练数据集'

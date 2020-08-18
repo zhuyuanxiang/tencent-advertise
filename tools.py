@@ -17,6 +17,7 @@
 
 
 # common imports
+import config
 
 
 def beep_end():
@@ -38,3 +39,8 @@ def show_title(message=""):
     # 输出运行模块的标题
     print('-' * 5 + '>' + message + '<' + '-' * 5)
     pass
+
+
+def get_w2v_file_name():
+    file_name = config.model_w2v_path + config.model_file_prefix + 'w2v.kv'
+    return file_name

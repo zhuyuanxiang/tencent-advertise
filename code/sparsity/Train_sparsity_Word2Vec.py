@@ -14,18 +14,15 @@
 @Desc       :   训练 Word2Vec 模块
 @理解：
 """
-import winsound
 # ----------------------------------------------------------------------
-from gensim.models import Word2Vec
 
-from config import embedding_size, embedding_window, seed, data_w2v_path
-from load_data import load_model_data
-from save_data import save_word2vec_weights
 from tools import show_title, beep_end
 
 
 def train_word2vec_model_with_gensim(words_lists):
-    show_title("训练 word2vec({0}_{1}) 模型".format(embedding_size, embedding_window))
+    from gensim.models import Word2Vec
+    from config import embedding_size, embedding_window, seed
+    show_title(f"训练 word2vec({embedding_size}_{embedding_window}) 模型")
     model = Word2Vec(
             words_lists,
             size=embedding_size,
@@ -42,13 +39,17 @@ def train_word2vec_model_with_gensim(words_lists):
 
 
 def train_word2vec_model_with_tensorflow(words_lists, size, window, seed=seed, sg=0, iter=5, batch_words=4096):
-    #TODO: 使用GPU训练
+    # TODO: 使用GPU训练
     pass
 
 
 # =====================================================
 if __name__ == '__main__':
+    from config import data_w2v_path
+    from load_data import load_model_data
+    from save_data import save_word2vec_weights
+
     x_w2v = load_model_data(data_w2v_path + 'x_w2v')
     model_word2vec = train_word2vec_model_with_gensim(x_w2v)
-    save_word2vec_weights(model_word2vec)
+    save_word2vec_weights(model_word2vec.wv)
     beep_end()
