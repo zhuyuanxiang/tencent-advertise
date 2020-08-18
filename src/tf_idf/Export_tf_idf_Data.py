@@ -32,19 +32,19 @@ def export_word2vec_data():
         "creative_id_inc_tf_idf",  # 1
         "time_id",  # 2
     ]
-    x_csv = load_word2vec_file('../../save_data/tf_idf/train_data_all_tf_idf_v.csv', field_list)
+    x_csv = load_word2vec_file('../../data/tf_idf/train_data_all_tf_idf_v.csv', field_list)
 
     creative_id_window = creative_id_step_size * 5
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
 
-    save_data_path = '../../save_data/tf_idf/no_interval/word2vec/'
+    save_data_path = '../../data/tf_idf/no_interval/word2vec/'
     x_creative_id = generate_word2vec_data_no_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
-    save_data_path = '../../save_data/tf_idf/with_interval/word2vec/'
+    save_data_path = '../../data/tf_idf/with_interval/word2vec/'
     x_creative_id = generate_word2vec_data_with_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
@@ -54,13 +54,13 @@ def export_word2vec_data():
     creative_id_begin = creative_id_step_size * 0
     creative_id_end = creative_id_begin + creative_id_window
 
-    save_data_path = '../../save_data/tf_idf/no_interval/word2vec/'
+    save_data_path = '../../data/tf_idf/no_interval/word2vec/'
     x_creative_id = generate_word2vec_data_no_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
     del x_creative_id
 
-    save_data_path = '../../save_data/tf_idf/with_interval/word2vec/'
+    save_data_path = '../../data/tf_idf/with_interval/word2vec/'
     x_creative_id = generate_word2vec_data_with_interval(x_csv)
     show_word2vec_data(x_creative_id)
     save_word2vec_data(x_creative_id, creative_id_window, save_data_path)
@@ -84,8 +84,8 @@ def export_data_set():
     ]
     label_name = 'gender'
     label_list = ['age', 'gender']
-    load_file_path = '../../save_data/tf_idf/'
-    save_file_path = '../../save_data/tf_idf/no_interval/with_repeat/'
+    load_file_path = '../../data/tf_idf/'
+    save_file_path = '../../data/tf_idf/no_interval/with_repeat/'
 
     creative_id_window = creative_id_step_size * 1
     creative_id_begin = 0

@@ -87,7 +87,7 @@ def construct_keras_model(model_type, embedding_weights):
     # keras_model.add(BatchNormalization())
     keras_model.add(Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001)))
     keras_model.summary()
-    # print("保存模型的原始结构：", keras_model.save('save_model/word2vec/{0}_m0_{1}.h5'.format(model_type, label_name)))
+    # print("保存模型的原始结构：", keras_model.save('model/word2vec/{0}_m0_{1}.h5'.format(model_type, label_name)))
     keras_model.compile(optimizer=optimizers.RMSprop(lr=RMSProp_lr), loss=losses.binary_crossentropy, metrics=[metrics.binary_accuracy])
     return keras_model
 
@@ -196,7 +196,7 @@ def construct_keras_api_model(embedding_weights):
         output_tensor
     )
     keras_api_model.summary()
-    plot_model(keras_api_model, to_file='save_model/keras_api_word2vec_model.png')
+    plot_model(keras_api_model, to_file='model/keras_api_word2vec_model.png')
     print('-' * 5 + ' ' * 3 + "编译模型" + ' ' * 3 + '-' * 5)
     keras_api_model.compile(
         optimizer=optimizers.RMSprop(lr=RMSProp_lr), loss=losses.binary_crossentropy, metrics=[metrics.binary_accuracy]
@@ -238,7 +238,7 @@ def train_keras_model(model):
     # file_infix = 'fix_'
     path = 'no_time_no_repeat/'
     file_infix = ''
-    X_train, y_train, X_test, y_test = load_data('save_data/' + path, file_infix)
+    X_train, y_train, X_test, y_test = load_data('data/' + path, file_infix)
     X_train = pad_sequences(X_train, maxlen=max_len, padding='pre')
     print('-' * 5 + ' ' * 3 + "使用验证集训练网络模型" + ' ' * 3 + '-' * 5)
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, verbose=2)
@@ -260,36 +260,36 @@ def train_keras_api_model(model):
     # 加载数据
     print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
     # X_train_no_time_no_repeat = pad_sequences(
-    #     np.load('save_data/no_time_no_repeat/x_train_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)[:, 0],
+    #     np.load('data/no_time_no_repeat/x_train_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)[:, 0],
     #     maxlen=max_len,
     #     padding='pre'
     # )
     # X_train_no_time_with_repeat = pad_sequences(
-    #     np.load('save_data/no_time_with_repeat/x_train_no_time_with_repeat_' + label_name + '.npy', allow_pickle=True)[:,
+    #     np.load('data/no_time_with_repeat/x_train_no_time_with_repeat_' + label_name + '.npy', allow_pickle=True)[:,
     #     0],
     #     maxlen=max_len,
     #     padding='pre'
     # )
     X_train_fix_creative_id = np.load(
-        'save_data/fix_{0}_{1}_{2}/x_train_fix_{3}.npy'.format(period_days, period_length, creative_id_window, label_name),
+        'data/fix_{0}_{1}_{2}/x_train_fix_{3}.npy'.format(period_days, period_length, creative_id_window, label_name),
         allow_pickle=True
     )[:, 0]
-    y_train = np.load('save_data/no_time_no_repeat/y_train_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)
+    y_train = np.load('data/no_time_no_repeat/y_train_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)
     # X_test_no_time_no_repeat = pad_sequences(
-    #     np.load('save_data/no_time_no_repeat/x_test_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)[:, 0],
+    #     np.load('data/no_time_no_repeat/x_test_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)[:, 0],
     #     maxlen=max_len,
     #     padding='pre'
     # )
     # X_test_no_time_with_repeat = pad_sequences(
-    #     np.load('save_data/no_time_with_repeat/x_test_no_time_with_repeat_' + label_name + '.npy', allow_pickle=True)[:, 0],
+    #     np.load('data/no_time_with_repeat/x_test_no_time_with_repeat_' + label_name + '.npy', allow_pickle=True)[:, 0],
     #     maxlen=max_len,
     #     padding='pre'
     # )
     X_test_fix_creative_id = np.load(
-        'save_data/fix_{0}_{1}_{2}/x_test_fix_{3}.npy'.format(period_days, period_length, creative_id_window, label_name),
+        'data/fix_{0}_{1}_{2}/x_test_fix_{3}.npy'.format(period_days, period_length, creative_id_window, label_name),
         allow_pickle=True
     )[:, 0]
-    y_test = np.load('save_data/no_time_no_repeat/y_test_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)
+    y_test = np.load('data/no_time_no_repeat/y_test_no_time_no_repeat_' + label_name + '.npy', allow_pickle=True)
     # ----------------------------------------------------------------------
     # 训练网络模型
     # 使用验证集
@@ -308,8 +308,8 @@ def train_keras_api_model(model):
         verbose=2
     )
     # import pickle
-    # print("保存第一次模型训练的权重", model.save_weights('save_model/word2vec/word2vec_m1_' + label_name + '.bin'))
-    # f = open('save_model/word2vec/word2vec_m1_' + label_name + '.pkl', 'wb')
+    # print("保存第一次模型训练的权重", model.save_weights('model/word2vec/word2vec_m1_' + label_name + '.bin'))
+    # f = open('model/word2vec/word2vec_m1_' + label_name + '.pkl', 'wb')
     # pickle.dump(history.history, f)
     # f.close()
     results = model.evaluate(
@@ -342,8 +342,8 @@ def train_keras_api_model(model):
         use_multiprocessing=True,
         verbose=2
     )
-    # print("保存第二次模型训练的权重", model.save_weights('save_model/word2vec/word2vec_m2' + label_name + '.bin'))
-    # f = open('save_model/word2vec/word2vec_m2' + label_name + '.pkl', 'wb')
+    # print("保存第二次模型训练的权重", model.save_weights('model/word2vec/word2vec_m2' + label_name + '.bin'))
+    # f = open('model/word2vec/word2vec_m2' + label_name + '.pkl', 'wb')
     # pickle.dump(history.history, f)
     # f.close()
     results = model.evaluate(
@@ -381,7 +381,7 @@ if __name__ == '__main__':
     creative_id_step_size = 128000
     creative_id_window = creative_id_step_size * 5
     # ----------------------------------------------------------------------
-    no_interval_path = 'save_model/word2vec/no_interval/'
+    no_interval_path = 'model/word2vec/no_interval/'
     # train_keras_api_model(construct_keras_api_model(load_word2vec_weights(no_interval_path)))
     train_keras_model(construct_keras_model('Conv1D', load_word2vec_weights(no_interval_path)))
     # 运行结束的提醒

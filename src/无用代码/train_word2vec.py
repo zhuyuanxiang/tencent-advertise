@@ -62,10 +62,10 @@ def save_word2vec_model(model, file_name):
 
 
 def main(path, window):
-    word2vec_words_lists = load_words_list('save_data/' + path)
+    word2vec_words_lists = load_words_list('data/' + path)
     word2vec_model = train_word2vec_model_with_gensim(word2vec_words_lists)
     save_word2vec_model(word2vec_model,
-                        'save_model/' + path + file_prefix + "_{0}_{1}_{2}".format(embedding_size, embedding_window, creative_id_window))
+                        'model/' + path + file_prefix + "_{0}_{1}_{2}".format(embedding_size, embedding_window, creative_id_window))
 
 
 # =====================================================

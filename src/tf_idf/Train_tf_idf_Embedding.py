@@ -121,9 +121,9 @@ def output_parameters():
 def main():
     global embedding_size
     label_name = 'gender'
-    no_interval_path = '../../save_model/tf_idf/no_interval/word2vec/'
-    data_file_path = '../../save_data/tf_idf/no_interval/with_repeat/'
-    model_file_path = '../../save_model/tf_idf/no_interval/with_repeat/'
+    no_interval_path = '../../model/tf_idf/no_interval/word2vec/'
+    data_file_path = '../../data/tf_idf/no_interval/with_repeat/'
+    model_file_path = '../../model/tf_idf/no_interval/with_repeat/'
     file_prefix = 'creative_id_{0}_{1}_{2}_{3}_{4}_'.format(label_name, model_type, max_len, embedding_size, creative_id_window)
     # ----------------------------------------------------------------------
     # 构建模型
@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------------------
     # 定义全局通用变量
-    file_name = '../../save_data/tf_idf/train_data_all_tf_idf_v.csv'
+    file_name = '../../data/tf_idf/train_data_all_tf_idf_v.csv'
     model_type = 'Conv1D'
     RMSProp_lr = 5e-04
     epochs = 10

@@ -141,7 +141,7 @@ doc/*
 lab_log/*
 log_dir/*
 log_dir/*
-save_data/*
-save_model/*
+data/*
+model/*
 tmp
 /word2vec.ipynb

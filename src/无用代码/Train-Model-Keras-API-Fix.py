@@ -363,14 +363,14 @@ def continue_train_model():
     # --------------------------------------------------
     # 构建网络模型，输出模型相关的参数，构建多输入单输出模型，输出构建模型的结果
     print('-' * 5 + ' ' * 3 + "构建'{0}'模型".format(model_type) + ' ' * 3 + '-' * 5)
-    # model=keras.models.load_model('/save_model/m0.h5')
-    model = keras.models.load_model('/save_model/m1.h5')
+    # model=keras.models.load_model('/model/m0.h5')
+    model = keras.models.load_model('/model/m1.h5')
     model.summary()
     print('-' * 5 + ' ' * 3 + "加载 npy 数据集" + ' ' * 3 + '-' * 5)
-    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle=True)
-    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle=True)
-    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle=True)
-    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle=True)
+    X_train = np.load('data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle=True)
+    y_train = np.load('data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle=True)
+    X_test = np.load('data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle=True)
+    y_test = np.load('data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle=True)
 
 
 def train_model():
@@ -382,14 +382,14 @@ def train_model():
     output_parameters()
     model = construct_model()
     print(model.summary())
-    print("保存原始：", model.save('save_model/m0.h5'))
+    print("保存原始：", model.save('model/m0.h5'))
     print('-' * 5 + ' ' * 3 + "素材数:{0}".format(creative_id_window) + ' ' * 3 + '-' * 5)
     # --------------------------------------------------
     print('-' * 5 + ' ' * 3 + "加载 npy 数据集" + ' ' * 3 + '-' * 5)
-    X_train = np.load('save_data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle=True)
-    y_train = np.load('save_data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle=True)
-    X_test = np.load('save_data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle=True)
-    y_test = np.load('save_data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle=True)
+    X_train = np.load('data/fix_7_21_640k/x_train_' + label_name + '.npy', allow_pickle=True)
+    y_train = np.load('data/fix_7_21_640k/y_train_' + label_name + '.npy', allow_pickle=True)
+    X_test = np.load('data/fix_7_21_640k/x_test_' + label_name + '.npy', allow_pickle=True)
+    y_test = np.load('data/fix_7_21_640k/y_test_' + label_name + '.npy', allow_pickle=True)
 
     # # 加载数据
     # print('-' * 5 + ' ' * 3 + "加载数据集" + ' ' * 3 + '-' * 5)
@@ -419,7 +419,7 @@ def train_model():
         'click_times': X_train[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
     }, y_train, epochs=epochs, batch_size=batch_size,
         validation_split=0.2, use_multiprocessing=True, verbose=2)
-    print("保存第一次训练模型", model.save_weights('save_model/m1.bin'))
+    print("保存第一次训练模型", model.save_weights('model/m1.bin'))
     f = open('m1.pkl', 'wb')
     pickle.dump(history, f)
     f.close()
@@ -440,7 +440,7 @@ def train_model():
         'click_times': X_train[:, 1].reshape((-1, time_id_max * period_length // period_days, 1)),
     }, y_train, epochs=epochs // 2, batch_size=batch_size, use_multiprocessing=True,
         verbose=2)
-    print("保存第二次训练模型", model.save_weights('save_model/m2.bin'))
+    print("保存第二次训练模型", model.save_weights('model/m2.bin'))
     f = open('m2.pkl', 'wb')
     pickle.dump(history, f)
     f.close()
