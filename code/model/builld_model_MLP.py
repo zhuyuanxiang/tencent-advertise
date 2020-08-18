@@ -18,14 +18,12 @@
 from keras.layers import Flatten, Dropout, Dense
 from keras.regularizers import l2
 
-import config
 import tools
-from tensorflow import keras
 
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
-from build_model import build_single_input, build_single_output
+from code.model.build_model import build_single_input, build_single_output
 from config import embedding_size
 
 if __name__ == '__main__':

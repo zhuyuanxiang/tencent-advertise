@@ -15,11 +15,8 @@
 @理解：
 """
 # common imports
-import config
-import tools
-from tensorflow import keras
 
-from build_model import build_creative_id_input, build_embedded_creative_id, build_single_output_api, build_single_model_api
+from code.model.build_model import build_creative_id_input, build_embedded_creative_id, build_single_output_api, build_single_model_api
 
 
 def build_dense_net():

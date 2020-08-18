@@ -19,7 +19,7 @@ from config import creative_id_window, embedding_size, max_len, label_name, mode
 from keras import Sequential, optimizers, losses, metrics, Input, Model
 from keras.layers import Embedding, Dense
 from keras.regularizers import l2
-from load_data import load_word2vec_weights
+from code.data.load_data import load_word2vec_weights
 from tensorflow import keras
 
 

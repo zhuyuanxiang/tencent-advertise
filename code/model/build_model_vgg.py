@@ -16,18 +16,15 @@
 """
 # common imports
 import os
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import winsound
 from keras import Sequential
 from keras.layers import Flatten, Dense, Dropout, Conv1D, MaxPooling1D
 from keras.regularizers import l2
-from tensorflow import keras
 
 # ----------------------------------------------------------------------
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
-from build_model import build_single_input, build_single_output
+from code.model.build_model import build_single_input, build_single_output
 from config import embedding_size
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'

@@ -29,8 +29,8 @@ def export_balance_set():
     """
     使用已经导出的文件，单独导出平衡数据集
     """
-    from save_data import save_model_data
-    from load_data import load_model_data
+    from code.data.save_data import save_model_data
+    from code.data.load_data import load_model_data
 
     x_train = load_model_data(data_file_path + 'x_train', train_data_type)
     y_train = load_model_data(data_file_path + 'y_train', train_data_type)
@@ -54,22 +54,22 @@ def export_all_data_set():
     """
     一次性导出所有的数据
     """
-    from save_data import save_model_data
-    from load_data import load_original_data
+    from code.data.save_data import save_model_data
+    from code.data.load_data import load_original_data
     show_title("加载原始数据")
     x_csv, y_csv = load_original_data()
 
-    from generate_data import generate_day_list_data
+    from code.data.generate_data import generate_day_list_data
     show_title("生成每个用户每天访问数据的不截断列表")
     lst_data, y_data = generate_day_list_data(x_csv, y_csv)
 
-    from generate_data import generate_w2v_data
+    from code.data.generate_data import generate_w2v_data
     show_title("保存用于Word2Vec训练的数据")
     x_w2v = generate_w2v_data(lst_data)
     save_model_data(x_w2v, config.data_w2v_path + 'x_w2v', 'w2v数据集')
 
     show_title("加工数据为定长的数据列表")
-    from generate_data import generate_fix_data
+    from code.data.generate_data import generate_fix_data
     x_data = generate_fix_data(lst_data)
 
     # show_title("加工数据为无间隔有重复的数据列表")

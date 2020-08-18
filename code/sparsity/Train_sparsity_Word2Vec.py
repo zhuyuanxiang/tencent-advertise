@@ -46,8 +46,8 @@ def train_word2vec_model_with_tensorflow(words_lists, size, window, seed=seed, s
 # =====================================================
 if __name__ == '__main__':
     from config import data_w2v_path
-    from load_data import load_model_data
-    from save_data import save_word2vec_weights
+    from code.data.load_data import load_model_data
+    from code.data.save_data import save_word2vec_weights
 
     x_w2v = load_model_data(data_w2v_path + 'x_w2v')
     model_word2vec = train_word2vec_model_with_gensim(x_w2v)
