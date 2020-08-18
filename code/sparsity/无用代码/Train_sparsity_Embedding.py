@@ -39,7 +39,7 @@ from keras.regularizers import l2
 # ----------------------------------------------------------------------
 from code.无用代码.load_data import load_data_set
 from config import creative_id_max, user_id_max, creative_id_step_size
-from show_data import show_result
+from code.data.show_data import show_result
 
 
 # ----------------------------------------------------------------------
