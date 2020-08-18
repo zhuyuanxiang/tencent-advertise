@@ -18,15 +18,13 @@ import pickle
 
 import numpy as np
 
-import config
 import tools
-from tensorflow import keras
 
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 from config import data_file_path
-from show_data import show_example_data
+from code.data.show_data import show_example_data
 from tools import show_title
 
 if __name__ == '__main__':

@@ -74,7 +74,7 @@ print("\t训练数据集（train_data）：%d 条数据；测试数据集（test
 
 # ----------------------------------------------------------------------
 # 构建模型
-from network import construct_GlobalMaxPooling1D
+from code.无用代码.network import construct_GlobalMaxPooling1D
 
 embedding_size = 128
 model = construct_GlobalMaxPooling1D(creative_id_end, embedding_size, max_len)

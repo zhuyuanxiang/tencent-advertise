@@ -17,14 +17,12 @@
 import numpy as np
 import pandas as pd
 
-import config
 import tools
-from tensorflow import keras
 
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
-from show_data import show_example_data, show_original_x_data
+from code.data.show_data import show_example_data, show_original_x_data
 
 if __name__ == '__main__':
     # 运行结束的提醒

@@ -22,10 +22,10 @@ import numpy as np
 from config import creative_id_step_size, seed
 from code.无用代码.generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, \
     generate_fix_data, generate_no_time_data
-from load_data import load_original_data
+from code.data.load_data import load_original_data
 from code.无用代码.load_data import load_word2vec_file
 from code.无用代码.save_data import save_data_set, save_word2vec_data
-from show_data import show_word2vec_data
+from code.data.show_data import show_word2vec_data
 
 
 # ----------------------------------------------------------------------

@@ -93,7 +93,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = seed, s
 print("\t训练数据集（train_data）：%d 条数据；测试数据集（test_data）：%d 条数据" % ((len(y_train)), (len(y_test))))
 
 # ----------------------------------------------------------------------
-from network import (construct_LSTM, )
+from code.无用代码.network import (construct_LSTM, )
 
 print("* 构建模型")
 # embedding_size = int(creative_id_num / 100)
