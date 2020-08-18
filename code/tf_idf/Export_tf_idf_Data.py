@@ -24,7 +24,7 @@ def export_word2vec_data():
     from code.无用代码.load_data import load_word2vec_file
     from code.无用代码.generate_data import generate_word2vec_data_with_interval
     from code.无用代码.generate_data import generate_word2vec_data_no_interval
-    from show_data import show_word2vec_data
+    from code.data.show_data import show_word2vec_data
     from code.无用代码.save_data import save_word2vec_data
 
     field_list = [  # 输入数据处理：选择需要的列
@@ -72,7 +72,7 @@ def export_word2vec_data():
 # ----------------------------------------------------------------------
 def export_data_set():
     from code.无用代码.generate_data import generate_data_no_interval_with_repeat
-    from load_data import load_original_data
+    from code.data.load_data import load_original_data
     from code.无用代码.save_data import save_data_set
     from sklearn.model_selection import train_test_split
 
