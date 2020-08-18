@@ -44,7 +44,7 @@ assert sklearn.__version__ >= "0.20"
 assert np.__version__ >= "1.18.1"
 # ----------------------------------------------------------------------
 # 加载数据
-from 无用代码.preprocessing import load_data, data_sequence_no_start
+from code.无用代码.preprocessing import load_data, data_sequence_no_start
 
 file_name = './data/train_data.csv'
 X_data, y_data = load_data(file_name,label_name='age')

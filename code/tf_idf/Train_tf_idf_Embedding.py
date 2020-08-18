@@ -17,10 +17,8 @@
 # common imports
 import pickle
 
-import numpy as np
 import winsound
 
-from sklearn.model_selection import train_test_split
 from keras import losses
 from keras import metrics
 from keras import optimizers
@@ -39,10 +37,8 @@ from keras_preprocessing.sequence import pad_sequences
 from keras.regularizers import l2
 
 # ----------------------------------------------------------------------
-from 无用代码.generate_data import generate_data_no_interval_with_repeat
-from load_data import load_original_data, load_word2vec_weights
-from 无用代码.load_data import load_data_set
-from config import creative_id_max, user_id_max, creative_id_step_size, seed
+from code.无用代码.load_data import load_data_set
+from config import creative_id_max, user_id_max, creative_id_step_size
 from show_data import show_example_data, show_result
 
 

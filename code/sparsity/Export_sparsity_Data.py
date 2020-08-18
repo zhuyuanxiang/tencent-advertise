@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 # common imports
 import config
 from config import data_file_path, train_data_type
-from 无用代码.generate_data import generate_balance_data
+from code.无用代码.generate_data import generate_balance_data
 from tools import beep_end, show_title
 
 

@@ -65,7 +65,7 @@ creative_id_end = 50000  # 素材数
 max_len = 320
 
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-from 无用代码.preprocessing import (data_sequence_times_with_interval)
+from code.无用代码.preprocessing import (data_sequence_times_with_interval)
 
 # data_sequence()
 #       点击次数超过 1 次的也只有一条数据，没有数据的天就跳过(不填充0)
