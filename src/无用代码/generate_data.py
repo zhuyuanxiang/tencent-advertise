@@ -22,7 +22,7 @@ import numpy as np
 import config
 from config import creative_id_begin, creative_id_end, user_id_max, creative_id_max, time_id_max, fix_period_days, \
     fix_period_length
-from code.data.show_data import show_example_data
+from src.data.show_data import show_example_data
 
 
 def generate_word2vec_data_with_interval(x_csv):

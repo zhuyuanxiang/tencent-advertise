@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 import config
-from code.data.show_data import show_example_data, show_data_result
+from src.data.show_data import show_example_data, show_data_result
 from tools import show_title, get_w2v_file_name
 
 

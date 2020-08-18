@@ -17,7 +17,7 @@
 from keras.layers import Conv1D, Dense, Dropout, Flatten, GlobalMaxPooling1D, MaxPooling1D
 from keras.regularizers import l2
 
-from code.model.build_model import build_single_input, build_single_output
+from src.model.build_model import build_single_input, build_single_output
 from config import embedding_size
 
 

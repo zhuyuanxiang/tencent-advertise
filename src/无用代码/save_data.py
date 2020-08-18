@@ -24,7 +24,7 @@ import tools
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 from config import data_file_path
-from code.data.show_data import show_example_data
+from src.data.show_data import show_example_data
 from tools import show_title
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ from keras.regularizers import l2
 
 # ----------------------------------------------------------------------
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
-from code.model.build_model import build_single_input, build_single_output
+from src.model.build_model import build_single_input, build_single_output
 from config import embedding_size
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'

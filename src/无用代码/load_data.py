@@ -22,7 +22,7 @@ import tools
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
-from code.data.show_data import show_example_data, show_original_x_data
+from src.data.show_data import show_example_data, show_original_x_data
 
 if __name__ == '__main__':
     # 运行结束的提醒

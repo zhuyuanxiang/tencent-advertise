@@ -18,7 +18,7 @@
 import numpy as np
 
 import config
-from code.data.show_data import show_data_result
+from src.data.show_data import show_data_result
 
 
 # ----------------------------------------------------------------------

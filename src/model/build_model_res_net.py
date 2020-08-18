@@ -18,7 +18,7 @@
 from keras.layers import Conv1D, BatchNormalization, Activation, GlobalAveragePooling1D, Dropout, Dense, GlobalMaxPooling1D, add, concatenate, MaxPooling1D, \
     AveragePooling1D
 from keras.regularizers import l2
-from code.model.build_model import build_single_output_api, build_single_model_api, build_creative_id_input, build_embedded_creative_id
+from src.model.build_model import build_single_output_api, build_single_model_api, build_creative_id_input, build_embedded_creative_id
 from config import embedding_size
 
 

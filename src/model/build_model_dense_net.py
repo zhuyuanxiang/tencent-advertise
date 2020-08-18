@@ -16,7 +16,7 @@
 """
 # common imports
 
-from code.model.build_model import build_creative_id_input, build_embedded_creative_id, build_single_output_api, build_single_model_api
+from src.model.build_model import build_creative_id_input, build_embedded_creative_id, build_single_output_api, build_single_model_api
 
 
 def build_dense_net():

@@ -17,7 +17,7 @@
 import pickle
 
 import config
-from code.model.build_model_dense_net import build_dense_net
+from src.model.build_model_dense_net import build_dense_net
 from config import batch_size, epochs, max_len, model_type
 from config import data_file_path
 from config import model_file_path, model_file_prefix, save_model
@@ -30,45 +30,45 @@ from tools import beep_end, show_title
 # 构建网络模型
 def construct_model():
     if model_type == 'MLP':
-        from code.model.builld_model_MLP import build_mlp
+        from src.model.builld_model_MLP import build_mlp
         model = build_mlp()
     elif model_type == 'Conv1D+MLP':
-        from code.model.build_model_CNN import build_conv1d_mlp
+        from src.model.build_model_CNN import build_conv1d_mlp
         model = build_conv1d_mlp()
     elif model_type == 'Conv1D':
-        from code.model.build_model_CNN import build_conv1d
+        from src.model.build_model_CNN import build_conv1d
         model = build_conv1d()
     elif model_type == 'LeNet':
-        from code.model.build_model_CNN import build_le_net
+        from src.model.build_model_CNN import build_le_net
         model = build_le_net()
     elif model_type == 'AlexNet':
-        from code.model.build_model_CNN import build_alex_net
+        from src.model.build_model_CNN import build_alex_net
         model = build_alex_net()
     elif model_type == 'VGG':
-        from code.model.build_model_vgg import build_vgg
+        from src.model.build_model_vgg import build_vgg
         model = build_vgg()
     elif model_type == 'NiN':
-        from code.model.build_model_nin import build_nin
+        from src.model.build_model_nin import build_nin
         model = build_nin()
     elif model_type == 'GoogLeNet':
-        from code.model.build_model_google_net import build_google_net
+        from src.model.build_model_google_net import build_google_net
         model = build_google_net()
     elif model_type == 'ResNet':
-        from code.model.build_model_res_net import build_res_net
+        from src.model.build_model_res_net import build_res_net
         model = build_res_net()
     elif model_type == 'DenseNet':
         model = build_dense_net()
     elif model_type == 'GM':  # GlobalMaxPooling1D
-        from code.model.build_model_CNN import build_global_max_pooling1d
+        from src.model.build_model_CNN import build_global_max_pooling1d
         model = build_global_max_pooling1d()
     elif model_type == 'GRU':
-        from code.model.build_model_RNN import build_gru
+        from src.model.build_model_RNN import build_gru
         model = build_gru()
     elif model_type == 'Conv1D+LSTM':
-        from code.model.build_model_RNN import build_conv1d_lstm
+        from src.model.build_model_RNN import build_conv1d_lstm
         model = build_conv1d_lstm()
     elif model_type == 'Bidirectional-LSTM':
-        from code.model.build_model_RNN import build_bidirectional_lstm
+        from src.model.build_model_RNN import build_bidirectional_lstm
         model = build_bidirectional_lstm()
     else:
         raise Exception("错误的网络模型类型")
@@ -78,8 +78,8 @@ def construct_model():
 # ----------------------------------------------------------------------
 def main():
     from keras_preprocessing.sequence import pad_sequences
-    from code.data.load_data import load_model_data
-    from code.data.show_data import show_result, show_parameters
+    from src.data.load_data import load_model_data
+    from src.data.show_data import show_result, show_parameters
 
     show_title("构建网络模型")
     show_parameters()

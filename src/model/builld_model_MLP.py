@@ -23,7 +23,7 @@ import tools
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
-from code.model.build_model import build_single_input, build_single_output
+from src.model.build_model import build_single_input, build_single_output
 from config import embedding_size
 
 if __name__ == '__main__':
