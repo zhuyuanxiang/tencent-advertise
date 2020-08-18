@@ -39,7 +39,7 @@ from keras_preprocessing.sequence import pad_sequences
 from keras.regularizers import l2
 
 # ----------------------------------------------------------------------
-from generate_data import generate_data_no_interval_with_repeat
+from 无用代码.generate_data import generate_data_no_interval_with_repeat
 from load_data import load_original_data, load_word2vec_weights
 from 无用代码.load_data import load_data_set
 from config import creative_id_max, user_id_max, creative_id_step_size, seed

@@ -71,7 +71,7 @@ def export_word2vec_data():
 
 # ----------------------------------------------------------------------
 def export_data_set():
-    from generate_data import generate_data_no_interval_with_repeat
+    from 无用代码.generate_data import generate_data_no_interval_with_repeat
     from load_data import load_original_data
     from 无用代码.save_data import save_data_set
     from sklearn.model_selection import train_test_split
