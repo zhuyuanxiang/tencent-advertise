@@ -75,3 +75,23 @@ def load_model_data(file_name, data_type='原始数据集'):
     print(data_type + ':{}条数据 -->加载成功！'.format(len(data)))
     show_data_result(data, data_type)
     return data
+
+
+def load_val_data():
+    from src.data.load_data import load_model_data
+    x_train_val = load_model_data(config.data_file_path + 'x_train_val', config.train_data_type)
+    y_train_val = load_model_data(config.data_file_path + 'y_train_val', config.train_data_type)
+    return x_train_val, y_train_val
+
+
+def load_train_test_data():
+    from src.data.load_data import load_model_data
+    x_train = load_model_data(config.data_file_path + 'x_train', config.train_data_type)
+    y_train = load_model_data(config.data_file_path + 'y_train', config.train_data_type)
+    return x_train, y_train
+
+
+def load_base_data():
+    x_data = load_model_data(config.data_file_path + 'x_data', '中间数据集')
+    y_data = load_model_data(config.data_file_path + 'y_data', '中间数据集')
+    return x_data, y_data

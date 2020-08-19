@@ -18,17 +18,17 @@ import math
 
 import numpy as np
 
+from config import embedding_size
 from config import fix_period_days, fix_period_length
 from config import time_id_max, user_id_max
 
 
-# ----------------------------------------------------------------------
 def generate_w2v_data(x_data):
     data_step = user_id_max // 100
     w2v_data = np.empty([user_id_max], dtype=object)
     for user_idx in range(user_id_max):
         if (user_idx % data_step) == 0:  # 数据清洗的进度
-            print("第 {0} 条数据-->".format(user_idx), end=';')
+            print(f"第 {user_idx} 条数据-->", end=';')
         user_list = w2v_data[user_idx] = []
         for day_list in x_data[user_idx]:
             if day_list is not None:
@@ -44,7 +44,7 @@ def generate_fix_data(x_data):
     model_data = np.zeros([user_id_max, math.ceil(time_id_max / fix_period_days) * fix_period_length], dtype=object)
     for user_idx in range(user_id_max):
         if (user_idx % data_step) == 0:  # 数据清洗的进度
-            print("第 {0} 条数据-->".format(user_idx), end=';')
+            print(f"第 {user_idx} 条数据-->", end=';')
         for day_idx, day_list in enumerate(x_data[user_idx]):
             if day_list is not None:
                 data_offset = day_idx * fix_period_length
@@ -53,6 +53,29 @@ def generate_fix_data(x_data):
                         model_data[user_idx, data_offset + data_idx] = day_list[data_idx]
     print(f"第 {user_id_max} 条数据-->数据清洗完成。")
     return model_data
+
+
+def generate_day_sequence_data(x_data):
+    data_step = user_id_max // 100
+    sequence_data = np.zeros([user_id_max, time_id_max, 3, embedding_size], dtype=np.float16)
+    from src.data.load_data import load_word2vec_weights
+    embedding_weights = load_word2vec_weights()
+    for user_idx in range(user_id_max):
+        if (user_idx % data_step) == 0:  # 数据清洗的进度
+            print(f"第 {user_idx} 条数据-->", end=';')
+
+        for day_idx, day_list in enumerate(x_data[user_idx]):
+            if day_list is not None:
+                day_data = np.empty([len(day_list), embedding_size])
+                for data_idx, data_value in enumerate(day_list):
+                    day_data[data_idx] = embedding_weights[data_value]
+
+                sequence_data[user_idx, day_idx, 0] = day_data.min(axis=0)
+                sequence_data[user_idx, day_idx, 1] = day_data.max(axis=0)
+                sequence_data[user_idx, day_idx, 2] = day_data.mean(axis=0)
+
+    print(f"第 {user_id_max} 条数据-->数据清洗完成。")
+    return sequence_data
 
 
 # ----------------------------------------------------------------------

@@ -100,8 +100,13 @@ load_file_name = load_file_path + 'train_data_all_output.csv'
 data_w2v_path = f'../../data/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 model_w2v_path = f'../../model/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 
-export_data_type = 'fix_day'
-if export_data_type == 'fix_day':
+export_data_type = 'day_sequence'
+if export_data_type == 'day_sequence':
+    data_file_path = '../../data/sparsity_hash/day_sequence/creative_id/{0}/{1}/'.format(
+            creative_id_window, label_name)
+    model_file_path = '../../model/sparsity_hash/day_sequence/word2vec/creative_id/{0}/{1}/{2}/'.format(
+            creative_id_window, label_name, model_type)
+elif export_data_type == 'fix_day':
     data_file_path = '../../data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
             fix_period_days, fix_period_length, creative_id_window, label_name)
     model_file_path = '../../model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
