@@ -32,7 +32,7 @@ def build_conv1d_mlp():
     return build_single_output(model)
 
 
-def build_conv1d() -> object:
+def build_conv1d():
     model = build_single_input()
     model.add(Conv1D(embedding_size * 2, 2, activation='relu', kernel_regularizer=l2(0.001)))
     model.add(Conv1D(embedding_size * 2, 2, activation='relu', kernel_regularizer=l2(0.001)))

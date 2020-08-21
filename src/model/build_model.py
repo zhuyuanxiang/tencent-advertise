@@ -78,11 +78,11 @@ def build_single_model_api(model_input, model_output):
     return model
 
 
-def build_single_output_api(concatenated):
+def build_single_output_api(x_output):
     if label_name == 'age':
-        model_output = Dense(10, activation='softmax', kernel_regularizer=l2(0.001))(concatenated)
+        model_output = Dense(10, activation='softmax', kernel_regularizer=l2(0.001))(x_output)
     elif label_name == 'gender':
-        model_output = Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001))(concatenated)
+        model_output = Dense(1, activation='sigmoid', kernel_regularizer=l2(0.001))(x_output)
     else:
         raise Exception("错误的标签类型！")
     return model_output
