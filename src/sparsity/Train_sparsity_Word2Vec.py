@@ -21,7 +21,7 @@ from tools import show_title, beep_end
 
 def train_word2vec_model_with_gensim(words_lists):
     from gensim.models import Word2Vec
-    from config import embedding_size, embedding_window, seed
+    from config import embedding_size, embedding_window
     show_title(f"训练 word2vec({embedding_size}_{embedding_window}) 模型")
     model = Word2Vec(
             words_lists,
@@ -45,11 +45,10 @@ def train_word2vec_model_with_tensorflow(words_lists, size, window, seed=config.
 
 # =====================================================
 if __name__ == '__main__':
-    from config import data_w2v_path
     from src.data.load_data import load_model_data
     from src.data.save_data import save_word2vec_weights
 
-    x_w2v = load_model_data(data_w2v_path + 'x_w2v')
+    x_w2v = load_model_data(file_name='x_w2v', file_path='data_w2v_path')
     model_word2vec = train_word2vec_model_with_gensim(x_w2v)
     save_word2vec_weights(model_word2vec.wv)
     beep_end()

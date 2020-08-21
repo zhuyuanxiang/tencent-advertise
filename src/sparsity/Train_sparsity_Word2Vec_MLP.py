@@ -14,15 +14,12 @@
 @Desc       :   训练模块
 @理解：
 """
-import pickle
 
-import config
-from src.model.build_model_dense_net import build_dense_net
 from config import batch_size, epochs, max_len, model_type
-from config import data_file_path
-from config import model_file_path, model_file_prefix, save_model
-from config import x_test_file_name, y_test_file_name
-from config import x_train_file_name, y_train_file_name, train_data_type
+from config import train_data_type
+from src.data.load_data import load_test_data
+from src.model.build_model_dense_net import build_dense_net
+from src.model.save_model import save_model_m0, save_model_m1, save_model_m2
 from tools import beep_end, show_title
 
 
@@ -78,8 +75,8 @@ def construct_model():
 # ----------------------------------------------------------------------
 def main():
     from keras_preprocessing.sequence import pad_sequences
-    from src.data.load_data import load_model_data
     from src.data.show_data import show_result, show_parameters
+    from src.data.load_data import load_train_data, load_train_val_data, load_val_data
 
     show_title("构建网络模型")
     show_parameters()
@@ -89,72 +86,35 @@ def main():
 
     show_title("加载与填充{}".format(train_data_type))
 
-    x_train = load_model_data(data_file_path + x_train_file_name, train_data_type + "(x_train)")[:, 0]
-    y_train = load_model_data(data_file_path + y_train_file_name, train_data_type + "(y_train")
-    x_train_seq = pad_sequences(x_train, maxlen=max_len, padding='post')
-
-    x_train_val = load_model_data(data_file_path + config.x_train_val_file_name,
-                                  train_data_type + "(" + config.x_train_val_file_name + ")")[:, 0]
-    y_train_val = load_model_data(data_file_path + config.y_train_val_file_name,
-                                  train_data_type + "(" + config.y_train_val_file_name + ")")
+    x_train_val, y_train_val = load_train_val_data()
     x_train_val_seq = pad_sequences(x_train_val, maxlen=max_len, padding='post')
 
-    x_val = load_model_data(data_file_path + config.x_val_file_name,
-                            train_data_type + "(" + config.x_val_file_name + ")")[:, 0]
-    y_val = load_model_data(data_file_path + config.y_val_file_name,
-                            train_data_type + "(" + config.y_val_file_name + ")")
+    x_val, y_val = load_val_data()
     x_val_seq = pad_sequences(x_val, maxlen=max_len, padding='post')
 
     show_title("存在验证集训练网络模型")
-    # history = model.fit({'creative_id': x_train_seq}, y_train, epochs=epochs, batch_size=batch_size,
-    #                     validation_split=0.2, verbose=2)
     history = model.fit(x={'creative_id': x_train_val_seq}, y=y_train_val, epochs=epochs, batch_size=batch_size,
                         validation_data=(x_val_seq, y_val), verbose=2)
     save_model_m1(history, model)
 
     show_title("加载与填充测试数据集")
-    x_test = load_model_data(data_file_path + x_test_file_name, '测试数据集(x_test)')[:, 0]
-    y_test = load_model_data(data_file_path + y_test_file_name, '测试数据集(y_test)')
-    x_test = pad_sequences(x_test, maxlen=max_len, padding='post')
-    results = model.evaluate({'creative_id': x_test}, y_test, verbose=0)
-    predictions = model.predict({'creative_id': x_test}).squeeze()
+    x_test, y_test = load_test_data()
+    x_test_seq = pad_sequences(x_test, maxlen=max_len, padding='post')
+    results = model.evaluate({'creative_id': x_test_seq}, y_test, verbose=0)
+    predictions = model.predict({'creative_id': x_test_seq}).squeeze()
     show_result(results, predictions, y_test)
 
     show_title("没有验证集训练网络模型，训练次数减半")
+    x_train, y_train = load_train_data()
+    x_train_seq = pad_sequences(x_train, maxlen=max_len, padding='post')
+    # history = model.fit({'creative_id': x_train_seq}, y_train, epochs=epochs, batch_size=batch_size,
+    #                     validation_split=0.2, verbose=2)
     history = model.fit({'creative_id': x_train_seq}, y_train, epochs=epochs // 2, batch_size=batch_size, verbose=2)
     save_model_m2(history, model)
 
-    results = model.evaluate({'creative_id': x_test}, y_test, verbose=0)
-    predictions = model.predict({'creative_id': x_test}).squeeze()
+    results = model.evaluate({'creative_id': x_test_seq}, y_test, verbose=0)
+    predictions = model.predict({'creative_id': x_test_seq}).squeeze()
     show_result(results, predictions, y_test)
-
-
-def save_model_m0(model):
-    if save_model:
-        file_name = model_file_path + model_file_prefix + 'm0.h5'
-        print("保存原始模型:{} →".format(file_name), end='')
-        model.save(file_name)
-        print("模型保存成功。")
-
-
-def save_model_m1(history, model):
-    if save_model:
-        file_name = model_file_path + model_file_prefix + 'm1.bin'
-        print("保存第一次训练模型:{} → ".format(file_name), end='')
-        model.save_weights(file_name)
-        with open(model_file_path + model_file_prefix + 'm1.pkl', 'wb') as fname:
-            pickle.dump(history.history, fname)
-        print("模型保存成功。")
-
-
-def save_model_m2(history, model):
-    if save_model:
-        file_name = model_file_path + model_file_prefix + 'm2.bin'
-        print("保存第二次训练模型:{} → ".format(file_name), end='')
-        model.save_weights(file_name)
-        with open(model_file_path + model_file_prefix + 'm2.pkl', 'wb') as fname:
-            pickle.dump(history.history, fname)
-        print("模型保存成功。")
 
 
 # ----------------------------------------------------------------------
