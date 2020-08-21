@@ -46,6 +46,7 @@ product_category_max = 18  # 最大的产品类别编号(建议对它使用众�
 product_id_max = 44313  # 最大的产品编号(33273),存在缺失值(/N)的数据
 time_id_max = 91
 user_id_max = 900000  # 用户数
+day_feature_num = 6
 
 # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
 creative_id_step_size = 128000
@@ -123,35 +124,38 @@ model_file_prefix = f'embedding_{embedding_size}_{max_len}_'
 base_data_type = "基础数据集"
 x_data_file_name = 'x_data'
 y_data_file_name = 'y_data'
+lst_data_file_name = 'lst_data'
 
 # 训练数据
 train_data_type = '训练数据集'
 x_train_file_name = 'x_train'
 y_train_file_name = 'y_train'
+
 train_val_data_type = '去除验证的训练数据集'
 x_train_val_file_name = 'x_train_val'
 y_train_val_file_name = 'y_train_val'
 
-# train_data_type = '平衡的训练数据集'
-# x_train_file_name = 'x_train_balance'
-# y_train_file_name = 'y_train_balance'
-# x_train_val_file_name = 'x_train_val_balance'
-# y_train_val_file_name = 'y_train_val_balance'
-
-# 验证数据
 val_data_type = '验证数据集'
 x_val_file_name = 'x_val'
 y_val_file_name = 'y_val'
-# 测试数据
+
 test_data_type = '测试数据集'
 x_test_file_name = 'x_test'
 y_test_file_name = 'y_test'
+
+train_balance_data_type = '平衡后的训练数据集'
+x_train_balance_file_name = 'x_train_balance'
+y_train_balance_file_name = 'y_train_balance'
+
+test_balance_data_type = '平衡后的测试数据集'
+x_test_balance_file_name = 'x_test_balance'
+y_test_balance_file_name = 'y_test_balance'
 
 # 平衡数据时，每个类别的倍数，例如：1表示1倍，即不增加数据；2表示2倍，增加1倍的数据；12表示12倍，增加11倍的数据
 balance_age_list = [12, 3, 2, 3, 3, 4, 6, 13, 21, 35]
 balance_gender_list = [1, 2]
 
 # 控制开关
-show_data = True  # 显示加载的数据
+show_data = False  # 显示加载的数据
 show_result = True  # 显示训练结果
 save_model = False  # 保存训练模型

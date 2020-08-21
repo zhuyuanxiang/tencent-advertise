@@ -40,8 +40,8 @@ def build_res_net():
     # x_output = concatenate([
     #     build_residual_gm(x0, embedding_size * 2, 4),
     #     build_residual_ga(x0, embedding_size * 2, 5)], axis=-1)
-    x_output = build_residual(x0, embedding_size * 2, 3)
-    x_output = build_residual(x_output, embedding_size * 4, 4)
+    x_output = build_residual(x0, embedding_size * 3, 3)
+    x_output = build_residual(x_output, embedding_size * 6, 4)
     x_output = concatenate([
         GlobalMaxPooling1D()(x_output),
         GlobalAveragePooling1D()(x_output)

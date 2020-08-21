@@ -17,7 +17,7 @@
 import pickle
 
 from config import save_model, model_file_path, model_file_prefix
-from tools import beep_end
+from tools import beep_end, show_title
 
 
 # ----------------------------------------------------------------------
@@ -40,6 +40,7 @@ def save_model_m0(model):
 
 def save_model_m1(history, model):
     if save_model:
+        show_title("保存网络模型")
         file_name = model_file_path + model_file_prefix + 'm1.bin'
         print("保存第一次训练模型:{} → ".format(file_name), end='')
         model.save_weights(file_name)
@@ -50,6 +51,7 @@ def save_model_m1(history, model):
 
 def save_model_m2(history, model):
     if save_model:
+        show_title("保存网络模型")
         file_name = model_file_path + model_file_prefix + 'm2.bin'
         print("保存第二次训练模型:{} → ".format(file_name), end='')
         model.save_weights(file_name)
