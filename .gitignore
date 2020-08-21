@@ -140,8 +140,6 @@ data/*
 doc/*
 lab_log/*
 log_dir/*
-log_dir/*
-data/*
 model/*
 tmp
 /word2vec.ipynb
