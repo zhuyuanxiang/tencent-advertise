@@ -27,8 +27,8 @@ def main():
 
     from src.data.export_data import export_train_test_data
     x_train, y_train = export_train_test_data(x_data, y_data)
-    from src.data.load_data import load_train_test_data
-    x_train, y_train = load_train_test_data()
+    from src.data.load_data import load_train_data
+    x_train, y_train = load_train_data()
     # export_train_balance(x_train, y_train)
 
     from src.data.export_data import export_val_data
