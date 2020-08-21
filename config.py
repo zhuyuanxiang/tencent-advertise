@@ -119,10 +119,16 @@ elif export_data_type == 'no_interval':
 
 model_file_prefix = f'embedding_{embedding_size}_{max_len}_'
 
+# 用于拆分的基础数据
+base_data_type = "基础数据集"
+x_data_file_name = 'x_data'
+y_data_file_name = 'y_data'
+
 # 训练数据
 train_data_type = '训练数据集'
 x_train_file_name = 'x_train'
 y_train_file_name = 'y_train'
+train_val_data_type = '去除验证的训练数据集'
 x_train_val_file_name = 'x_train_val'
 y_train_val_file_name = 'y_train_val'
 
@@ -133,9 +139,11 @@ y_train_val_file_name = 'y_train_val'
 # y_train_val_file_name = 'y_train_val_balance'
 
 # 验证数据
+val_data_type = '验证数据集'
 x_val_file_name = 'x_val'
 y_val_file_name = 'y_val'
 # 测试数据
+test_data_type = '测试数据集'
 x_test_file_name = 'x_test'
 y_test_file_name = 'y_test'
 
