@@ -14,13 +14,14 @@
 @Desc       :   建造各种模型
 @理解：
 """
-# common imports
-from config import creative_id_window, embedding_size, max_len, label_name, model_type, learning_rate
-from keras import Sequential, optimizers, losses, metrics, Input, Model
-from keras.layers import Embedding, Dense
+from keras import Input, losses, metrics, Model, optimizers, Sequential
+from keras.layers import Dense, Dropout, Embedding
 from keras.regularizers import l2
-from src.data.load_data import load_word2vec_weights
 from tensorflow import keras
+
+# common imports
+from config import creative_id_window, embedding_size, label_name, learning_rate, max_len, model_type
+from src.data.load_data import load_word2vec_weights
 
 
 # ----------------------------------------------------------------------
@@ -28,7 +29,8 @@ from tensorflow import keras
 def build_single_input():
     model = Sequential(name='creative_id')
     # mask_zero 在 MaxPooling 层中不能支持
-    model.add(Embedding(creative_id_window, embedding_size, input_length=max_len, weights=[load_word2vec_weights()], trainable=False))
+    model.add(Embedding(creative_id_window, embedding_size, input_length=max_len, weights=[load_word2vec_weights()],
+                        trainable=False))
     return model
 
 
@@ -39,9 +41,9 @@ def build_single_output(model: keras.Sequential):
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
         model.compile(
-            optimizer=optimizers.RMSprop(learning_rate),
-            loss=losses.sparse_categorical_crossentropy,
-            metrics=[metrics.sparse_categorical_accuracy]
+                optimizer=optimizers.RMSprop(learning_rate),
+                loss=losses.sparse_categorical_crossentropy,
+                metrics=[metrics.sparse_categorical_accuracy]
         )
     elif label_name == 'gender':
         # model.add(Dense(embedding_size, activation='relu', kernel_regularizer=l2(0.001)))
@@ -49,10 +51,10 @@ def build_single_output(model: keras.Sequential):
         print("%s——模型构建完成！" % model_type)
         print("* 编译模型")
         model.compile(
-            # optimizer=optimizers.RMSprop(lr=RMSProp_lr),
-            optimizer=optimizers.Adam(learning_rate),
-            loss=losses.binary_crossentropy,
-            metrics=[metrics.binary_accuracy]
+                # optimizer=optimizers.RMSprop(lr=RMSProp_lr),
+                optimizer=optimizers.Adam(learning_rate),
+                loss=losses.binary_crossentropy,
+                metrics=[metrics.binary_accuracy]
         )
     else:
         raise Exception("错误的标签类型！")
@@ -67,12 +69,13 @@ def build_single_model_api(model_input, model_output):
     print("* 编译模型")
     if label_name == 'age':
         model.compile(
-            optimizer=optimizers.RMSprop(learning_rate),
-            loss=losses.sparse_categorical_crossentropy,
-            metrics=[metrics.sparse_categorical_accuracy]
+                optimizer=optimizers.RMSprop(learning_rate),
+                loss=losses.sparse_categorical_crossentropy,
+                metrics=[metrics.sparse_categorical_accuracy]
         )
     elif label_name == 'gender':
-        model.compile(optimizer=optimizers.Adam(learning_rate), loss=losses.binary_crossentropy, metrics=[metrics.binary_accuracy])
+        model.compile(optimizer=optimizers.Adam(learning_rate), loss=losses.binary_crossentropy,
+                      metrics=[metrics.binary_accuracy])
     else:
         raise Exception("错误的标签类型！")
     return model
@@ -101,13 +104,13 @@ def build_product_category_input():
 
 
 def build_multi_input_api():
-    embedded_creative_id=build_embedded_creative_id()
+    embedded_creative_id = build_embedded_creative_id()
     return []
 
 
 def build_embedded_creative_id(model_input):
     embedded_creative_id = Embedding(
-        creative_id_window, embedding_size, input_length=max_len, weights=[load_word2vec_weights()], trainable=False
+            creative_id_window, embedding_size, input_length=max_len, weights=[load_word2vec_weights()], trainable=False
     )
     x_input = embedded_creative_id(model_input[0])
     return x_input
