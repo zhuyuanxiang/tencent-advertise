@@ -19,31 +19,32 @@ import gc
 
 import numpy as np
 from keras import Input
-from keras.layers import Dense, Dropout
+from keras.layers import Dense
+from keras.layers import Dropout
 
-from config import batch_size
-from config import embedding_size
-from config import epochs
-from config import time_id_max
-from config import train_data_type
+from src.base.config import batch_size
+from src.base.config import embedding_size
+from src.base.config import epochs
+from src.base.config import time_id_max
+from src.base.config import train_data_type
+from src.base.tools import beep_end
+from src.base.tools import show_title
 from src.model.build_model import build_single_model_api
 from src.model.build_model import build_single_output_api
-from src.model.build_model_res_net import build_residual, build_residual_bn
-from tools import beep_end
-from tools import show_title
+from src.model.build_model_res_net import build_residual
 
 
-def build_inception(incep_num, x_input):
-    x_output = build_cnn_inception(incep_num, x_input)
-    # x_output = Dropout(0.2, name=f"Inception_Drop_{incep_num}")(x_output)
+def build_inception(inception_num, x_input):
+    x_output = build_cnn_inception(inception_num, x_input)
+    # x_output = Dropout(0.2, name=f"Inception_Drop_{inception_num}")(x_output)
     # x_output = build_pool_inception(x_output)
-    x_output = build_rnn_inception(incep_num, x_output)
+    x_output = build_rnn_inception(inception_num, x_output)
     return x_output
 
 
 def build_pool_inception(x_output):
     from keras.layers import concatenate, GlobalAveragePooling1D, GlobalMaxPooling1D
-    x_output = build_residual(x_output, embedding_size * 6, 4)
+    x_output = build_residual(embedding_size * 6, x_output, 4)
     x_output = Dropout(0.2)(x_output)
     x_output = concatenate([
             GlobalMaxPooling1D()(x_output),
@@ -52,22 +53,34 @@ def build_pool_inception(x_output):
     return x_output
 
 
-def build_rnn_inception(incep_num, x_output):
+def build_rnn_inception(inception_num, x_output):
     from keras.layers import LSTM, Bidirectional
     x_output = Bidirectional(
-            LSTM(embedding_size * 6, dropout=0.2, recurrent_dropout=0.2), name=f"BiLSTM_{incep_num}")(x_output)
-    x_output = Dropout(0.2, name=f"RNN_Drop_{incep_num}")(x_output)
-    from keras.regularizers import l1
-    # from keras.regularizers import l2
+            LSTM(embedding_size * 8, dropout=0.2, recurrent_dropout=0.2), name=f"BiLSTM_{inception_num}")(x_output)
+    x_output = Dropout(0.2, name=f"RNN_Drop_{inception_num}")(x_output)
+    # from keras.regularizers import l1
+    from keras.regularizers import l2
     x_output = Dense(
-            embedding_size, activation='relu', kernel_regularizer=l1(0.001), name=f"RNN_Dense_{incep_num}")(x_output)
+            embedding_size, activation='relu', kernel_regularizer=l2(0.001), name=f"RNN_Dense_{inception_num}")(
+            x_output)
     return x_output
 
 
-def build_cnn_inception(incep_num, x_input):
-    x_output = build_residual_bn(x_input, embedding_size * 3, incep_num)
+def build_cnn_inception(inception_num, x_input):
+    inception_num = inception_num * 10
+    # from src.model.build_model_res_net import build_residual_bn
+    # x_input_1 = Dropout(0.3)(x_input)
+    # x_output_1 = build_residual_bn(x_input_1, embedding_size * 3, inception_num + 1)
+    # x_input_2 = Dropout(0.3)(x_input)
+    # x_output_2 = build_residual_bn(x_input_2, embedding_size * 3, inception_num + 2)
+    # from keras.layers import concatenate
+    # x_output = concatenate([x_output_1, x_output_2])
+
+    from src.model.build_model_res_net import build_residual_share
+    x_output = build_residual_share(embedding_size * 4, x_input, inception_num + 1)
+    x_output = Dropout(0.2)(x_output)
     from keras.layers import MaxPooling1D
-    x_output = MaxPooling1D(7, name=f"CNN_MaxPooling_{incep_num}")(x_output)
+    x_output = MaxPooling1D(7, name=f"CNN_MaxPooling_{inception_num}")(x_output)
     return x_output
 
 
@@ -90,14 +103,14 @@ def train_single_input():
 
     from src.data.load_data import load_train_val_data
     x_train_val, y_train_val = load_train_val_data()
-    from config import day_feature_idx
+    from src.base.config import day_feature_idx
     x_train_val = single_data_reshape(day_feature_idx, x_train_val, y_train_val.shape[0])
     from src.data.load_data import load_val_data
     x_val, y_val = load_val_data()
     x_val = single_data_reshape(day_feature_idx, x_val, y_val.shape[0])
-    show_title("存在验证集训练网络模型")
-    history = model.fit(x_train_val, y_train_val, epochs=epochs, batch_size=batch_size,
-                        validation_data=(x_val, y_val), verbose=2)
+    show_title("基于固定验证集训练网络模型")
+    history = model.fit(x_train_val, y_train_val, validation_data=(x_val, y_val),
+                        epochs=epochs, batch_size=batch_size, verbose=2)
     del x_train_val, x_val, y_train_val, y_val
     gc.collect()
 
@@ -108,20 +121,20 @@ def train_single_input():
     show_title("加载与填充测试数据集")
     x_test, y_test = load_test_data()
     x_test = single_data_reshape(day_feature_idx, x_test, y_test.shape[0])
+    show_title("基于测试集测试网络模型")
     results = model.evaluate(x_test, y_test, verbose=0)
     predictions = model.predict(x_test).squeeze()
     show_result(results, predictions, y_test)
 
-    show_title("没有验证集训练网络模型，训练次数减半")
     from src.data.load_data import load_train_data
     show_title("加载与填充{}".format(train_data_type))
     x_train, y_train = load_train_data()
     x_train = single_data_reshape(day_feature_idx, x_train, y_train.shape[0])
-
+    show_title("基于训练集训练网络模型，无验证集，训练次数减半")
     history = model.fit(x_train, y_train, epochs=epochs // 2, batch_size=batch_size, verbose=2)
     from src.model.save_model import save_model_m2
     save_model_m2(history, model)
-
+    show_title("基于测试集测试网络模型")
     results = model.evaluate(x_test, y_test, verbose=0)
     predictions = model.predict(x_test).squeeze()
     show_result(results, predictions, y_test)
@@ -231,7 +244,7 @@ def train_multi_input():
 
 def reshape_data(x_train_val, data_size):
     result = []
-    from config import day_feature_num
+    from src.base.config import day_feature_num
     for feature_idx in range(day_feature_num):
         result.append(x_train_val[:, :, feature_idx, :].reshape([data_size, time_id_max, embedding_size]))
     return np.array(result)
@@ -239,6 +252,6 @@ def reshape_data(x_train_val, data_size):
 
 if __name__ == '__main__':
     # 运行结束的提醒
-    # train_single_input()
-    train_multi_input()
+    train_single_input()
+    # train_multi_input()
     beep_end()
