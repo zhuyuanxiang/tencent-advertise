@@ -18,9 +18,9 @@ import math
 
 import numpy as np
 
-from config import day_feature_num, fix_period_days, fix_period_length
-from config import embedding_size
-from config import time_id_max, user_id_max
+from src.base.config import day_feature_num, fix_period_days, fix_period_length
+from src.base.config import embedding_size
+from src.base.config import time_id_max, user_id_max
 
 
 def generate_w2v_data(x_data):
@@ -55,7 +55,7 @@ def generate_fix_data(x_data):
     return model_data
 
 
-def generate_day_sequence_data(x_data):
+def generate_day_statistical_sequence(x_data):
     data_step = user_id_max // 100
 
     sequence_data = np.zeros([user_id_max, time_id_max, day_feature_num, embedding_size], dtype=np.float16)

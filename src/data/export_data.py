@@ -16,11 +16,11 @@
 """
 from sklearn.model_selection import train_test_split
 
-import config
-from config import label_name
+from src.base import config
+from src.base.config import label_name
+from src.base.tools import show_title
 from src.data.save_data import save_model_data
 from src.无用代码.generate_data import generate_balance_data
-from tools import show_title
 
 
 # ----------------------------------------------------------------------
@@ -65,19 +65,13 @@ def export_train_test_data(x_data, y_data):
 
 
 def export_generate_data(lst_data):
-    from src.data.generate_data import generate_day_sequence_data
-    show_title("加工数据为 91 天的序列数据，每天为6个特征(最大值、最小值、平均值)96维数据")
-    x_data = generate_day_sequence_data(lst_data)
-    save_model_data(x_data, config.data_file_path + config.x_data_file_name, '中间数据集')
-
-    # show_title("加工数据为定长的数据列表")
+    from src.base.classes import ExportDataTypeGenerateFunc
     # from src.data.generate_data import generate_fix_data
     # x_data = generate_fix_data(lst_data)
 
-    # show_title("加工数据为无间隔有重复的数据列表")
     # from generate_data import generate_data_no_interval_with_repeat
     # x_data, y_data, x_w2v = generate_data_no_interval_with_repeat(x_csv, y_csv)
-    return x_data
+    return ExportDataTypeGenerateFunc[config.export_data_type](lst_data)
 
 
 def export_base_data():
@@ -106,3 +100,33 @@ def export_w2v_data(lst_data):
     show_title("导出用于Word2Vec训练的数据")
     from src.data.generate_data import generate_w2v_data
     save_model_data(generate_w2v_data(lst_data), config.data_w2v_path + 'x_w2v', 'w2v数据集')
+
+
+def export_day_fix_sequence(lst_data):
+    show_title("加工数据为 91 天的序列数据，每天为定长的数据序列")
+    pass
+
+
+def export_day_statistical_sequence(lst_data):
+    from src.data.generate_data import generate_day_statistical_sequence
+    show_title("加工数据为 91 天的序列数据，每天为6个特征(最大值、最小值、平均值)96维数据")
+    x_data = generate_day_statistical_sequence(lst_data)
+    save_model_data(x_data, config.data_file_path + config.x_data_file_name, '中间数据集')
+    return x_data
+
+
+def export_week_fix_sequence(lst_data):
+    pass
+
+
+def export_week_statistical_sequence(lst_data):
+    pass
+
+
+def export_user_fix_sequence(lst_data):
+    show_title("加工数据为无间隔有重复的数据列表")
+    pass
+
+
+def export_user_statistical_sequenc(lst_data):
+    pass
