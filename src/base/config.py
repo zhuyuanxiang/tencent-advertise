@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # ----------------------------------------------------------------------
+
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
@@ -46,8 +47,8 @@ product_category_max = 18  # 最大的产品类别编号(建议对它使用众�
 product_id_max = 44313  # 最大的产品编号(33273),存在缺失值(/N)的数据
 time_id_max = 91
 user_id_max = 900000  # 用户数
-day_feature_num = 6
-
+day_feature_num = 3
+day_feature_idx = 2
 # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
 creative_id_step_size = 128000
 creative_id_window = creative_id_step_size * 3
@@ -72,7 +73,7 @@ model_type = "ResNet"  # VGG: 使用重复元素的神经网络
 # model_type = "GM"  # GlobalMaxPooling1D：1 维全局池化层
 
 learning_rate = 3e-04
-epochs = 30
+epochs = 60
 batch_size = 1024
 max_len = 128  # {64:803109，128:882952, 256:898459, 384:899686} 个用户；{64:1983350，128:2329077} 个素材
 embedding_size = 32
@@ -101,22 +102,26 @@ load_file_name = load_file_path + 'train_data_all_output.csv'
 data_w2v_path = f'../../data/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 model_w2v_path = f'../../model/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 
-export_data_type = 'day_sequence'
-if export_data_type == 'day_sequence':
-    data_file_path = '../../data/sparsity_hash/day_sequence/creative_id/{0}/{1}/'.format(
-            creative_id_window, label_name)
-    model_file_path = '../../model/sparsity_hash/day_sequence/word2vec/creative_id/{0}/{1}/{2}/'.format(
-            creative_id_window, label_name, model_type)
-elif export_data_type == 'fix_day':
-    data_file_path = '../../data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
-            fix_period_days, fix_period_length, creative_id_window, label_name)
-    model_file_path = '../../model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
-            fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
-elif export_data_type == 'no_interval':
-    data_file_path = '../../data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(
-            creative_id_window, label_name)
-    model_file_path = '../../model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
-            creative_id_window, label_name, model_type)
+# export_data_type = 'day_sequence'
+# if export_data_type == 'day_sequence':
+#     data_file_path = f'../../data/sparsity_hash/day_sequence/creative_id/{creative_id_window}/{label_name}/{user_id_max}/'
+#     model_file_path = f'../../model/sparsity_hash/day_sequence/word2vec/creative_id/{creative_id_window}/{label_name}/{model_type}/'
+# elif export_data_type == 'fix_day':
+#     data_file_path = '../../data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
+#             fix_period_days, fix_period_length, creative_id_window, label_name)
+#     model_file_path = '../../model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
+#             fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
+# elif export_data_type == 'no_interval':
+#     data_file_path = '../../data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(
+#             creative_id_window, label_name)
+#     model_file_path = '../../model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
+#             creative_id_window, label_name, model_type)
+
+from src.base.classes import ExportDataType, ExportDataTypeStr
+
+export_data_type = ExportDataType.day_statistical_sequence
+data_file_path = f'../../data/sparsity_hash/{ExportDataTypeStr[export_data_type]}/creative_id/{creative_id_window}/{label_name}/{user_id_max}/'
+model_file_path = f'../../model/sparsity_hash/{ExportDataTypeStr[export_data_type]}/word2vec/creative_id/{creative_id_window}/{label_name}/{model_type}/'
 
 model_file_prefix = f'embedding_{embedding_size}_{max_len}_'
 
