@@ -32,6 +32,7 @@ if __name__ == '__main__':
 
 def save_model_m0(model):
     if save_model:
+        show_title("保存网络模型")
         file_name = model_file_path + model_file_prefix + 'm0.h5'
         print("保存原始模型:{} →".format(file_name), end='')
         model.save(file_name)
