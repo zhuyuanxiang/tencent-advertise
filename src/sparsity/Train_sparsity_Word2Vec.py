@@ -15,13 +15,13 @@
 @理解：
 """
 # ----------------------------------------------------------------------
-import config
-from tools import show_title, beep_end
+from src.base import config
+from src.base.tools import show_title, beep_end
 
 
 def train_word2vec_model_with_gensim(words_lists):
     from gensim.models import Word2Vec
-    from config import embedding_size, embedding_window
+    from src.base.config import embedding_size, embedding_window
     show_title(f"训练 word2vec({embedding_size}_{embedding_window}) 模型")
     model = Word2Vec(
             words_lists,

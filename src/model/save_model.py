@@ -16,8 +16,8 @@
 """
 import pickle
 
-from config import save_model, model_file_path, model_file_prefix
-from tools import beep_end, show_title
+from src.base.config import save_model, model_file_path, model_file_prefix
+from src.base.tools import beep_end, show_title
 
 
 # ----------------------------------------------------------------------

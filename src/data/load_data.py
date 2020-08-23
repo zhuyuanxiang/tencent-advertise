@@ -17,11 +17,11 @@
 import numpy as np
 import pandas as pd
 
-import config
+from src.base import config
 from src.data.show_data import show_data_result
 from src.data.show_data import show_example_data
-from tools import get_w2v_file_name
-from tools import show_title
+from src.base.tools import get_w2v_file_name
+from src.base.tools import show_title
 
 
 # --------------------------------------------------
@@ -81,42 +81,42 @@ def load_model_data(file_name, file_path=config.data_file_path, data_type='åŽŸå§
 
 
 def load_train_val_data():
-    from config import train_val_data_type, x_train_val_file_name, y_train_val_file_name
+    from src.base.config import train_val_data_type, x_train_val_file_name, y_train_val_file_name
     x_train_val = load_model_data(x_train_val_file_name, data_type=train_val_data_type)
     y_train_val = load_model_data(y_train_val_file_name, data_type=train_val_data_type)
     return x_train_val, y_train_val
 
 
 def load_train_data():
-    from config import train_data_type, x_train_file_name, y_train_file_name
+    from src.base.config import train_data_type, x_train_file_name, y_train_file_name
     x_train = load_model_data(x_train_file_name, data_type=train_data_type)
     y_train = load_model_data(y_train_file_name, data_type=train_data_type)
     return x_train, y_train
 
 
 def load_base_data():
-    from config import base_data_type, x_data_file_name, y_data_file_name
+    from src.base.config import base_data_type, x_data_file_name, y_data_file_name
     x_data = load_model_data(x_data_file_name, data_type=base_data_type)
     y_data = load_model_data(y_data_file_name, data_type=base_data_type)
     return x_data, y_data
 
 
 def load_val_data():
-    from config import val_data_type, x_val_file_name, y_val_file_name
+    from src.base.config import val_data_type, x_val_file_name, y_val_file_name
     x_val = load_model_data(x_val_file_name, data_type=val_data_type)
     y_val = load_model_data(y_val_file_name, data_type=val_data_type)
     return x_val, y_val
 
 
 def load_test_data():
-    from config import test_data_type, x_test_file_name, y_test_file_name
+    from src.base.config import test_data_type, x_test_file_name, y_test_file_name
     x_test = load_model_data(x_test_file_name, data_type=test_data_type)
     y_test = load_model_data(y_test_file_name, data_type=test_data_type)
     return x_test, y_test
 
 
 def load_day_list_data():
-    from config import base_data_type, lst_data_file_name, y_data_file_name
+    from src.base.config import base_data_type, lst_data_file_name, y_data_file_name
     lst_data = load_model_data(lst_data_file_name, data_type=base_data_type)
     y_data = load_model_data(y_data_file_name, data_type=base_data_type)
     return lst_data, y_data

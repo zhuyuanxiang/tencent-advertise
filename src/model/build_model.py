@@ -15,12 +15,12 @@
 @理解：
 """
 from keras import Input, losses, metrics, Model, optimizers, Sequential
-from keras.layers import Dense, Dropout, Embedding
+from keras.layers import Dense, Embedding
 from keras.regularizers import l2
 from tensorflow import keras
 
 # common imports
-from config import creative_id_window, embedding_size, label_name, learning_rate, max_len, model_type
+from src.base.config import creative_id_window, embedding_size, label_name, learning_rate, max_len, model_type
 from src.data.load_data import load_word2vec_weights
 
 

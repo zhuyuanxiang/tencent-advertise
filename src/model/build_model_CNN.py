@@ -18,7 +18,7 @@ from keras.layers import Conv1D, Dense, Dropout, Flatten, GlobalMaxPooling1D, Ma
 from keras.regularizers import l2
 
 from src.model.build_model import build_single_input, build_single_output
-from config import embedding_size
+from src.base.config import embedding_size
 
 
 def build_conv1d_mlp():

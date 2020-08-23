@@ -22,7 +22,7 @@ from keras.regularizers import l2
 
 # ----------------------------------------------------------------------
 from src.model.build_model import build_single_output_api, build_single_model_api, build_creative_id_input, build_embedded_creative_id
-from config import embedding_size
+from src.base.config import embedding_size
 
 # 屏蔽警告：Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'

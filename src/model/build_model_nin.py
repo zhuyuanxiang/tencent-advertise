@@ -16,7 +16,7 @@
 """
 # common imports
 from src.model.build_model import build_single_input, build_single_output
-from config import embedding_size
+from src.base.config import embedding_size
 from keras import Sequential
 from keras.layers import Dropout, Conv1D, MaxPooling1D, GlobalAveragePooling1D
 

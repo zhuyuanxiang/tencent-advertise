@@ -19,8 +19,8 @@ import random
 
 import numpy as np
 
-import config
-from config import creative_id_begin, creative_id_end, user_id_max, creative_id_max, time_id_max, fix_period_days, \
+from src.base import config
+from src.base.config import creative_id_begin, creative_id_end, user_id_max, creative_id_max, time_id_max, fix_period_days, \
     fix_period_length
 from src.data.show_data import show_example_data
 

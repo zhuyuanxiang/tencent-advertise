@@ -16,7 +16,7 @@
 """
 # common imports
 import winsound
-from config import creative_id_step_size, seed
+from src.base.config import creative_id_step_size, seed
 
 
 # ----------------------------------------------------------------------

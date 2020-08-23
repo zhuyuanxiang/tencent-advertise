@@ -17,7 +17,7 @@
 
 
 # common imports
-import config
+from src.base import config
 
 
 def beep_end():

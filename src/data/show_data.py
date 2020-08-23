@@ -17,12 +17,12 @@
 import numpy as np
 
 # ----------------------------------------------------------------------
-import config
-from config import creative_id_max, creative_id_step_size
-from config import label_name
-from config import max_len, embedding_size, embedding_window
-from config import model_type, epochs, batch_size, learning_rate
-from config import user_id_max
+from src.base import config
+from src.base.config import creative_id_max, creative_id_step_size
+from src.base.config import label_name
+from src.base.config import max_len, embedding_size, embedding_window
+from src.base.config import model_type, epochs, batch_size, learning_rate
+from src.base.config import user_id_max
 
 
 def show_example_data(X, y, data_type='原始数据'):

@@ -19,7 +19,7 @@ from keras.layers import GRU, Bidirectional, LSTM, Conv1D
 from keras.regularizers import l2
 
 from src.model.build_model import build_single_input, build_single_output
-from config import embedding_size
+from src.base.config import embedding_size
 
 
 # ----------------------------------------------------------------------

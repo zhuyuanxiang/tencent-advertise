@@ -18,11 +18,11 @@ import gc
 
 from keras import Input
 
-import tools
-from config import batch_size, embedding_size, epochs, time_id_max, train_data_type
+from src.base import tools
+from src.base.config import batch_size, embedding_size, epochs, time_id_max, train_data_type
 from src.model.build_model import build_single_model_api, build_single_output_api
 from src.sparsity.train_day_sequence import build_inception, construct_model_single_input, single_data_reshape
-from tools import show_title
+from src.base.tools import show_title
 
 
 def construct_model_multi_output():
@@ -45,7 +45,7 @@ def train_multi_output():
 
     from src.data.load_data import load_train_val_data
     x_train_val, y_train_val = load_train_val_data()
-    from config import day_feature_idx
+    from src.base.config import day_feature_idx
     x_train_val = single_data_reshape(day_feature_idx, x_train_val, y_train_val.shape[0])
     from src.data.load_data import load_val_data
     x_val, y_val = load_val_data()

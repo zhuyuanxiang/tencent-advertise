@@ -16,10 +16,10 @@
 """
 from sklearn.model_selection import train_test_split
 
-import config
+from src.base import config
 import numpy as np
 
-from config import creative_id_step_size, seed
+from src.base.config import creative_id_step_size, seed
 from src.无用代码.generate_data import generate_word2vec_data_with_interval, generate_word2vec_data_no_interval, \
     generate_fix_data, generate_no_time_data
 from src.data.load_data import load_original_data
@@ -64,7 +64,7 @@ from src.data.show_data import show_word2vec_data
 # data_fix_week()
 #       生成每周固定长度的数据
 # ----------------------------------------------------------------------
-from tools import beep_end
+from src.base.tools import beep_end
 
 
 def data_no_time():

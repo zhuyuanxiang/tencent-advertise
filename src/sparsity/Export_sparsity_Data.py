@@ -15,7 +15,7 @@
 @理解：
 """
 
-from tools import beep_end, show_title
+from src.base.tools import beep_end, show_title
 
 
 # ----------------------------------------------------------------------

@@ -18,13 +18,13 @@
 from keras.layers import Flatten, Dropout, Dense
 from keras.regularizers import l2
 
-import tools
+from src.base import tools
 
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 from src.model.build_model import build_single_input, build_single_output
-from config import embedding_size
+from src.base.config import embedding_size
 
 if __name__ == '__main__':
     # 运行结束的提醒

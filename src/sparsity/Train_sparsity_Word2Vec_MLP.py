@@ -15,12 +15,12 @@
 @理解：
 """
 
-from config import batch_size, epochs, max_len, model_type
-from config import train_data_type
+from src.base.config import batch_size, epochs, max_len, model_type
+from src.base.config import train_data_type
 from src.data.load_data import load_test_data
 from src.model.build_model_dense_net import build_dense_net
 from src.model.save_model import save_model_m0, save_model_m1, save_model_m2
-from tools import beep_end, show_title
+from src.base.tools import beep_end, show_title
 
 
 # ----------------------------------------------------------------------

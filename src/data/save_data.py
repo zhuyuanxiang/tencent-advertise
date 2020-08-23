@@ -17,7 +17,7 @@
 
 import numpy as np
 
-import config
+from src.base import config
 from src.data.show_data import show_data_result
 
 
@@ -27,7 +27,7 @@ def save_word2vec_weights(model_w2v):
     :param model_w2v:
     :return:
     """
-    from tools import show_title, get_w2v_file_name
+    from src.base.tools import show_title, get_w2v_file_name
     file_name = get_w2v_file_name()
     show_title(f"保存 word2vec 模型 {file_name}")
     # 初始化嵌入式模型权重矩阵；0 是占位符，因此不记入模型的数据；补：将 0 的权重大小设置为 0.5，效果并不好
