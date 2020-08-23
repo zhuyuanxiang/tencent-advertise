@@ -113,3 +113,10 @@ def load_test_data():
     x_test = load_model_data(x_test_file_name, data_type=test_data_type)
     y_test = load_model_data(y_test_file_name, data_type=test_data_type)
     return x_test, y_test
+
+
+def load_day_list_data():
+    from config import base_data_type, lst_data_file_name, y_data_file_name
+    lst_data = load_model_data(lst_data_file_name, data_type=base_data_type)
+    y_data = load_model_data(y_data_file_name, data_type=base_data_type)
+    return lst_data, y_data
