@@ -23,16 +23,18 @@ def main():
     show_title("数据清洗开始...")
     from src.data.export_data import export_base_data
     x_data, y_data = export_base_data()
+    # from src.data.load_data import load_base_data
     # x_data, y_data = load_base_data()
 
     from src.data.export_data import export_train_test_data
     x_train, y_train = export_train_test_data(x_data, y_data)
-    from src.data.load_data import load_train_data
-    x_train, y_train = load_train_data()
+    # from src.data.load_data import load_train_data
+    # x_train, y_train = load_train_data()
     # export_train_balance(x_train, y_train)
 
     from src.data.export_data import export_val_data
     x_train_val, y_train_val = export_val_data(x_train, y_train)
+    # from src.data.load_data import load_val_data
     # x_train_val, y_train_val = load_val_data()
     # export_val_balance(x_train_val, y_train_val)
 
