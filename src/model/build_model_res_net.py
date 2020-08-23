@@ -15,11 +15,13 @@
 @理解：
 """
 # common imports
-from keras.layers import Conv1D, BatchNormalization, Activation, GlobalAveragePooling1D, Dropout, Dense, GlobalMaxPooling1D, add, concatenate, MaxPooling1D, \
-    AveragePooling1D
+from keras.layers import Activation, add, AveragePooling1D, BatchNormalization, concatenate, Conv1D, Dense, Dropout, \
+    GlobalAveragePooling1D, GlobalMaxPooling1D, MaxPooling1D
 from keras.regularizers import l2
-from src.model.build_model import build_single_output_api, build_single_model_api, build_creative_id_input, build_embedded_creative_id
+
 from config import embedding_size
+from src.model.build_model import build_creative_id_input, build_embedded_creative_id, build_single_model_api, \
+    build_single_output_api
 
 
 # ----------------------------------------------------------------------
@@ -43,8 +45,8 @@ def build_res_net():
     x_output = build_residual(x0, embedding_size * 3, 3)
     x_output = build_residual(x_output, embedding_size * 6, 4)
     x_output = concatenate([
-        GlobalMaxPooling1D()(x_output),
-        GlobalAveragePooling1D()(x_output)
+            GlobalMaxPooling1D()(x_output),
+            GlobalAveragePooling1D()(x_output)
     ], axis=-1)
     x_output = Dropout(0.2)(x_output)
     x_output = Dense(embedding_size, activation='relu', kernel_regularizer=l2(0.001))(x_output)
@@ -170,14 +172,31 @@ def build_residual_ga(inception_input, num_channels, inception_num):
 
 # ----------------------------------------------------------------------
 def build_residual(inception_input, num_channels, inception_num):
-    x1 = Conv1D(num_channels, 1, activation='relu', name='res{}_x1_conv1d'.format(inception_num))(inception_input)
+    x1 = Conv1D(num_channels, 1, activation='relu', name=f'res{inception_num}_x1_conv1d')(inception_input)
 
-    x2 = Conv1D(num_channels, 1, activation='relu', name='res{}_x2_conv1d_1'.format(inception_num))(inception_input)
-    x2 = Conv1D(num_channels, 2, padding='same', activation='relu', name='res{}_x2_conv1d_2'.format(inception_num))(x2)
+    x2 = Conv1D(num_channels, 1, activation='relu', name=f'res{inception_num}_x2_conv1d_1')(inception_input)
+    x2 = Conv1D(num_channels, 2, padding='same', activation='relu', name=f'res{inception_num}_x2_conv1d_2')(x2)
 
-    x3 = Conv1D(num_channels, 1, activation='relu', name='res{}_x3_conv1d_1'.format(inception_num))(inception_input)
-    x3 = Conv1D(num_channels, 2, padding='same', activation='relu', name='res{}_x3_conv1d_2'.format(inception_num))(x3)
-    x3 = Conv1D(num_channels, 2, padding='same', activation='relu', name='res{}_x3_conv1d_3'.format(inception_num))(x3)
+    x3 = Conv1D(num_channels, 1, activation='relu', name=f'res{inception_num}_x3_conv1d_1')(inception_input)
+    x3 = Conv1D(num_channels, 2, padding='same', activation='relu', name=f'res{inception_num}_x3_conv1d_2')(x3)
+    x3 = Conv1D(num_channels, 2, padding='same', activation='relu', name=f'res{inception_num}_x3_conv1d_3')(x3)
+
+    inception_output = add([x1, x2, x3])
+    return inception_output
+
+
+def build_residual_bn(inception_input, num_channels, inception_num):
+    x1 = Conv1D(num_channels, 1, name=f'res{inception_num}_x1_conv1d')(inception_input)
+    x1 = BatchNormalization(name=f'res{inception_num}_x1_bn')(x1)
+    x1 = Activation('relu', name=f'res{inception_num}_x1_activation')(x1)
+
+    x2 = Conv1D(num_channels, 2, padding='same',  name=f'res{inception_num}_x2_conv1d_1')(inception_input)
+    x2 = BatchNormalization(name=f'res{inception_num}_x2_bn')(x2)
+    x2 = Activation('relu', name=f'res{inception_num}_x2_activation')(x2)
+
+    x3 = Conv1D(num_channels, 3, padding='same', name=f'res{inception_num}_x3_conv1d_1')(inception_input)
+    x3 = BatchNormalization(name=f'res{inception_num}_x3_bn')(x3)
+    x3 = Activation('relu', name=f'res{inception_num}_x3_activation')(x3)
 
     inception_output = add([x1, x2, x3])
     return inception_output
