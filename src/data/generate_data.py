@@ -18,8 +18,8 @@ import math
 
 import numpy as np
 
+from config import day_feature_num, fix_period_days, fix_period_length
 from config import embedding_size
-from config import fix_period_days, fix_period_length
 from config import time_id_max, user_id_max
 
 
@@ -57,7 +57,8 @@ def generate_fix_data(x_data):
 
 def generate_day_sequence_data(x_data):
     data_step = user_id_max // 100
-    sequence_data = np.zeros([user_id_max, time_id_max, 3, embedding_size], dtype=np.float16)
+
+    sequence_data = np.zeros([user_id_max, time_id_max, day_feature_num, embedding_size], dtype=np.float16)
     from src.data.load_data import load_word2vec_weights
     embedding_weights = load_word2vec_weights()
     for user_idx in range(user_id_max):
@@ -73,6 +74,9 @@ def generate_day_sequence_data(x_data):
                 sequence_data[user_idx, day_idx, 0] = day_data.min(axis=0)
                 sequence_data[user_idx, day_idx, 1] = day_data.max(axis=0)
                 sequence_data[user_idx, day_idx, 2] = day_data.mean(axis=0)
+                sequence_data[user_idx, day_idx, 3] = day_data.std(axis=0)
+                sequence_data[user_idx, day_idx, 4] = day_data.ptp(axis=0)
+                sequence_data[user_idx, day_idx, 5] = np.median(day_data, axis=0)
 
     print(f"第 {user_id_max} 条数据-->数据清洗完成。")
     return sequence_data
