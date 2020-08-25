@@ -16,8 +16,6 @@
 """
 from enum import Enum
 
-import src.data.export_data as export_data
-
 
 class ExportDataType(Enum):
     day_fix_sequence = 0  # 每人每天访问数据为长度固定的序列
@@ -28,20 +26,3 @@ class ExportDataType(Enum):
     user_statistical_sequence = 5  # 每人访问数据序列的统计特征
 
 
-ExportDataTypeStr = {
-        ExportDataType.day_fix_sequence: 'day_fix_sequence',
-        ExportDataType.day_statistical_sequence: 'day_statistical_sequence',
-        ExportDataType.week_fix_sequence: 'week_fix_sequence',
-        ExportDataType.week_statistical_sequence: 'week_statistical_sequence',
-        ExportDataType.user_fix_sequence: 'user_fix_sequence',
-        ExportDataType.user_statistical_sequence: 'user_statistical_sequence'
-}
-
-ExportDataTypeGenerateFunc = {
-        ExportDataType.day_fix_sequence: export_data.export_day_fix_sequence,
-        ExportDataType.day_statistical_sequence: export_data.export_day_statistical_sequence,
-        ExportDataType.week_fix_sequence: export_data.export_week_fix_sequence,
-        ExportDataType.week_statistical_sequence: export_data.export_week_statistical_sequence,
-        ExportDataType.user_fix_sequence: export_data.export_user_fix_sequence,
-        ExportDataType.user_statistical_sequence: export_data.export_user_statistical_sequenc
-}
