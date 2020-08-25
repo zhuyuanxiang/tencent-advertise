@@ -20,7 +20,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-# ----------------------------------------------------------------------
+from src.base.classes import ExportDataType
 
 plt.rcParams['font.sans-serif'] = ['YaHei Consolas Hybrid']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
@@ -46,9 +46,10 @@ industry_max = 335  # 最大的产业类别编号(326),存在缺失值(/N)的数
 product_category_max = 18  # 最大的产品类别编号(建议对它使用众数，因为每个用户的类别数不太稀疏)
 product_id_max = 44313  # 最大的产品编号(33273),存在缺失值(/N)的数据
 time_id_max = 91
-user_id_max = 900000  # 用户数
+user_id_max = 100000  # 用户数
 day_feature_num = 3
 day_feature_idx = 2
+day_feature_postfix = ['min', 'max', 'mean', 'std', 'ptp', 'median']
 # 定制 素材库大小 = creative_id_end - creative_id_start = creative_id_num = creative_id_step_size * (1 + 3 + 1)
 creative_id_step_size = 128000
 creative_id_window = creative_id_step_size * 3
@@ -102,24 +103,15 @@ load_file_name = load_file_path + 'train_data_all_output.csv'
 data_w2v_path = f'../../data/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 model_w2v_path = f'../../model/sparsity_hash/word2vec/creative_id/{creative_id_window}/'
 
-# export_data_type = 'day_sequence'
-# if export_data_type == 'day_sequence':
-#     data_file_path = f'../../data/sparsity_hash/day_sequence/creative_id/{creative_id_window}/{label_name}/{user_id_max}/'
-#     model_file_path = f'../../model/sparsity_hash/day_sequence/word2vec/creative_id/{creative_id_window}/{label_name}/{model_type}/'
-# elif export_data_type == 'fix_day':
-#     data_file_path = '../../data/sparsity_hash/fix_{0}_{1}/creative_id/{2}/{3}/'.format(
-#             fix_period_days, fix_period_length, creative_id_window, label_name)
-#     model_file_path = '../../model/sparsity_hash/fix_{0}_{1}/word2vec/creative_id/{2}/{3}/{4}/'.format(
-#             fix_period_days, fix_period_length, creative_id_window, label_name, model_type)
-# elif export_data_type == 'no_interval':
-#     data_file_path = '../../data/sparsity_hash/no_interval/with_repeat/creative_id/{0}/{1}/'.format(
-#             creative_id_window, label_name)
-#     model_file_path = '../../model/sparsity_hash/no_interval/with_repeat/word2vec/creative_id/{0}/{1}/{2}/'.format(
-#             creative_id_window, label_name, model_type)
-
-from src.base.classes import ExportDataType, ExportDataTypeStr
-
 export_data_type = ExportDataType.day_statistical_sequence
+ExportDataTypeStr = {
+        ExportDataType.day_fix_sequence: 'day_fix_sequence',
+        ExportDataType.day_statistical_sequence: 'day_statistical_sequence',
+        ExportDataType.week_fix_sequence: 'week_fix_sequence',
+        ExportDataType.week_statistical_sequence: 'week_statistical_sequence',
+        ExportDataType.user_fix_sequence: 'user_fix_sequence',
+        ExportDataType.user_statistical_sequence: 'user_statistical_sequence'
+}
 data_file_path = f'../../data/sparsity_hash/{ExportDataTypeStr[export_data_type]}/creative_id/{creative_id_window}/{label_name}/{user_id_max}/'
 model_file_path = f'../../model/sparsity_hash/{ExportDataTypeStr[export_data_type]}/word2vec/creative_id/{creative_id_window}/{label_name}/{model_type}/'
 
@@ -136,7 +128,7 @@ train_data_type = '训练数据集'
 x_train_file_name = 'x_train'
 y_train_file_name = 'y_train'
 
-train_val_data_type = '去除验证的训练数据集'
+train_val_data_type = '去除验证集的训练数据集'
 x_train_val_file_name = 'x_train_val'
 y_train_val_file_name = 'y_train_val'
 
@@ -152,10 +144,16 @@ train_balance_data_type = '平衡后的训练数据集'
 x_train_balance_file_name = 'x_train_balance'
 y_train_balance_file_name = 'y_train_balance'
 
+train_val_balance_data_type = '平衡后的去除验证集的训练数据集'
+x_train_val_balance_file_name = 'x_train_val_balance'
+y_train_val_balance_file_name = 'y_train_val_balance'
+
 test_balance_data_type = '平衡后的测试数据集'
 x_test_balance_file_name = 'x_test_balance'
 y_test_balance_file_name = 'y_test_balance'
 
+w2v_data_type = "w2v数据集"
+w2v_file_name = "x_w2v"
 # 平衡数据时，每个类别的倍数，例如：1表示1倍，即不增加数据；2表示2倍，增加1倍的数据；12表示12倍，增加11倍的数据
 balance_age_list = [12, 3, 2, 3, 3, 4, 6, 13, 21, 35]
 balance_gender_list = [1, 2]
