@@ -54,6 +54,6 @@ def save_model_data(data, file_name, data_type='原始数据'):
     :return:
     """
     show_data_result(data, data_type)
-    print("保存{0}：{1}条数据 --> ".format(data_type, len(data)), end='')
+    print(f"保存{data_type}：{len(data)}条数据 --> {data_type}:{file_name}.npy --> ", end='')
     np.save(file_name, data)
-    print(f'{data_type}:{file_name}.npy --> 保存成功！')
+    print('保存成功！')
